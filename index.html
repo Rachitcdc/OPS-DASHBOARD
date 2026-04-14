@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDC OPS Dashboard</title>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#080808;--s1:#111;--s2:#181818;--s3:#202020;
+  --b1:#252525;--b2:#333;
+  --lime:#c8ff00;--lime2:#9fcc00;--limd:rgba(200,255,0,.07);--limb:rgba(200,255,0,.2);
+  --tx:#e8e8e8;--mu:#777;--mu2:#444;
+  --red:#ff4444;--redd:rgba(255,68,68,.1);
+  --amb:#ffaa00;--ambd:rgba(255,170,0,.1);
+  --grn:#2ecc71;--grnd:rgba(46,204,113,.1);
+  --blu:#3d9be9;--blud:rgba(61,155,233,.1);
+  --pur:#9b59b6;--purd:rgba(155,89,182,.1);
+  --tel:#1abc9c;--teld:rgba(26,188,156,.1);
+  --fnt:'Segoe UI',system-ui,sans-serif;
+  --mono:'Consolas','Cascadia Code',monospace;
+  --r:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--fnt);background:var(--bg);color:var(--tx);font-size:13px;line-height:1.4;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--s1);}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px;}
+
+#setup{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#000;padding:1.5rem;}
+.sc{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:14px;padding:2.2rem;max-width:500px;width:100%;}
+.logo{font-size:2rem;font-weight:900;color:var(--lime);letter-spacing:-.05em;margin-bottom:.2rem;}
+.logo span{color:#fff;}
+.sub{color:var(--mu);font-size:.83rem;margin-bottom:1.8rem;}
+.lbl{display:block;color:var(--mu);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem;}
+.inp{width:100%;padding:.65rem .9rem;background:#080808;border:1px solid #2a2a2a;border-radius:var(--r);color:var(--lime);font-family:var(--mono);font-size:.8rem;outline:none;}
+.inp:focus{border-color:var(--lime);}
+.inp::placeholder{color:#2a2a2a;}
+.hint{color:#333;font-size:.72rem;margin-top:.35rem;line-height:1.5;}
+.cbtn{width:100%;padding:.75rem;margin-top:1.1rem;background:var(--lime);border:none;border-radius:var(--r);color:#000;font-size:.88rem;font-weight:800;cursor:pointer;}
+.cbtn:hover{background:var(--lime2);}
+.cbtn:disabled{background:#222;color:#555;cursor:not-allowed;}
+.steps{margin:.9rem 0;text-align:left;}
+.steps ol{padding-left:1rem;}
+.steps li{color:#444;font-size:.75rem;margin:.3rem 0;line-height:1.5;}
+.steps li strong{color:#666;}
+.steps a{color:var(--lime);text-decoration:none;}
+#serr{color:var(--red);font-size:.75rem;margin-top:.4rem;display:none;}
+
+#loading{min-height:100vh;display:none;align-items:center;justify-content:center;flex-direction:column;gap:.9rem;background:#000;}
+.sp{width:36px;height:36px;border:2.5px solid #222;border-top-color:var(--lime);border-radius:50%;animation:spin .65s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.lmsg{color:var(--mu);font-size:.83rem;}
+.lsteps{display:flex;flex-direction:column;gap:.3rem;}
+.lstep{display:flex;align-items:center;gap:.45rem;font-size:.75rem;color:var(--mu2);}
+.lstep.done{color:var(--grn);}
+.lstep.act{color:var(--lime);}
+.ldot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+#dash{display:none;}
+.topbar{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 1.1rem;height:48px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.brand{font-weight:900;font-size:1rem;letter-spacing:-.04em;color:var(--lime);}
+.brand span{color:var(--tx);}
+.tbc{display:flex;align-items:center;gap:.55rem;flex:1;justify-content:center;}
+.tbr{display:flex;align-items:center;gap:.55rem;}
+.blv{background:var(--limd);color:var(--lime);font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:20px;border:1px solid var(--limb);}
+.rinfo{color:var(--mu2);font-size:.7rem;}
+.rcd{color:var(--lime);font-weight:700;}
+.btn{padding:.3rem .75rem;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);color:var(--tx);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .12s;white-space:nowrap;}
+.btn:hover{border-color:var(--lime);color:var(--lime);}
+.btn.lime{background:var(--lime);color:#000;border-color:var(--lime);}
+.btn.lime:hover{background:var(--lime2);}
+
+.fbar{background:var(--s1);border-bottom:1px solid var(--b1);padding:.5rem 1.1rem;display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;}
+.fl{color:var(--mu);font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.fi{padding:.28rem .6rem;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);color:var(--tx);font-size:.74rem;outline:none;}
+.fi:focus{border-color:var(--lime);}
+.fsep{width:1px;height:16px;background:var(--b1);}
+.fchip{padding:.22rem .55rem;background:var(--limd);border:1px solid var(--limb);border-radius:20px;color:var(--lime);font-size:.67rem;font-weight:700;cursor:pointer;}
+.pending-chip{padding:.22rem .55rem;border:1px solid rgba(255,170,0,.3);border-radius:20px;font-size:.67rem;font-weight:700;cursor:pointer;background:var(--amb);color:#000;}
+.pending-chip.off{background:var(--ambd);color:var(--amb);}
+
+.main{padding:1rem;max-width:1600px;margin:0 auto;}
+
+.tabnav{display:flex;gap:.18rem;margin-bottom:1rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.22rem;width:fit-content;flex-wrap:wrap;}
+.tb{padding:.35rem .8rem;border-radius:6px;border:none;background:none;font-size:.74rem;font-weight:600;cursor:pointer;color:var(--mu);transition:all .12s;white-space:nowrap;}
+.tb.on{background:var(--lime);color:#000;}
+.tb:hover:not(.on){background:var(--s2);color:var(--tx);}
+.tabp{display:none;}
+.tabp.on{display:block;}
+
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.55rem;margin-bottom:1rem;}
+.kc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.8rem .95rem;position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--lime));}
+.kc.alert-kpi{border-color:rgba(255,68,68,.35);}
+.kl{font-size:.66rem;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.28rem;}
+.kv{font-size:1.55rem;font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--ac,var(--lime));}
+.ks{font-size:.66rem;color:var(--mu2);margin-top:.22rem;}
+
+.insight-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.55rem;margin-bottom:1rem;}
+.ins{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.75rem .95rem;display:flex;align-items:center;gap:.7rem;}
+.ins-icon{width:32px;height:32px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.ins-body .il{font-size:.66rem;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;}
+.ins-body .iv{font-size:1rem;font-weight:800;color:var(--tx);letter-spacing:-.02em;}
+
+.crow{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin-bottom:1rem;}
+.cc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.9rem;}
+.ct{font-size:.66rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;}
+.cw{position:relative;}
+
+.shd{font-size:.66rem;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;}
+.scnt{background:var(--s2);border:1px solid var(--b1);border-radius:20px;padding:1px 7px;font-size:.63rem;color:var(--mu2);}
+.tc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;margin-bottom:1rem;}
+.ts{overflow-x:auto;max-height:340px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:.74rem;}
+th{background:var(--s2);color:var(--mu);font-weight:700;font-size:.63rem;text-transform:uppercase;letter-spacing:.06em;padding:.48rem .8rem;text-align:left;border-bottom:1px solid var(--b1);white-space:nowrap;position:sticky;top:0;z-index:1;}
+td{padding:.46rem .8rem;border-bottom:1px solid var(--b1);vertical-align:middle;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--s2);}
+tr.ar td{background:rgba(255,68,68,.04);}
+tr.ar:hover td{background:rgba(255,68,68,.08);}
+.oid{font-family:var(--mono);font-size:.68rem;color:var(--lime);font-weight:600;}
+.pg{display:flex;align-items:center;gap:.45rem;padding:.5rem .8rem;background:var(--s2);border-top:1px solid var(--b1);font-size:.72rem;color:var(--mu);}
+.pgbtn{padding:.2rem .55rem;background:var(--s1);border:1px solid var(--b2);border-radius:5px;color:var(--tx);font-size:.7rem;cursor:pointer;}
+.pgbtn:hover{border-color:var(--lime);color:var(--lime);}
+.pgbtn:disabled{opacity:.3;cursor:not-allowed;}
+
+.b{display:inline-flex;align-items:center;padding:1px 7px;border-radius:20px;font-size:.63rem;font-weight:700;white-space:nowrap;}
+.bg{background:var(--grnd);color:var(--grn);}
+.br{background:var(--redd);color:var(--red);}
+.ba{background:var(--ambd);color:var(--amb);}
+.bb{background:var(--blud);color:var(--blu);}
+.bp{background:var(--purd);color:var(--pur);}
+.bl{background:var(--limd);color:var(--lime);}
+.bgr{background:var(--s2);color:var(--mu);border:1px solid var(--b1);}
+
+.leg{display:flex;flex-wrap:wrap;gap:7px;margin-top:.5rem;}
+.li{display:flex;align-items:center;gap:4px;font-size:.66rem;color:var(--mu);}
+.ld{width:8px;height:8px;border-radius:2px;}
+
+.asec{background:rgba(255,68,68,.05);border:1px solid rgba(255,68,68,.2);border-radius:var(--r);padding:.8rem .9rem;margin-bottom:1rem;}
+.atit{color:var(--red);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem;}
+
+.score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.55rem;margin-bottom:1rem;}
+.score-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.9rem;}
+.score-title{font-size:.66rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.55rem;}
+.score-meter{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;margin:.35rem 0;}
+.score-fill{height:100%;border-radius:3px;}
+
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-bottom:1rem;}
+.fcard{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.9rem;}
+.ftit{font-size:.66rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;}
+.frow{display:flex;justify-content:space-between;padding:.32rem 0;border-bottom:1px solid var(--b1);}
+.frow:last-child{border-bottom:none;}
+.frl{color:var(--mu);font-size:.74rem;}
+.frv{font-weight:700;font-size:.82rem;color:var(--lime);}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;}
+.empty{padding:1.8rem;text-align:center;color:var(--mu2);}
+
+/* ── FOLLOW-UP ── */
+.fu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.65rem;margin-bottom:1rem;}
+.fu-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;}
+.fu-header{padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1);}
+.fu-name{font-weight:800;font-size:.92rem;letter-spacing:-.01em;}
+.fu-role{font-size:.66rem;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-top:.12rem;}
+.fu-count{font-size:1.5rem;font-weight:900;letter-spacing:-.04em;}
+.fu-vendors{padding:.55rem 1rem;display:flex;flex-wrap:wrap;gap:.35rem;border-bottom:1px solid var(--b1);}
+.fu-vtag{font-size:.63rem;padding:2px 7px;border-radius:20px;font-weight:600;}
+.fu-body{padding:.5rem 0;}
+.fu-stat{display:flex;justify-content:space-between;padding:.28rem 1rem;font-size:.74rem;}
+.fu-stat-l{color:var(--mu);}
+.fu-stat-v{font-weight:700;}
+.fu-filter-bar{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;}
+.fu-chip{padding:.28rem .7rem;border-radius:20px;font-size:.72rem;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .12s;}
+.fu-chip:hover{opacity:.85;}
+.fu-chip.selected{opacity:1;color:#000;}
+.fu-chip:not(.selected){opacity:.45;}
+
+/* ── DELAY SECTIONS ── */
+.delay-sec{background:var(--s1);border:1px solid var(--b1);border-left:3px solid var(--dc,var(--red));border-radius:var(--r);overflow:hidden;}
+.delay-hd{padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;border-bottom:1px solid var(--b1);}
+.delay-title{font-size:.82rem;font-weight:800;letter-spacing:-.01em;}
+.delay-sub{font-size:.67rem;color:var(--mu);margin-top:.1rem;}
+.slider-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;}
+.slider-lbl{font-size:.7rem;color:var(--mu);white-space:nowrap;}
+.slider-ticks{display:flex;justify-content:space-between;width:140px;font-size:.6rem;color:var(--mu2);}
+
+@media(max-width:1100px){.crow{grid-template-columns:1fr 1fr;}.score-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:700px){.crow,.two,.fgrid{grid-template-columns:1fr;}.kg{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+<div class="sc">
+  <div class="logo">CDC<span> OPS</span></div>
+  <p class="sub">Operations Intelligence Dashboard</p>
+  <div class="steps"><ol>
+    <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → CDC OPS project</li>
+    <li><strong>APIs &amp; Services</strong> → Enable <strong>Google Sheets API</strong></li>
+    <li><strong>Google Auth Platform → Clients → Create → Web app</strong></li>
+    <li>Authorised JS origins: <strong>http://localhost:8080</strong> (no trailing slash)</li>
+    <li>Copy the Client ID below, then run <strong>python -m http.server 8080</strong> in C:\Users\crm1\</li>
+  </ol></div>
+  <hr style="border:none;border-top:1px solid #1e1e1e;margin:1.2rem 0;">
+  <label class="lbl">Google OAuth Client ID</label>
+  <input type="text" id="cid" class="inp" placeholder="123456789-xxxx.apps.googleusercontent.com">
+  <p class="hint">Must be opened via <strong>http://localhost:8080/cdc-operations-dashboard.html</strong> — not by double-clicking the file.</p>
+  <button class="cbtn" id="cbtn" onclick="initAuth()">Connect &amp; Load Dashboard</button>
+  <div id="serr"></div>
+</div>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="sp"></div>
+  <p class="lmsg" id="lmsg">Connecting to Google Sheets...</p>
+  <div class="lsteps" id="lsteps"></div>
+  <p style="color:var(--mu2);font-size:.7rem;margin-top:.5rem;">Loading 8 sheets — takes ~20 seconds</p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash">
+  <div class="topbar">
+    <div class="brand">CDC<span> OPS</span></div>
+    <div class="tbc">
+      <span class="blv">● LIVE</span>
+      <span class="rinfo">Refresh in <span class="rcd" id="cd">5:00</span></span>
+    </div>
+    <div class="tbr">
+      <span class="rinfo" id="lupd"></span>
+      <button class="btn lime" onclick="manualRefresh()" id="rbtn">&#8635; Refresh</button>
+    </div>
+  </div>
+
+  <div class="fbar">
+    <span class="fl">View:</span>
+    <button class="pending-chip" id="pendingChip" onclick="togglePending()">&#9889; Pending Only</button>
+    <div class="fsep"></div>
+    <span class="fl">Date from:</span>
+    <input type="date" id="ff" class="fi" onchange="buildAll()">
+    <span class="fl">to:</span>
+    <input type="date" id="ft" class="fi" onchange="buildAll()">
+    <div class="fsep"></div>
+    <span class="fl">Sneaker:</span>
+    <select id="fss" class="fi" onchange="buildAll()">
+      <option value="PENDING">Pending</option>
+      <option value="">All</option>
+      <option value="UNASSIGNED">Unassigned</option>
+      <option value="RTO">RTO</option>
+      <option value="DELIVERED">Delivered</option>
+    </select>
+    <div class="fsep"></div>
+    <span class="fl">Streetwear:</span>
+    <select id="fsw" class="fi" onchange="buildAll()">
+      <option value="PENDING">Pending Pickup</option>
+      <option value="">All</option>
+      <option value="SHIPPED">Shipped</option>
+      <option value="TRANSIT">In Transit</option>
+      <option value="RTO">RTO</option>
+    </select>
+    <div class="fsep"></div>
+    <span class="fchip" onclick="clearF()">&#10005; Clear all</span>
+  </div>
+
+  <div class="main">
+    <div class="tabnav">
+      <button class="tb on" onclick="showTab('ov')">Overview</button>
+      <button class="tb" onclick="showTab('snk')">Sneakers &amp; Hype</button>
+      <button class="tb" onclick="showTab('sw')">Streetwear</button>
+      <button class="tb" onclick="showTab('ops')">Operations</button>
+      <button class="tb" onclick="showTab('ref')">Refunds</button>
+      <button class="tb" onclick="showTab('ful')">&#8987; Fulfilment</button>
+      <button class="tb" onclick="showTab('score')">&#128202; Scorecard</button>
+      <button class="tb" onclick="showTab('brands')">&#127942; Brand Performance</button>
+      <button class="tb" onclick="showTab('topsell')">&#128293; Top Products</button>
+      <button class="tb" onclick="showTab('fu')" style="border:1px solid rgba(200,255,0,.3)">&#128222; Follow-ups</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="tab-ov" class="tabp on">
+      <div style="font-size:.7rem;color:var(--mu);margin-bottom:.65rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.5rem .9rem">
+        Showing <strong style="color:var(--lime)" id="ov-month-label">current month</strong> data — all KPIs based on order date within this calendar month
+      </div>
+      <div class="kg" id="kov"></div>
+      <div class="crow">
+        <div class="cc"><div class="ct">Sneaker status (this month)</div><div class="cw"><canvas id="csnks" style="height:170px" role="img" aria-label="Sneaker status"></canvas></div><div class="leg" id="lsnks"></div></div>
+        <div class="cc"><div class="ct">Streetwear status (this month)</div><div class="cw"><canvas id="csws" style="height:170px" role="img" aria-label="SW status"></canvas></div><div class="leg" id="lsws"></div></div>
+        <div class="cc"><div class="ct">Refunds this month by category</div><div class="cw"><canvas id="crefc" style="height:170px" role="img" aria-label="Refund cats"></canvas></div></div>
+      </div>
+      <div class="two">
+        <div><div class="shd">Sneaker pending orders (STATUS = All Pending) <span class="scnt" id="csnkov">0</span></div><div class="tc"><div class="ts"><table id="tsnkov"></table></div></div></div>
+        <div><div class="shd">Instant shipping &gt;2 days — no tracking <span class="scnt" id="cinstov">0</span></div><div class="tc"><div class="ts"><table id="tinstov"></table></div></div></div>
+      </div>
+      <div class="two" style="margin-top:.65rem">
+        <div><div class="shd">Streetwear pending orders (blank / pickup pending) <span class="scnt" id="cswov">0</span></div><div class="tc"><div class="ts"><table id="tswov"></table></div></div></div>
+        <div><div class="shd">Recent refunds this month <span class="scnt" id="crefov">0</span></div><div class="tc"><div class="ts"><table id="trefov"></table></div></div></div>
+      </div>
+    </div>
+
+
+    <!-- SNEAKERS -->
+    <div id="tab-snk" class="tabp">
+      <div class="kg" id="ksnk"></div>
+      <div class="two" style="margin-bottom:.55rem">
+        <div class="cc"><div class="ct">Status breakdown (excl. cancelled)</div><div class="cw"><canvas id="csnkd" style="height:200px" role="img" aria-label="Snk dist"></canvas></div><div class="leg" id="lsnkd"></div></div>
+        <div class="cc"><div class="ct">Top 10 cities</div><div class="cw"><canvas id="csnkc" style="height:200px" role="img" aria-label="Cities"></canvas></div></div>
+      </div>
+      <div class="two" style="margin-bottom:.55rem">
+        <div class="cc"><div class="ct">Courier assignments — orders</div><div class="cw"><canvas id="csnk-courier" style="height:200px" role="img" aria-label="Courier assignments"></canvas></div></div>
+        <div class="cc">
+          <div class="ct">Cancelled orders by month <span id="snk-cancel-month-lbl" style="font-size:.65rem;color:var(--mu);margin-left:.5rem"></span></div>
+          <div class="cw"><canvas id="csnk-cancel-monthly" style="height:200px" role="img" aria-label="Cancelled monthly"></canvas></div>
+          <div id="snk-cancel-drill" style="display:none;margin-top:.65rem">
+            <div style="font-size:.66rem;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">&#9660; Cancelled orders — <span id="snk-cancel-drill-month"></span></div>
+            <div class="tc" style="margin:0"><div class="ts"><table id="tsnk-cancel-drill"></table></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="shd">Orders <span class="scnt" id="csnka">0</span></div>
+      <div class="tc"><div class="ts"><table id="tsnka"></table></div><div class="pg" id="pgsnka"></div></div>
+      <div class="shd" style="margin-top:1rem">Sneaker RTO / Returns <span class="scnt" id="csnkr">0</span></div>
+      <div class="tc"><div class="ts"><table id="tsnkr"></table></div><div class="pg" id="pgsnkr"></div></div>
+    </div>
+
+    <!-- STREETWEAR -->
+    <div id="tab-sw" class="tabp">
+      <div class="kg" id="ksw"></div>
+      <div class="asec" id="rtssec" style="display:none">
+        <div class="atit" id="rtstit">&#9888; RTS Orders Overdue (&gt;2 days)</div>
+        <div class="tc" style="margin:0"><div class="ts"><table id="trts"></table></div></div>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">Status breakdown</div><div class="cw"><canvas id="cswd" style="height:200px" role="img" aria-label="SW dist"></canvas></div><div class="leg" id="lswd"></div></div>
+        <div class="cc"><div class="ct" id="sw-brand-chart-title">Top 10 delay brands — RTS unshipped &gt;2 days</div><div class="cw"><canvas id="cswb" style="height:200px" role="img" aria-label="SW brands"></canvas></div></div>
+      </div>
+      <div class="shd">All streetwear orders <span class="scnt" id="cswa">0</span></div>
+      <div class="tc"><div class="ts"><table id="tswa"></table></div><div class="pg" id="pgswa"></div></div>
+      <div class="shd" style="margin-top:1rem">Delivered 2026 <span class="scnt" id="cswd2">0</span></div>
+      <div class="tc"><div class="ts"><table id="tswd2"></table></div><div class="pg" id="pgswd2"></div></div>
+    </div>
+
+    <!-- OPS -->
+    <div id="tab-ops" class="tabp">
+      <div class="kg" id="kops"></div>
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;flex-wrap:wrap;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.5rem .9rem">
+        <span style="font-size:.7rem;color:var(--mu)">Exchange/RTO type:</span>
+        <select id="exch-type" class="fi" onchange="buildOps()">
+          <option value="">All</option>
+          <option value="EXCHANGE">Exchange only</option>
+          <option value="RTO">RTO only</option>
+        </select>
+        <div class="fsep"></div>
+        <span style="font-size:.7rem;color:var(--mu)">Cancelled — month:</span>
+        <select id="cancel-month" class="fi" onchange="buildOps()">
+          <option value="">All time</option>
+        </select>
+      </div>
+      <div class="two">
+        <div>
+          <div class="shd">
+            Exchange orders <span class="scnt" id="cexch-e">0</span>
+          </div>
+          <div class="tc"><div class="ts"><table id="texch-e"></table></div><div class="pg" id="pgexch-e"></div></div>
+          <div class="shd" style="margin-top:.65rem">
+            RTO orders <span class="scnt" id="cexch-r">0</span>
+          </div>
+          <div class="tc"><div class="ts"><table id="texch-r"></table></div><div class="pg" id="pgexch-r"></div></div>
+        </div>
+        <div><div class="shd">Cancelled <span class="scnt" id="ccanc">0</span> <span style="font-size:.65rem;color:var(--mu2)" id="cancel-month-label"></span></div><div class="tc"><div class="ts"><table id="tcanc"></table></div><div class="pg" id="pgcanc"></div></div></div>
+      </div>
+      <div class="cc" style="margin-top:.55rem"><div class="ct">Cancellations by brand (top 10)</div><div class="cw"><canvas id="ccancb" style="height:180px" role="img" aria-label="Cancel brand"></canvas></div></div>
+    </div>
+
+    <!-- REFUNDS -->
+    <div id="tab-ref" class="tabp">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;flex-wrap:wrap;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.6rem .9rem">
+        <span style="font-size:.7rem;color:var(--mu)">Refund date from:</span>
+        <input type="date" id="ref-from" class="fi" value="2026-04-01" onchange="buildRef()">
+        <span style="font-size:.7rem;color:var(--mu)">to:</span>
+        <input type="date" id="ref-to" class="fi" onchange="buildRef()">
+        <span class="fchip" onclick="document.getElementById('ref-from').value='2026-04-01';document.getElementById('ref-to').value='';buildRef()">&#8635; Reset to Apr 2026</span>
+        <span class="fchip" style="background:var(--limd)" onclick="document.getElementById('ref-from').value='';document.getElementById('ref-to').value='';buildRef()">Show all time</span>
+        <span style="font-size:.7rem;color:var(--mu2)" id="ref-note"></span>
+      </div>
+      <div class="kg" id="kref"></div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">Complaint status</div><div class="cw"><canvas id="ccomp" style="height:180px" role="img" aria-label="Complaint"></canvas></div><div class="leg" id="lcomp"></div></div>
+        <div class="cc"><div class="ct">Issue types</div><div class="cw"><canvas id="ciss" style="height:180px" role="img" aria-label="Issues"></canvas></div></div>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">Refund value by category (Sneaker / Streetwear / Hype)</div><div class="cw"><canvas id="cref-cat-val" style="height:180px" role="img" aria-label="Refund by category"></canvas></div><div class="leg" id="lref-cat-val"></div></div>
+        <div class="cc"><div class="ct">Refund count by category — monthly trend</div><div class="cw"><canvas id="cref-cat-trend" style="height:180px" role="img" aria-label="Refund category trend"></canvas></div></div>
+      </div>
+      <div class="shd">Refund ledger <span class="scnt" id="crefl">0</span></div>
+      <div class="tc"><div class="ts"><table id="trefl"></table></div><div class="pg" id="pgrefl"></div></div>
+      <div class="shd" style="margin-top:1rem">Processed refunds <span class="scnt" id="crefp">0</span></div>
+      <div class="tc"><div class="ts"><table id="trefp"></table></div><div class="pg" id="pgrefp"></div></div>
+    </div>
+
+    <!-- FULFILMENT -->
+    <div id="tab-ful" class="tabp">
+      <div class="kg" id="kful"></div>
+      <div class="fgrid">
+        <div class="fcard"><div class="ftit">Sneaker — order to dispatch</div><div id="fsnkst"></div></div>
+        <div class="fcard"><div class="ftit">Streetwear — order to dispatch</div><div id="fswst"></div></div>
+      </div>
+      <div class="crow">
+        <div class="cc"><div class="ct">Sneaker dispatch days</div><div class="cw"><canvas id="cfulsnk" style="height:190px" role="img" aria-label="Snk fulfil"></canvas></div></div>
+        <div class="cc"><div class="ct">Streetwear dispatch days</div><div class="cw"><canvas id="cfulsw" style="height:190px" role="img" aria-label="SW fulfil"></canvas></div></div>
+        <div class="cc"><div class="ct">Sneaker vs Streetwear</div><div class="cw"><canvas id="cfulcmp" style="height:190px" role="img" aria-label="Comparison"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- BRAND PERFORMANCE -->
+    <div id="tab-brands" class="tabp">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
+        <span style="font-size:.7rem;color:var(--mu)">Month:</span>
+        <select id="bp-month" class="fi" onchange="buildBrands()" style="min-width:120px">
+          <option value="">All time</option>
+        </select>
+        <span style="font-size:.7rem;color:var(--mu)">Source:</span>
+        <select id="bp-source" class="fi" onchange="buildBrands()">
+          <option value="sw">Streetwear orders</option>
+          <option value="cancel">Cancellations</option>
+          <option value="both">Both combined</option>
+        </select>
+        <span style="font-size:.7rem;color:var(--mu2)" id="bp-summary"></span>
+      </div>
+      <div class="kg" id="kbp"></div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">Top 10 brands — orders this period</div><div class="cw"><canvas id="cbp-orders" style="height:220px" role="img" aria-label="Brand orders"></canvas></div></div>
+        <div class="cc"><div class="ct">Cancellation rate by brand (top 10)</div><div class="cw"><canvas id="cbp-cancel" style="height:220px" role="img" aria-label="Brand cancel rate"></canvas></div></div>
+      </div>
+      <div class="cc" style="margin-bottom:1rem">
+        <div class="ct">Brand delay analysis — avg days order→shipped (brands with 3+ orders)</div>
+        <div class="cw"><canvas id="cbp-delay" style="height:200px" role="img" aria-label="Brand delay"></canvas></div>
+      </div>
+      <div class="shd">Brand performance table <span class="scnt" id="cbp-cnt">0</span></div>
+      <div class="tc"><div class="ts"><table id="tbp"></table></div></div>
+    </div>
+
+    <!-- TOP PRODUCTS -->
+    <div id="tab-topsell" class="tabp">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
+        <span style="font-size:.7rem;color:var(--mu)">Period:</span>
+        <select id="tp-period" class="fi" onchange="buildTopProducts()">
+          <option value="30">Last 30 days</option>
+          <option value="60">Last 60 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="0">All time</option>
+        </select>
+        <span style="font-size:.7rem;color:var(--mu2)" id="tp-info"></span>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div>
+          <div class="shd">Top 10 sneaker products <span class="scnt" id="cnt-tp-snk">0</span></div>
+          <div class="tc"><div class="ts"><table id="t-tp-snk"></table></div></div>
+        </div>
+        <div>
+          <div class="shd">Top 10 streetwear products <span class="scnt" id="cnt-tp-sw">0</span></div>
+          <div class="tc"><div class="ts"><table id="t-tp-sw"></table></div></div>
+        </div>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">Top sneaker products — orders</div><div class="cw"><canvas id="c-tp-snk" style="height:240px" role="img" aria-label="Top sneaker products"></canvas></div></div>
+        <div class="cc"><div class="ct">Top streetwear products — orders</div><div class="cw"><canvas id="c-tp-sw" style="height:240px" role="img" aria-label="Top SW products"></canvas></div></div>
+      </div>
+      <div class="two">
+        <div>
+          <div class="shd">Sneaker — size breakdown (top 10 products)</div>
+          <div class="tc"><div class="ts"><table id="t-tp-snk-size"></table></div></div>
+        </div>
+        <div>
+          <div class="shd">Streetwear — size breakdown (top 10 products)</div>
+          <div class="tc"><div class="ts"><table id="t-tp-sw-size"></table></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCORECARD -->
+    <div id="tab-score" class="tabp">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;flex-wrap:wrap;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.5rem .9rem">
+        <span style="font-size:.7rem;color:var(--mu)">Scorecard period:</span>
+        <select id="score-month" class="fi" onchange="buildScore(D.sneakerOrders?D.sneakerOrders.rows:[],D.streetwearOrders?D.streetwearOrders.rows:[])">
+          <option value="">All time</option>
+        </select>
+        <span style="font-size:.7rem;color:var(--mu2)" id="score-note"></span>
+      </div>
+      <div class="score-grid" id="scorecard"></div>
+      <div class="crow">
+        <div class="cc"><div class="ct">Monthly order trend (sneaker)</div><div class="cw"><canvas id="ctrend" style="height:200px" role="img" aria-label="Trend"></canvas></div></div>
+        <div class="cc"><div class="ct">RTO by courier</div><div class="cw"><canvas id="crto" style="height:200px" role="img" aria-label="RTO courier"></canvas></div></div>
+        <div class="cc"><div class="ct">Orders vs refunds (monthly)</div><div class="cw"><canvas id="crevref" style="height:200px" role="img" aria-label="Rev vs Ref"></canvas></div></div>
+      </div>
+      <div class="kg" id="score-monthly-kpis"></div>
+      <div class="insight-bar" id="bizinsights"></div>
+    </div>
+    <!-- FOLLOW-UPS -->
+    <div id="tab-fu" class="tabp">
+
+      <!-- INSTANT SHIPPING ALERT -->
+      <div class="delay-sec" style="--dc:#ff6600;margin-bottom:1rem">
+        <div class="delay-hd">
+          <div style="display:flex;align-items:center;gap:.6rem">
+            <span style="font-size:1rem">&#9889;</span>
+            <div>
+              <div class="delay-title" style="color:#ff6600">Instant Shipping — Tracking Not Added</div>
+              <div class="delay-sub">Orders marked INSTANT SHIPPING with no tracking number added within 2 days of order date</div>
+            </div>
+          </div>
+          <span class="scnt" id="cnt-instant" style="font-size:.85rem;padding:2px 10px">0</span>
+        </div>
+        <div class="tc" style="margin:0"><div class="ts"><table id="t-instant"></table></div><div class="pg" id="pg-instant"></div></div>
+      </div>
+
+      <!-- ANUBHAV DELAY -->
+      <div class="delay-sec" style="--dc:#ff6b95;margin-bottom:1rem">
+        <div class="delay-hd">
+          <div style="display:flex;align-items:center;gap:.6rem">
+            <span style="font-size:1rem">&#9888;</span>
+            <div>
+              <div class="delay-title" style="color:#ff6b95">Anubhav Dhyani — Delayed Orders</div>
+              <div class="delay-sub">Vendor orders (Navya / Sameer / Shivil / Nehal) pending beyond threshold</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <span class="scnt" id="cnt-anu-delay" style="font-size:.85rem;padding:2px 10px">0</span>
+            <div class="slider-wrap">
+              <span class="slider-lbl">Threshold: <strong id="anu-days-val" style="color:#ff6b95">25</strong> days</span>
+              <input type="range" id="anu-slider" min="20" max="45" step="1" value="25"
+                style="width:140px;accent-color:#ff6b95"
+                oninput="document.getElementById('anu-days-val').textContent=this.value;renderDelayTables()">
+              <div class="slider-ticks"><span>20</span><span>25</span><span>28</span><span>30</span><span>35</span><span>45</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tc" style="margin:0"><div class="ts"><table id="t-anu-delay"></table></div><div class="pg" id="pg-anu-delay"></div></div>
+      </div>
+
+      <!-- ABHISHEK DELAY -->
+      <div class="delay-sec" style="--dc:#1abc9c;margin-bottom:1rem">
+        <div class="delay-hd">
+          <div style="display:flex;align-items:center;gap:.6rem">
+            <span style="font-size:1rem">&#9888;</span>
+            <div>
+              <div class="delay-title" style="color:#1abc9c">Abhishek — Delayed Orders</div>
+              <div class="delay-sub">Other vendor orders pending beyond 5 days</div>
+            </div>
+          </div>
+          <span class="scnt" id="cnt-abhi-delay" style="font-size:.85rem;padding:2px 10px">0</span>
+        </div>
+        <div class="tc" style="margin:0"><div class="ts"><table id="t-abhi-delay"></table></div><div class="pg" id="pg-abhi-delay"></div></div>
+      </div>
+
+      <!-- PERSON CARDS + FILTER -->
+      <div style="margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-top:1.5rem">
+        <div style="font-size:.8rem;color:var(--mu)">All vendor follow-up assignments — <strong style="color:var(--lime)">LOCATION</strong> column — pending orders only</div>
+        <div style="display:flex;align-items:center;gap:.45rem;">
+          <span style="font-size:.7rem;color:var(--mu)">Filter:</span>
+          <span id="fu-filter-all" class="fu-chip selected" style="background:var(--limd);border-color:var(--limb);color:var(--lime)" onclick="fuFilter('ALL')">All</span>
+          <span id="fu-filter-ANUBHAV" class="fu-chip selected" style="background:#ff6b9533;border-color:#ff6b95;color:#ff6b95" onclick="fuFilter('ANUBHAV')">Anubhav</span>
+          <span id="fu-filter-BHARAT" class="fu-chip selected" style="background:#3d9be933;border-color:#3d9be9;color:#3d9be9" onclick="fuFilter('BHARAT')">Bharat</span>
+          <span id="fu-filter-SHAURYA" class="fu-chip selected" style="background:#9b59b633;border-color:#9b59b6;color:#9b59b6" onclick="fuFilter('SHAURYA')">Shaurya</span>
+          <span id="fu-filter-ABHISHEK" class="fu-chip selected" style="background:#1abc9c33;border-color:#1abc9c;color:#1abc9c" onclick="fuFilter('ABHISHEK')">Abhishek</span>
+        </div>
+      </div>
+      <div class="fu-grid" id="fu-cards"></div>
+      <div id="fu-table-section">
+        <div class="shd" id="fu-table-title">All pending vendor orders <span class="scnt" id="fu-count">0</span></div>
+        <div class="tc"><div class="ts"><table id="tfu"></table></div><div class="pg" id="pgfu"></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var SH = {
+  sneakerOrders:    { id: '1s8ClY3rxWZIxX449DBgKGxljUvBgtK6Vmlg0Wu2ZEGg', gid: 218423464,  label: 'Sneaker Orders' },
+  streetwearOrders: { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1543681932, label: 'Streetwear Orders' },
+  streetwearExch:   { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 679868085,  label: 'Exchange & RTO' },
+  cancelledOrders:  { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 2023490862, label: 'Cancelled Orders' },
+  refundLedger:     { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1404887182, label: 'Refund Ledger' },
+  sneakerRTO:       { id: '1C5agMGY0QlSLU4LrsqIvcLa8CXt7YaFOBUtKGSICxGo', gid: 0,          label: 'Sneaker RTO' },
+  refundProcessed:  { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1057244868, label: 'Refund Processed' },
+  swDelivered2026:  { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1666284047, label: 'SW Delivered 2026' }
+};
+
+var PAGE = 50;
+var tokenClient, accessToken, D = {}, CH = {}, cdSec = 300, cdInt, pendingOnly = true;
+
+/* ── AUTH ── */
+function initAuth() {
+  var cid = document.getElementById('cid').value.trim();
+  if (!cid || !cid.includes('.apps.googleusercontent.com')) {
+    showErr('Please enter a valid Google OAuth Client ID.');
+    return;
+  }
+  var btn = document.getElementById('cbtn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: cid,
+      scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
+      callback: function(resp) {
+        if (resp.error) {
+          showErr('Auth failed: ' + resp.error);
+          resetBtn();
+          return;
+        }
+        accessToken = resp.access_token;
+        showScreen('loading');
+        loadAll();
+      },
+      error_callback: function(e) {
+        showErr('Error: ' + e.message);
+        resetBtn();
+      }
+    });
+    tokenClient.requestAccessToken();
+  } catch(e) {
+    showErr('Init failed: ' + e.message);
+    resetBtn();
+  }
+}
+
+function showErr(msg) {
+  var el = document.getElementById('serr');
+  el.textContent = msg;
+  el.style.cssText = 'color:#ff4444;font-size:.75rem;margin-top:.4rem;display:block;';
+}
+
+function resetBtn() {
+  var btn = document.getElementById('cbtn');
+  btn.disabled = false;
+  btn.textContent = 'Connect & Load Dashboard';
+}
+
+function showScreen(id) {
+  var ids = ['setup', 'loading', 'dash'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (ids[i] === id) {
+      el.style.display = (id === 'loading') ? 'flex' : 'block';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+}
+
+/* ── LOAD ── */
+async function loadAll() {
+  var keys = Object.keys(SH);
+  var steps = keys.map(function(k) { return { t: SH[k].label, s: '' }; });
+
+  function renderSteps() {
+    document.getElementById('lsteps').innerHTML = steps.map(function(s) {
+      return '<div class="lstep ' + s.s + '"><div class="ldot"></div>' + s.t + '</div>';
+    }).join('');
+  }
+
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    steps[i].s = 'act';
+    document.getElementById('lmsg').textContent = 'Loading ' + SH[k].label + '...';
+    renderSteps();
+    try {
+      var meta = await apiGet('https://sheets.googleapis.com/v4/spreadsheets/' + SH[k].id);
+      var sh = null;
+      for (var j = 0; j < meta.sheets.length; j++) {
+        if (meta.sheets[j].properties.sheetId === SH[k].gid) {
+          sh = meta.sheets[j];
+          break;
+        }
+      }
+      if (!sh) throw new Error('Sheet tab not found for gid ' + SH[k].gid);
+      var sheetName = sh.properties.title;
+      var data = await apiGet('https://sheets.googleapis.com/v4/spreadsheets/' + SH[k].id + '/values/' + encodeURIComponent(sheetName) + '!A:ZZ');
+      D[k] = parseSheet(data.values || []);
+    } catch(e) {
+      console.error(k, e.message);
+      D[k] = { h: [], rows: [] };
+    }
+    steps[i].s = 'done';
+    renderSteps();
+  }
+
+  buildAll();
+  showScreen('dash');
+  document.getElementById('lupd').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  startCountdown();
+}
+
+async function apiGet(url) {
+  var resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!resp.ok) {
+    var txt = await resp.text();
+    throw new Error(txt);
+  }
+  return resp.json();
+}
+
+function parseSheet(vals) {
+  if (!vals || vals.length < 2) return { h: [], rows: [] };
+  var hIdx = 0;
+  for (var i = 0; i < Math.min(5, vals.length); i++) {
+    var nonEmpty = vals[i].filter(function(c) { return c && c.toString().trim(); });
+    if (nonEmpty.length > 2) { hIdx = i; break; }
+  }
+  var rawH = vals[hIdx];
+  var h = rawH.map(function(x) { return (x || '').toString().trim().toUpperCase(); });
+  var rows = [];
+  for (var i = hIdx + 1; i < vals.length; i++) {
+    var r = vals[i];
+    var valid = false;
+    for (var j = 0; j < Math.min(4, h.length); j++) {
+      if ((r[j] || '').toString().trim().length > 1) { valid = true; break; }
+    }
+    if (!valid) continue;
+    var obj = {};
+    for (var j = 0; j < h.length; j++) {
+      obj[h[j]] = (r[j] || '').toString().trim();
+    }
+    rows.push(obj);
+  }
+  return { h: h, rows: rows };
+}
+
+/* ── COUNTDOWN ── */
+function startCountdown() {
+  clearInterval(cdInt);
+  cdSec = 300;
+  cdInt = setInterval(function() {
+    cdSec--;
+    var m = Math.floor(cdSec / 60);
+    var s = cdSec % 60;
+    document.getElementById('cd').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    if (cdSec <= 0) { cdSec = 300; manualRefresh(); }
+  }, 1000);
+}
+
+async function manualRefresh() {
+  if (!accessToken) return;
+  var btn = document.getElementById('rbtn');
+  btn.textContent = 'Loading...';
+  await loadAll();
+  btn.textContent = '\u21BB Refresh';
+}
+
+/* ── FILTERS ── */
+function getFilters() {
+  return {
+    from: document.getElementById('ff').value,
+    to: document.getElementById('ft').value,
+    ss: document.getElementById('fss').value.toUpperCase(),
+    sw: document.getElementById('fsw').value.toUpperCase()
+  };
+}
+
+function clearF() {
+  document.getElementById('ff').value = '';
+  document.getElementById('ft').value = '';
+  document.getElementById('fss').value = '';
+  document.getElementById('fsw').value = '';
+  pendingOnly = false;
+  document.getElementById('pendingChip').classList.add('off');
+  buildAll();
+}
+
+function togglePending() {
+  pendingOnly = !pendingOnly;
+  var chip = document.getElementById('pendingChip');
+  if (pendingOnly) {
+    chip.classList.remove('off');
+    document.getElementById('fss').value = 'PENDING';
+    document.getElementById('fsw').value = 'PENDING';
+  } else {
+    chip.classList.add('off');
+    document.getElementById('fss').value = '';
+    document.getElementById('fsw').value = '';
+  }
+  buildAll();
+}
+
+function filterByDate(rows, cols) {
+  var f = getFilters();
+  if (!f.from && !f.to) return rows;
+  return rows.filter(function(r) {
+    for (var i = 0; i < cols.length; i++) {
+      var v = r[cols[i].toUpperCase()];
+      if (!v) continue;
+      var d = parseDate(v);
+      if (!d) continue;
+      if (f.from && d < new Date(f.from)) return false;
+      if (f.to && d > new Date(f.to + 'T23:59:59')) return false;
+      return true;
+    }
+    return true;
+  });
+}
+
+var MMAP = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+
+function parseDate(s) {
+  if (!s) return null;
+  s = s.toString().trim();
+  var m;
+  m = s.match(/^(\d{1,2})[-\/\s]([A-Za-z]+)[-\/\s](\d{2,4})$/);
+  if (m) {
+    var y = m[3].length === 2 ? 2000 + parseInt(m[3]) : parseInt(m[3]);
+    var mo = MMAP[m[2].toLowerCase().slice(0,3)];
+    return new Date(y, mo !== undefined ? mo : 0, parseInt(m[1]));
+  }
+  m = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (m) {
+    var mo = MMAP[m[2].toLowerCase().slice(0,3)];
+    return new Date(parseInt(m[3]), mo !== undefined ? mo : 0, parseInt(m[1]));
+  }
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+  m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+  if (m) {
+    var y = m[3].length === 2 ? 2000 + parseInt(m[3]) : parseInt(m[3]);
+    return new Date(y, parseInt(m[2]) - 1, parseInt(m[1]));
+  }
+  return null;
+}
+
+function daysBetween(a, b) {
+  if (!a || !b) return null;
+  return Math.round((b - a) / 86400000);
+}
+
+function g(row) {
+  for (var i = 1; i < arguments.length; i++) {
+    var v = row[arguments[i].toUpperCase()];
+    if (v !== undefined) return v;
+  }
+  return '';
+}
+
+function countBy(rows, key) {
+  var m = {};
+  rows.forEach(function(r) {
+    var v = g(r, key) || '(blank)';
+    m[v] = (m[v] || 0) + 1;
+  });
+  return m;
+}
+
+function topN(obj, n) {
+  return Object.entries(obj).sort(function(a, b) { return b[1] - a[1]; }).slice(0, n);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtAmt(v) {
+  var n = parseFloat(String(v).replace(/[₹,\s]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+var C = {
+  lime: '#c8ff00', lime2: '#9fcc00', red: '#ff4444', amb: '#ffaa00',
+  grn: '#2ecc71', blu: '#3d9be9', pur: '#9b59b6', tel: '#1abc9c',
+  pnk: '#e91e8c', org: '#e67e22'
+};
+var PAL = [C.lime, C.blu, C.grn, C.amb, C.red, C.pur, C.tel, C.pnk, C.org, C.lime2];
+
+function colorForStatus(s) {
+  var u = (s || '').toUpperCase();
+  if (u.includes('DELIVER')) return C.grn;
+  if (u.includes('RTO') || u.includes('RETURN')) return C.red;
+  if (u.includes('SHIP') || u.includes('TRANSIT')) return C.blu;
+  if (u.includes('PENDING') || u.includes('PICKUP')) return C.amb;
+  if (u.includes('CANCEL')) return C.red;
+  if (u.includes('EXCHANGE')) return C.pur;
+  if (u.includes('OPEN')) return C.amb;
+  if (u.includes('CLOSE')) return C.grn;
+  return '#333';
+}
+
+function statusBadge(s) {
+  if (!s) return '<span class="b bgr">-</span>';
+  var u = s.toUpperCase();
+  if (u.includes('DELIVER')) return '<span class="b bg">Delivered</span>';
+  if (u.includes('RTO')) return '<span class="b br">RTO</span>';
+  if (u.includes('RETURN')) return '<span class="b br">Return</span>';
+  if (u.includes('SHIP')) return '<span class="b bb">Shipped</span>';
+  if (u.includes('TRANSIT')) return '<span class="b bb">Transit</span>';
+  if (u.includes('PICKUP') || u.includes('PENDING')) return '<span class="b ba">Pending</span>';
+  if (u.includes('CANCEL')) return '<span class="b br">Cancelled</span>';
+  if (u.includes('EXCHANGE')) return '<span class="b bp">Exchange</span>';
+  if (u.includes('CLOSE')) return '<span class="b bg">Closed</span>';
+  if (u.includes('OPEN')) return '<span class="b ba">Open</span>';
+  if (u.includes('RTS')) return '<span class="b bl">RTS</span>';
+  return '<span class="b bgr">' + esc(s.substring(0, 12)) + '</span>';
+}
+
+function kpiCard(label, value, sub, ac, isAlert) {
+  if (!ac) ac = '#c8ff00';
+  return '<div class="kc' + (isAlert ? ' alert-kpi' : '') + '" style="--ac:' + ac + '">' +
+    '<div class="kl">' + label + '</div>' +
+    '<div class="kv">' + value + '</div>' +
+    (sub ? '<div class="ks">' + sub + '</div>' : '') +
+    '</div>';
+}
+
+/* ── PAGINATED TABLE ── */
+var paginators = {};
+
+function pTable(tblId, pgId, headers, allRows) {
+  paginators[tblId] = { rows: allRows, headers: headers };
+  renderPage(tblId, pgId, 0);
+}
+
+function renderPage(tblId, pgId, page) {
+  var p = paginators[tblId];
+  if (!p) return;
+  var rows = p.rows;
+  var headers = p.headers;
+  var start = page * PAGE;
+  var end = Math.min(start + PAGE, rows.length);
+  var tbl = document.getElementById(tblId);
+  if (!tbl) return;
+  if (!rows.length) {
+    tbl.innerHTML = '<tr><td colspan="' + headers.length + '" style="padding:1.5rem;text-align:center;color:var(--mu2)">No data for current filters</td></tr>';
+    if (pgId) document.getElementById(pgId).innerHTML = '';
+    return;
+  }
+  var html = '<thead><tr>' + headers.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>';
+  for (var i = start; i < end; i++) {
+    var r = rows[i];
+    html += '<tr class="' + (r.a ? 'ar' : '') + '">';
+    for (var j = 0; j < r.c.length; j++) {
+      html += '<td title="' + esc(String(r.c[j]).replace(/<[^>]*>/g, '')) + '">' + r.c[j] + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  tbl.innerHTML = html;
+  if (pgId) {
+    var pgEl = document.getElementById(pgId);
+    if (!pgEl) return;
+    if (rows.length <= PAGE) { pgEl.innerHTML = ''; return; }
+    var totalPages = Math.ceil(rows.length / PAGE);
+    pgEl.innerHTML = '<button class="pgbtn" onclick="renderPage(\'' + tblId + '\',\'' + pgId + '\',' + (page - 1) + ')" ' + (page === 0 ? 'disabled' : '') + '>&#8249; Prev</button>' +
+      '<span style="flex:1;text-align:center">Page ' + (page + 1) + ' / ' + totalPages + ' (' + rows.length + ' rows)</span>' +
+      '<button class="pgbtn" onclick="renderPage(\'' + tblId + '\',\'' + pgId + '\',' + (page + 1) + ')" ' + (end >= rows.length ? 'disabled' : '') + '>Next &#8250;</button>';
+  }
+}
+
+function row(cells, alert) {
+  return { c: cells, a: !!alert };
+}
+
+/* ── CHARTS ── */
+var baseOpts = {
+  responsive: true, maintainAspectRatio: false,
+  animation: { duration: 250 },
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } },
+    y: { grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } }
+  }
+};
+
+function mkDonut(cid, lid, data) {
+  if (CH[cid]) CH[cid].destroy();
+  var labels = Object.keys(data);
+  var vals = labels.map(function(l) { return data[l]; });
+  var colors = labels.map(colorForStatus);
+  var ctx = document.getElementById(cid);
+  if (!ctx) return;
+  CH[cid] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 2, borderColor: '#111' }] },
+    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 250 }, cutout: '62%', plugins: { legend: { display: false } } }
+  });
+  if (lid) {
+    var tot = vals.reduce(function(a, b) { return a + b; }, 0);
+    document.getElementById(lid).innerHTML = labels.map(function(l, i) {
+      return '<div class="li"><div class="ld" style="background:' + colors[i] + '"></div>' + esc(l) + ' <strong style="color:' + colors[i] + '">' + (tot ? Math.round(vals[i] / tot * 100) : 0) + '%</strong></div>';
+    }).join('');
+  }
+}
+
+function mkHBar(cid, labels, vals, color) {
+  if (CH[cid]) CH[cid].destroy();
+  var ctx = document.getElementById(cid);
+  if (!ctx) return;
+  ctx.parentElement.style.height = Math.max(160, labels.length * 28 + 40) + 'px';
+  CH[cid] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ data: vals, backgroundColor: Array.isArray(color) ? color : color, borderRadius: 3 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } },
+        y: { grid: { display: false }, ticks: { color: '#666', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function mkBar(cid, labels, vals, colors) {
+  if (CH[cid]) CH[cid].destroy();
+  var ctx = document.getElementById(cid);
+  if (!ctx) return;
+  CH[cid] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ data: vals, backgroundColor: Array.isArray(colors) ? colors : colors, borderRadius: 3 }] },
+    options: baseOpts
+  });
+}
+
+function mkLine(cid, labels, datasets) {
+  if (CH[cid]) CH[cid].destroy();
+  var ctx = document.getElementById(cid);
+  if (!ctx) return;
+  CH[cid] = new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: Object.assign({}, baseOpts, { elements: { point: { radius: 2 }, line: { tension: 0.35 } } })
+  });
+}
+
+function insCard(icon, label, value, color) {
+  return '<div class="ins">' +
+    '<div class="ins-icon" style="background:' + color + '22">' + icon + '</div>' +
+    '<div class="ins-body"><div class="il">' + label + '</div><div class="iv" style="color:' + color + '">' + value + '</div></div>' +
+    '</div>';
+}
+
+/* ════ BUILD ALL ════ */
+function buildAll() {
+  var f = getFilters();
+  var snk = filterByDate(D.sneakerOrders ? D.sneakerOrders.rows : [], ['DATE', 'ORDER DATE']);
+  var sw = filterByDate(D.streetwearOrders ? D.streetwearOrders.rows : [], ['ORDER DATE']);
+
+  if (f.ss) {
+    snk = snk.filter(function(r) {
+      var s = (g(r, 'STATUS') || '').toUpperCase();
+      if (f.ss === 'PENDING') return !s.includes('DELIVER') && !s.includes('RTO') && s !== '';
+      if (f.ss === 'UNASSIGNED') return s === '';
+      return s.includes(f.ss);
+    });
+  }
+  if (f.sw) {
+    sw = sw.filter(function(r) {
+      var s = (g(r, 'ORDER STATUS', 'STATUS') || '').trim().toUpperCase();
+      // PENDING = blank status OR "PICKUP PENDING" or "PENDING"
+      if (f.sw === 'PENDING') return s === '' || s.includes('PENDING') || s.includes('PICKUP');
+      if (f.sw === 'TRANSIT') return s.includes('TRANSIT') || (g(r,'TRACKING STATUS')||'').toUpperCase().includes('TRANSIT');
+      return s.includes(f.sw);
+    });
+  }
+
+  buildOV(snk, sw);
+  buildSnk(snk);
+  buildSW(sw);
+  buildOps();
+  buildRef();
+  buildFul(D.sneakerOrders ? D.sneakerOrders.rows : [], D.streetwearOrders ? D.streetwearOrders.rows : []);
+  buildScore(D.sneakerOrders ? D.sneakerOrders.rows : [], D.streetwearOrders ? D.streetwearOrders.rows : []);
+  buildBrands();
+  buildTopProducts();
+  buildFollowups();
+}
+
+/* ── OVERVIEW ── */
+function buildOV(snk, sw) {
+  var today = new Date();
+  var thisMonth = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+  var monthLabel = today.toLocaleString('default',{month:'long'}) + ' ' + today.getFullYear();
+  var ovEl = document.getElementById('ov-month-label');
+  if (ovEl) ovEl.textContent = monthLabel;
+
+  function isThisMonth(dateStr) {
+    var d = parseDate(dateStr);
+    if (!d) return false;
+    return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth();
+  }
+
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var allSW  = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  var allRef = D.refundLedger ? D.refundLedger.rows : [];
+  var allCancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
+
+  // ── This month slices ──
+  var snkThisMonth = allSnk.filter(function(r){ return isThisMonth(g(r,'DATE','ORDER DATE')); });
+  var swThisMonth  = allSW.filter(function(r){ return isThisMonth(g(r,'ORDER DATE')); });
+  var refThisMonth = allRef.filter(function(r){ return isThisMonth(g(r,'DATE')); });
+  var cancelThisMonth = allCancel.filter(function(r){ return isThisMonth(g(r,'ORDER DATE')); });
+
+  // ── Sneaker pending: STATUS column = "All Pending" ──
+  var snkPending = allSnk.filter(function(r){ return (g(r,'STATUS','N')||'').toUpperCase().includes('ALL PENDING'); });
+
+  // ── SW pending: blank ORDER STATUS or PICKUP PENDING ──
+  var swPending = allSW.filter(function(r){
+    var s = (g(r,'ORDER STATUS')||'').trim().toUpperCase();
+    return s === '' || s.includes('PICKUP PENDING') || s === 'PENDING';
+  });
+
+  // ── Instant shipping >2 days, no tracking ──
+  var instantNoTrack = allSnk.filter(function(r) {
+    var shipping = (g(r,'SHIPPING','SHIPPING METHOD') || '').toUpperCase();
+    if (!shipping.includes('INSTANT')) return false;
+    var status = (g(r,'STATUS') || '').toUpperCase();
+    if (status.includes('DELIVER') || status.includes('CANCEL')) return false;
+    var tracking = (g(r,'CDC TRACKING NUMBER','TRACKING NUMBER','TRACKING') || '').trim();
+    if (tracking.length > 3) return false;
+    var od = parseDate(g(r,'DATE','ORDER DATE'));
+    return od && daysBetween(od, today) >= 2;
+  });
+
+  // ── Month KPIs ──
+  var snkDelThisMonth = snkThisMonth.filter(function(r){ return (g(r,'STATUS')||'').toUpperCase().includes('DELIVER'); }).length;
+  var swDelThisMonth  = swThisMonth.filter(function(r){ return (g(r,'ORDER STATUS','TRACKING STATUS')||'').toUpperCase().includes('DELIVER'); }).length;
+  var refAmtMonth = refThisMonth.reduce(function(s,r){ return s + fmtAmt(g(r,'AMOUNT')); }, 0);
+
+  // Highest single order value this month
+  var snkMaxVal = 0;
+  snkThisMonth.forEach(function(r){ var v=fmtAmt(g(r,'VALUE','RATE','PRICE')); if(v>snkMaxVal) snkMaxVal=v; });
+  var swMaxVal = 0;
+  swThisMonth.forEach(function(r){ var v=fmtAmt(g(r,'PRICE')); if(v>swMaxVal) swMaxVal=v; });
+
+  var snkValMonth = snkThisMonth.reduce(function(s,r){ return s+fmtAmt(g(r,'VALUE','RATE','PRICE')); },0);
+  var swValMonth  = swThisMonth.reduce(function(s,r){ return s+fmtAmt(g(r,'PRICE')); },0);
+
+  document.getElementById('kov').innerHTML =
+    kpiCard('Sneaker pending', snkPending.length, 'STATUS = All Pending', C.lime, snkPending.length > 30) +
+    kpiCard('SW pending', swPending.length, 'blank / pickup pending', C.amb, swPending.length > 20) +
+    kpiCard('Instant ship no track', instantNoTrack.length, '\u22652 days, no tracking', C.red, instantNoTrack.length > 0) +
+    kpiCard('Refunds '+monthLabel, refAmtMonth ? ('\u20B9'+Math.round(refAmtMonth).toLocaleString()) : '\u20B90', refThisMonth.length + ' refunds', C.pur) +
+    kpiCard('Cancelled '+monthLabel, cancelThisMonth.length, 'this month', C.red, cancelThisMonth.length > 20) +
+    kpiCard('SNK orders '+monthLabel, snkThisMonth.length, snkDelThisMonth + ' delivered', C.grn) +
+    kpiCard('SW orders '+monthLabel, swThisMonth.length, swDelThisMonth + ' delivered', C.blu) +
+    kpiCard('SNK value '+monthLabel, '\u20B9'+Math.round(snkValMonth/1000)+'K', 'max \u20B9'+Math.round(snkMaxVal).toLocaleString(), C.lime) +
+    kpiCard('SW value '+monthLabel, '\u20B9'+Math.round(swValMonth/1000)+'K', 'max \u20B9'+Math.round(swMaxVal).toLocaleString(), C.tel);
+
+  // Charts — use all snk/sw (from filters) for donut
+  mkDonut('csnks', 'lsnks', countBy(snkThisMonth, 'STATUS'));
+  mkDonut('csws', 'lsws', (function(){
+    var tm={};
+    swThisMonth.forEach(function(r){
+      var ts=(g(r,'TRACKING STATUS')||'').trim();
+      var os=(g(r,'ORDER STATUS')||'').trim();
+      var k=ts||os||'(pending)';
+      tm[k]=(tm[k]||0)+1;
+    });
+    return tm;
+  })());
+
+  var rc = topN(countBy(refThisMonth,'CATEGORY'),6);
+  mkBar('crefc', rc.map(function(x){return x[0];}), rc.map(function(x){return x[1];}), PAL);
+
+  // Sneaker pending table
+  document.getElementById('csnkov').textContent = snkPending.length;
+  pTable('tsnkov','',['Order ID','Date','City','Item','Status'],
+    snkPending.slice(-30).reverse().map(function(r){
+      return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>', esc(g(r,'DATE')), esc(g(r,'SHIPPING CITY')), esc(g(r,'ITEM NAME').substring(0,32)), statusBadge(g(r,'STATUS'))]);
+    }));
+
+  // SW pending table
+  document.getElementById('cswov').textContent = swPending.length;
+  pTable('tswov','',['Order #','Brand','Product','Order Status','Date'],
+    swPending.slice(-30).reverse().map(function(r){
+      return row(['<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>', esc(g(r,'BRAND')), esc(g(r,'PRODUCT NAME').substring(0,32)), statusBadge(g(r,'ORDER STATUS')), esc(g(r,'ORDER DATE'))]);
+    }));
+
+  // Instant shipping table
+  document.getElementById('cinstov').textContent = instantNoTrack.length;
+  pTable('tinstov','',['Order ID','Date','Age','City','Item','Status'],
+    instantNoTrack.sort(function(a,b){
+      var da=parseDate(g(a,'DATE','ORDER DATE')),db=parseDate(g(b,'DATE','ORDER DATE'));
+      return (da&&db)?da-db:0;
+    }).map(function(r){
+      var od=parseDate(g(r,'DATE','ORDER DATE'));
+      var age=od?daysBetween(od,today):0;
+      return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>', esc(g(r,'DATE','ORDER DATE')),
+        '<span style="color:'+(age>=5?C.red:C.amb)+';font-weight:700">'+age+'d</span>',
+        esc(g(r,'SHIPPING CITY')), esc(g(r,'ITEM NAME').substring(0,30)), statusBadge(g(r,'STATUS'))], age>=3);
+    }));
+
+  // Refund table this month
+  document.getElementById('crefov').textContent = refThisMonth.length;
+  pTable('trefov','',['Date','Order #','Category','Amount','Status'],
+    refThisMonth.slice().reverse().map(function(r){
+      return row([esc(g(r,'DATE')), '<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',
+        esc(g(r,'CATEGORY')), g(r,'AMOUNT')?'\u20B9'+esc(g(r,'AMOUNT')):'', statusBadge(g(r,'COMPLAINT STATUS'))]);
+    }));
+}
+
+/* ── SNEAKERS ── */
+function buildSnk(snk) {
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var rto = D.sneakerRTO ? D.sneakerRTO.rows : [];
+  var del = snk.filter(function(r) { return (g(r,'STATUS')||'').toUpperCase().includes('DELIVER'); }).length;
+  var rtoC = snk.filter(function(r) { return (g(r,'STATUS')||'').toUpperCase().includes('RTO'); }).length;
+  var pend = snk.filter(function(r) { var s=(g(r,'STATUS')||'').toUpperCase(); return !s.includes('DELIVER')&&!s.includes('RTO')&&!s.includes('CANCEL')&&s!==''; }).length;
+  var unass = snk.filter(function(r) { return (g(r,'STATUS')||'')===''; }).length;
+  var tv = snk.reduce(function(s,r) { return s + fmtAmt(g(r,'VALUE','RATE')); }, 0);
+  var cancSNK = snk.filter(function(r) { return (g(r,'STATUS')||'').toUpperCase().includes('CANCEL'); }).length;
+
+  // Courier breakdown
+  var courierMap = {};
+  allSnk.forEach(function(r) {
+    var c = (g(r,'COURIER SERVICE NAME','COURIER') || '(unassigned)').trim() || '(unassigned)';
+    if (c === '') c = '(unassigned)';
+    courierMap[c] = (courierMap[c] || 0) + 1;
+  });
+  var courierTop = topN(courierMap, 8);
+
+  document.getElementById('ksnk').innerHTML =
+    kpiCard('Showing', snk.length, 'of ' + allSnk.length + ' total', C.lime) +
+    kpiCard('Delivered', del, Math.round(del / (snk.length || 1) * 100) + '% rate', C.grn) +
+    kpiCard('Pending / Transit', pend, '', C.amb, pend > 50) +
+    kpiCard('Unassigned', unass, 'no status', unass > 0 ? C.red : C.grn, unass > 0) +
+    kpiCard('RTO', rtoC, '', C.red) +
+    kpiCard('Cancelled', cancSNK, 'in current filter', C.red) +
+    kpiCard('RTO Sheet', rto.length, 'records', C.pur) +
+    kpiCard('Couriers active', courierTop.filter(function(x){return x[0]!=='(unassigned)';}).length, 'services used', C.tel) +
+    kpiCard('Order value', '\u20B9' + Math.round(tv).toLocaleString(), 'filtered', C.tel);
+
+  // Status pie — EXCLUDE cancelled
+  var snkNoCancelled = snk.filter(function(r) {
+    return !(g(r,'STATUS')||'').toUpperCase().includes('CANCEL');
+  });
+  mkDonut('csnkd', 'lsnkd', countBy(snkNoCancelled, 'STATUS'));
+
+  var ci = topN(countBy(snk, 'SHIPPING CITY'), 10);
+  mkHBar('csnkc', ci.map(function(x){return x[0];}), ci.map(function(x){return x[1];}), C.lime);
+
+  // Courier assignments chart (all sneaker orders)
+  mkHBar('csnk-courier',
+    courierTop.map(function(x){return x[0];}),
+    courierTop.map(function(x){return x[1];}),
+    courierTop.map(function(x){ return x[0]==='(unassigned)' ? C.red : C.blu; })
+  );
+
+  // Monthly cancelled orders chart
+  var cancelledAllSnk = allSnk.filter(function(r) {
+    return (g(r,'STATUS')||'').toUpperCase().includes('CANCEL');
+  });
+  var cancelByMonth = {};
+  cancelledAllSnk.forEach(function(r) {
+    var d = parseDate(g(r,'DATE','ORDER DATE'));
+    if (!d) return;
+    var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    cancelByMonth[mk] = (cancelByMonth[mk] || 0) + 1;
+  });
+  var cancelMonths = Object.keys(cancelByMonth).sort().slice(-12);
+  var cancelVals   = cancelMonths.map(function(m){ return cancelByMonth[m]||0; });
+
+  if (CH['csnk-cancel-monthly']) CH['csnk-cancel-monthly'].destroy();
+  var ctx = document.getElementById('csnk-cancel-monthly');
+  if (ctx) {
+    CH['csnk-cancel-monthly'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: cancelMonths,
+        datasets: [{ data: cancelVals, backgroundColor: cancelVals.map(function(v,i){ return C.red + 'bb'; }), borderRadius: 3 }]
+      },
+      options: Object.assign({}, baseOpts, {
+        plugins: { legend: { display: false } },
+        onClick: function(evt, els) {
+          if (!els.length) return;
+          var idx = els[0].index;
+          var m = cancelMonths[idx];
+          showSnkCancelDrill(m, cancelledAllSnk);
+          document.getElementById('snk-cancel-month-lbl').textContent = '— click a bar to drill down';
+        }
+      })
+    });
+    document.getElementById('snk-cancel-month-lbl').textContent = '— click a bar to drill down';
+  }
+
+  document.getElementById('csnka').textContent = snk.length;
+  pTable('tsnka', 'pgsnka', ['Order ID','Date','City','Item','Qty','Status','Courier','Tracking'],
+    snk.slice().reverse().map(function(r) {
+      return row(['<span class="oid">' + esc(g(r,'ORDER ID')) + '</span>', esc(g(r,'DATE')), esc(g(r,'SHIPPING CITY')), esc(g(r,'ITEM NAME').substring(0,30)), esc(g(r,'QTY')), statusBadge(g(r,'STATUS')), esc(g(r,'COURIER SERVICE NAME','COURIER')), esc(g(r,'CDC TRACKING NUMBER','TRACKING NUMBER').substring(0,20))]);
+    }));
+
+  document.getElementById('csnkr').textContent = rto.length;
+  var rh = (D.sneakerRTO ? D.sneakerRTO.h : []).slice(0, 8);
+  pTable('tsnkr', 'pgsnkr', rh.map(function(h){return h.substring(0,15);}),
+    rto.map(function(r) {
+      return row(rh.map(function(h) { var v=(r[h]||'').substring(0,25); return h.includes('STATUS') ? statusBadge(v) : esc(v); }));
+    }));
+}
+
+function showSnkCancelDrill(month, cancelledRows) {
+  var drillDiv = document.getElementById('snk-cancel-drill');
+  var drillLbl = document.getElementById('snk-cancel-drill-month');
+  if (!drillDiv || !drillLbl) return;
+  var monthRows = cancelledRows.filter(function(r) {
+    var d = parseDate(g(r,'DATE','ORDER DATE'));
+    if (!d) return false;
+    var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    return mk === month;
+  });
+  drillLbl.textContent = month + ' (' + monthRows.length + ' orders)';
+  drillDiv.style.display = 'block';
+  pTable('tsnk-cancel-drill', '',
+    ['Order ID','Date','City','Item','Size','Value','Status','Courier'],
+    monthRows.map(function(r) {
+      return row([
+        '<span class="oid">' + esc(g(r,'ORDER ID')) + '</span>',
+        esc(g(r,'DATE','ORDER DATE')),
+        esc(g(r,'SHIPPING CITY')),
+        esc(g(r,'ITEM NAME').substring(0,30)),
+        esc(g(r,'SIZE')),
+        g(r,'VALUE','RATE') ? '\u20B9'+esc(g(r,'VALUE','RATE')) : '',
+        statusBadge(g(r,'STATUS')),
+        esc(g(r,'COURIER SERVICE NAME','COURIER'))
+      ]);
+    })
+  );
+}
+
+/* ── STREETWEAR ── */
+function buildSW(sw) {
+  var allSW = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  var del26 = D.swDelivered2026 ? D.swDelivered2026.rows : [];
+  var today = new Date();
+
+  // ── RTS overdue: TYPE=RTS, age>2 days, ORDER STATUS not shipped/delivered ──
+  var rtsOD = allSW.filter(function(r) {
+    var t = (g(r,'TYPE') || '').toUpperCase();
+    if (!t.includes('RTS')) return false;
+    var os = (g(r,'ORDER STATUS') || '').toUpperCase();
+    // exclude already shipped or delivered — they don't need follow-up
+    if (os.includes('SHIP') || os.includes('DELIVER') || os.includes('TRANSIT')) return false;
+    var od = parseDate(g(r,'ORDER DATE'));
+    return od && daysBetween(od, today) > 2;
+  });
+
+  var rtsSec = document.getElementById('rtssec');
+  rtsSec.style.display = rtsOD.length ? 'block' : 'none';
+  if (rtsOD.length) {
+    document.getElementById('rtstit').textContent = '\u26A0 RTS Orders Overdue (>2 days) — pending only — ' + rtsOD.length + ' orders';
+    pTable('trts', '', ['Order #','Brand','Date','Product','Age','Order Status','Tracking Status'],
+      rtsOD.map(function(r) {
+        var od = parseDate(g(r,'ORDER DATE'));
+        var age = od ? daysBetween(od, today) : 0;
+        return row([
+          '<span class="oid">' + esc(g(r,'ORDER NUMBER')) + '</span>',
+          esc(g(r,'BRAND')), esc(g(r,'ORDER DATE')),
+          esc(g(r,'PRODUCT NAME').substring(0,30)),
+          '<span style="color:' + (age > 7 ? C.red : age > 4 ? C.amb : '#ff6b95') + ';font-weight:700">' + age + 'd</span>',
+          statusBadge(g(r,'ORDER STATUS')),
+          statusBadge(g(r,'TRACKING STATUS'))
+        ], true);
+      }));
+  }
+
+  // ── KPI pending = blank ORDER STATUS OR "PICKUP PENDING" ──
+  var isPending = function(r) {
+    var s = (g(r,'ORDER STATUS') || '').trim().toUpperCase();
+    return s === '' || s.includes('PICKUP PENDING') || s.includes('PENDING');
+  };
+  var ship = sw.filter(function(r) { return (g(r,'ORDER STATUS')||'').toUpperCase().includes('SHIP'); }).length;
+  var pend = sw.filter(isPending).length;
+  var trans = sw.filter(function(r) { return (g(r,'TRACKING STATUS','ORDER STATUS')||'').toUpperCase().includes('TRANSIT'); }).length;
+  var tv = sw.reduce(function(s,r) { return s + fmtAmt(g(r,'PRICE')); }, 0);
+
+  document.getElementById('ksw').innerHTML =
+    kpiCard('Showing', sw.length, 'of ' + allSW.length + ' total', C.lime) +
+    kpiCard('Shipped', ship, '', C.grn) +
+    kpiCard('Pending (blank/pickup)', pend, '', C.amb, pend > 20) +
+    kpiCard('In transit', trans, '', C.blu) +
+    kpiCard('RTS overdue (pending)', rtsOD.length, '>2 days not shipped', rtsOD.length > 0 ? C.red : C.grn, rtsOD.length > 0) +
+    kpiCard('Delivered 2026', del26.length, '', C.tel) +
+    kpiCard('Order value', '\u20B9' + Math.round(tv).toLocaleString(), 'filtered', C.pur);
+
+  // ── Status breakdown — combine ORDER STATUS + TRACKING STATUS for full picture ──
+  var trackStatusMap = {};
+  var allSWForPie = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  allSWForPie.forEach(function(r) {
+    var ts = (g(r,'TRACKING STATUS') || '').trim();
+    var os = (g(r,'ORDER STATUS') || '').trim();
+    var tsU = ts.toUpperCase(); var osU = os.toUpperCase();
+    var key;
+    if (tsU.includes('DELIVER') || osU.includes('DELIVER')) key = 'Delivered';
+    else if (tsU.includes('OUT FOR DELIVERY')) key = 'Out for Delivery';
+    else if (tsU.includes('TRANSIT') || tsU.includes('IN TRANSIT')) key = 'In Transit';
+    else if (tsU.includes('RTO') || osU.includes('RTO')) key = 'RTO';
+    else if (tsU === 'READY FOR PICKUP' || osU === 'READY FOR PICKUP') key = 'Ready for Pickup';
+    else if (tsU.includes('SHIP') || osU.includes('SHIP')) key = 'Shipped';
+    else if (osU.includes('PICKUP PENDING') || osU.includes('PENDING')) key = 'Pickup Pending';
+    else if (os === '' && ts === '') key = 'Blank / Pending';
+    else key = ts || os || 'Other';
+    trackStatusMap[key] = (trackStatusMap[key] || 0) + 1;
+  });
+  mkDonut('cswd', 'lswd', trackStatusMap);
+
+  // ── Top 10 delay brands: RTS orders not shipped after 2 days ──
+  var rtsUnshippedByBrand = {};
+  var todayForBrand = new Date();
+  (D.streetwearOrders ? D.streetwearOrders.rows : []).forEach(function(r) {
+    var t = (g(r,'TYPE') || '').toUpperCase();
+    if (!t.includes('RTS')) return;
+    var os = (g(r,'ORDER STATUS') || '').toUpperCase();
+    if (os.includes('SHIP') || os.includes('DELIVER') || os.includes('TRANSIT')) return;
+    var od = parseDate(g(r,'ORDER DATE'));
+    if (!od) return;
+    var age = daysBetween(od, todayForBrand);
+    if (age === null || age < 2) return;
+    var b = g(r,'BRAND') || '(blank)';
+    rtsUnshippedByBrand[b] = (rtsUnshippedByBrand[b] || 0) + 1;
+  });
+  var brDelay = topN(rtsUnshippedByBrand, 10);
+  var swBrandChartTitleEl = document.getElementById('sw-brand-chart-title');
+  if (brDelay.length > 0) {
+    var brColors = brDelay.map(function(x) {
+      return x[1] > 10 ? C.red : x[1] > 5 ? C.amb : C.lime;
+    });
+    mkHBar('cswb', brDelay.map(function(x){return x[0];}), brDelay.map(function(x){return x[1];}), brColors);
+    if (swBrandChartTitleEl) swBrandChartTitleEl.textContent = 'Top 10 delay brands — RTS unshipped >2 days';
+  } else {
+    var br = topN(countBy(sw, 'BRAND'), 10);
+    mkHBar('cswb', br.map(function(x){return x[0];}), br.map(function(x){return x[1];}), C.blu);
+    if (swBrandChartTitleEl) swBrandChartTitleEl.textContent = 'Top 10 brands — no RTS delays found';
+  }
+
+  document.getElementById('cswa').textContent = sw.length;
+  pTable('tswa', 'pgswa', ['Order #','Brand','Date','Product','Type','Price','Order Status','Tracking Status'],
+    sw.slice().reverse().map(function(r) {
+      return row(['<span class="oid">' + esc(g(r,'ORDER NUMBER')) + '</span>', esc(g(r,'BRAND')), esc(g(r,'ORDER DATE')), esc(g(r,'PRODUCT NAME').substring(0,30)), esc(g(r,'TYPE')), g(r,'PRICE') ? '\u20B9'+esc(g(r,'PRICE')) : '', statusBadge(g(r,'ORDER STATUS')), statusBadge(g(r,'TRACKING STATUS'))]);
+    }));
+
+  document.getElementById('cswd2').textContent = del26.length;
+  var dh = (D.swDelivered2026 ? D.swDelivered2026.h : []).slice(0, 8);
+  pTable('tswd2', 'pgswd2', dh.map(function(h){return h.substring(0,15);}),
+    del26.map(function(r) {
+      return row(dh.map(function(h) { var v=(r[h]||'').substring(0,25); return h.includes('STATUS') ? statusBadge(v) : esc(v); }));
+    }));
+}
+
+/* ── OPS ── */
+function buildOps() {
+  var allExch = D.streetwearExch ? D.streetwearExch.rows : [];
+  var allCancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
+  var exchTypeFilter = document.getElementById('exch-type') ? document.getElementById('exch-type').value.toUpperCase() : '';
+  var cancelMonthSel = document.getElementById('cancel-month') ? document.getElementById('cancel-month').value : '';
+
+  // Populate cancel month dropdown once
+  var cmSel = document.getElementById('cancel-month');
+  if (cmSel && cmSel.options.length <= 1) {
+    var cmSet = {};
+    allCancel.forEach(function(r) {
+      var d = parseDate(g(r,'ORDER DATE')); if (!d) return;
+      var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      cmSet[mk] = true;
+    });
+    Object.keys(cmSet).sort().reverse().forEach(function(m) {
+      var opt = document.createElement('option'); opt.value = m; opt.textContent = m; cmSel.appendChild(opt);
+    });
+  }
+
+  // Segregate Exchange vs RTO
+  var exchRows = allExch.filter(function(r) {
+    var type = (g(r,'TYPE') || '').toUpperCase();
+    var remarks = (g(r,'REMARKS','OLD TRACKING') || '').toUpperCase();
+    if (exchTypeFilter === 'EXCHANGE') return type.includes('EXCHANGE') || remarks.includes('EXCHANGE');
+    if (exchTypeFilter === 'RTO') return type.includes('RTO') || (!type.includes('EXCHANGE') && !remarks.includes('EXCHANGE'));
+    return true;
+  });
+  var exchOnlyRows = allExch.filter(function(r) {
+    var type = (g(r,'TYPE','REMARKS') || '').toUpperCase();
+    return type.includes('EXCHANGE') || (g(r,'REMARKS')||'').toUpperCase().includes('EXCHANGE');
+  });
+  var rtoOnlyRows = allExch.filter(function(r) {
+    var type = (g(r,'TYPE') || '').toUpperCase();
+    return type.includes('RTO') || (!type.includes('EXCHANGE') && !(g(r,'REMARKS')||'').toUpperCase().includes('EXCHANGE'));
+  });
+
+  // Filter cancelled by month
+  var cancel = cancelMonthSel ? allCancel.filter(function(r) {
+    var d = parseDate(g(r,'ORDER DATE')); if (!d) return false;
+    var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    return mk === cancelMonthSel;
+  }) : allCancel;
+
+  var cancelLblEl = document.getElementById('cancel-month-label');
+  if (cancelLblEl) cancelLblEl.textContent = cancelMonthSel ? '— ' + cancelMonthSel : '— all time';
+
+  document.getElementById('kops').innerHTML =
+    kpiCard('Total exchange/RTO', allExch.length, '', C.pur) +
+    kpiCard('Exchanges', exchOnlyRows.length, '', C.blu) +
+    kpiCard('RTOs', rtoOnlyRows.length, '', C.red) +
+    kpiCard('Resolved', allExch.filter(function(r){return (g(r,'TYPE','STATUS','REMARKS')||'').toUpperCase().includes('DELIVER');}).length, '', C.grn) +
+    kpiCard('Cancelled (filtered)', cancel.length, cancelMonthSel||'all time', C.red, cancel.length > 50) +
+    kpiCard('Brands affected', Object.keys(countBy(allCancel,'BRAND')).length, 'all time', C.amb);
+
+  var eh = (D.streetwearExch ? D.streetwearExch.h : []).slice(0, 7);
+  var exchCols = ['ORDER ID','ORDER DATE','CUSTOMER NAME','BRAND NAME','PRODUCT DETAILS','REMARKS','REMARKS'];
+  var exchH = ['Order ID','Date','Customer','Brand','Product','Old Tracking','Remarks'];
+
+  // Exchange table
+  document.getElementById('cexch-e').textContent = exchOnlyRows.length;
+  pTable('texch-e', 'pgexch-e', exchH,
+    exchOnlyRows.map(function(r) {
+      return row([
+        '<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',
+        esc(g(r,'ORDER DATE')), esc(g(r,'CUSTOMER NAME')),
+        esc(g(r,'BRAND NAME','BRAND')),
+        esc(g(r,'PRODUCT DETAILS','PRODUCT NAME').substring(0,28)),
+        esc((g(r,'OLD TRACKING','REMARKS')||'').substring(0,22)),
+        esc((g(r,'REMARKS')||'').substring(0,22))
+      ]);
+    }));
+
+  // RTO table
+  document.getElementById('cexch-r').textContent = rtoOnlyRows.length;
+  pTable('texch-r', 'pgexch-r', exchH,
+    rtoOnlyRows.map(function(r) {
+      return row([
+        '<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',
+        esc(g(r,'ORDER DATE')), esc(g(r,'CUSTOMER NAME')),
+        esc(g(r,'BRAND NAME','BRAND')),
+        esc(g(r,'PRODUCT DETAILS','PRODUCT NAME').substring(0,28)),
+        esc((g(r,'OLD TRACKING','REMARKS')||'').substring(0,22)),
+        esc((g(r,'REMARKS')||'').substring(0,22))
+      ]);
+    }));
+
+  document.getElementById('ccanc').textContent = cancel.length;
+  pTable('tcanc', 'pgcanc', ['Order ID','Brand','Date','Product','Size','Price','Status'],
+    cancel.map(function(r) {
+      return row(['<span class="oid">' + esc(g(r,'ORDER ID')) + '</span>', esc(g(r,'BRAND')), esc(g(r,'ORDER DATE')), esc(g(r,'PRODUCT NAME').substring(0,30)), esc(g(r,'SIZE')), g(r,'PRICE') ? '\u20B9'+esc(g(r,'PRICE')) : '', statusBadge(g(r,'STATUS'))]);
+    }));
+
+  var bm = topN(countBy(allCancel, 'BRAND'), 10);
+  mkBar('ccancb', bm.map(function(x){return x[0];}), bm.map(function(x){return x[1];}), C.red);
+}
+
+/* ── REFUNDS ── */
+function buildRef() {
+  // Use refund-tab specific date pickers (default: from 01-Apr-2026)
+  var refFrom = document.getElementById('ref-from') ? document.getElementById('ref-from').value : '2026-04-01';
+  var refTo   = document.getElementById('ref-to')   ? document.getElementById('ref-to').value   : '';
+
+  function refDateFilter(rows, cols) {
+    if (!refFrom && !refTo) return rows;
+    return rows.filter(function(r) {
+      for (var i = 0; i < cols.length; i++) {
+        var v = r[cols[i].toUpperCase()]; if (!v) continue;
+        var d = parseDate(v); if (!d) continue;
+        if (refFrom && d < new Date(refFrom)) return false;
+        if (refTo   && d > new Date(refTo + 'T23:59:59')) return false;
+        return true;
+      }
+      return true;
+    });
+  }
+
+  var ref  = refDateFilter(D.refundLedger    ? D.refundLedger.rows    : [], ['DATE']);
+  var refP = refDateFilter(D.refundProcessed ? D.refundProcessed.rows : [], ['DATE']);
+  var allRef = D.refundLedger ? D.refundLedger.rows : [];
+
+  var noteEl = document.getElementById('ref-note');
+  if (noteEl) noteEl.textContent = 'Showing ' + ref.length + ' of ' + allRef.length + ' total refunds';
+
+  var tot  = ref.reduce(function(s,r)  { return s + fmtAmt(g(r,'AMOUNT')); }, 0);
+  var totP = refP.reduce(function(s,r) { return s + fmtAmt(g(r,'AMOUNT','REFUND AMOUNT')); }, 0);
+  var open   = ref.filter(function(r) { return (g(r,'COMPLAINT STATUS')||'').toUpperCase() !== 'CLOSED'; }).length;
+  var closed = ref.length - open;
+  var bank   = ref.filter(function(r) { return (g(r,'RETURN MODE')||'').toUpperCase().includes('BANK'); }).length;
+
+  document.getElementById('kref').innerHTML =
+    kpiCard('Ledger total', '\u20B9' + Math.round(tot).toLocaleString(), '', C.red) +
+    kpiCard('Open complaints', open, 'awaiting resolution', C.amb, open > 10) +
+    kpiCard('Closed', closed, Math.round(closed / (ref.length || 1) * 100) + '% resolution rate', C.grn) +
+    kpiCard('Processed', refP.length, '\u20B9' + Math.round(totP).toLocaleString(), C.pur) +
+    kpiCard('Bank transfers', bank, '', C.blu) +
+    kpiCard('Avg refund', ref.length ? '\u20B9' + Math.round(tot / ref.length).toLocaleString() : '-', '', C.tel);
+
+  mkDonut('ccomp', 'lcomp', countBy(ref, 'COMPLAINT STATUS'));
+  var iss = topN(countBy(ref, 'ISSUE'), 8);
+  mkHBar('ciss', iss.map(function(x){return x[0].substring(0,22);}), iss.map(function(x){return x[1];}), PAL);
+
+  // ── Category segmentation: Sneaker / Streetwear / Hype ──
+  function classifyCategory(r) {
+    var cat = (g(r,'CATEGORY') || '').toUpperCase();
+    if (cat.includes('SNEAK') || cat.includes('SHOE') || cat.includes('JORDAN') || cat.includes('YEEZY') || cat.includes('DUNK')) return 'Sneaker';
+    if (cat.includes('HYPE') || cat.includes('WATCH') || cat.includes('ACCESSORY') || cat.includes('ACCESSORIES')) return 'Watch / Hype';
+    if (cat.includes('STREET') || cat.includes('APPAREL') || cat.includes('CLOTH') || cat.includes('TEE') || cat.includes('SHIRT') || cat.includes('HOODIE')) return 'Streetwear';
+    // fall back to actual category value if known
+    var catRaw = (g(r,'CATEGORY') || '').trim();
+    if (catRaw) return catRaw.charAt(0).toUpperCase() + catRaw.slice(1).toLowerCase();
+    return 'Other';
+  }
+  var catColors = { 'Sneaker': C.lime, 'Streetwear': C.blu, 'Watch / Hype': C.pur, 'Other': C.amb };
+  function getCatColor(cat) { return catColors[cat] || C.org; }
+
+  var catValMap = {};
+  var catCntMap = {};
+  ref.forEach(function(r) {
+    var cat = classifyCategory(r);
+    var amt = fmtAmt(g(r,'AMOUNT'));
+    catValMap[cat] = (catValMap[cat] || 0) + amt;
+    catCntMap[cat] = (catCntMap[cat] || 0) + 1;
+  });
+
+  // Donut for value
+  var catKeys = Object.keys(catValMap).sort(function(a,b){ return catValMap[b]-catValMap[a]; });
+  var catVals = catKeys.map(function(k){ return Math.round(catValMap[k]); });
+  var catClrs = catKeys.map(getCatColor);
+  if (CH['cref-cat-val']) CH['cref-cat-val'].destroy();
+  var ctxCat = document.getElementById('cref-cat-val');
+  if (ctxCat && catKeys.length) {
+    CH['cref-cat-val'] = new Chart(ctxCat, {
+      type: 'doughnut',
+      data: { labels: catKeys, datasets: [{ data: catVals, backgroundColor: catClrs, borderWidth: 2, borderColor: '#111' }] },
+      options: { responsive: true, maintainAspectRatio: false, animation: { duration: 250 }, cutout: '62%', plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': \u20B9' + ctx.raw.toLocaleString(); } } } } }
+    });
+    var catTot = catVals.reduce(function(a,b){return a+b;},0);
+    var legEl = document.getElementById('lref-cat-val');
+    if (legEl) legEl.innerHTML = catKeys.map(function(k,i) {
+      return '<div class="li"><div class="ld" style="background:' + catClrs[i] + '"></div>' + esc(k) +
+        ' <strong style="color:' + catClrs[i] + '">\u20B9' + Math.round(catValMap[k]).toLocaleString() + '</strong>' +
+        ' <span style="color:var(--mu2)">(' + catCntMap[k] + ')</span></div>';
+    }).join('');
+  }
+
+  // Monthly trend by category (last 6 months)
+  var allRefForTrend = D.refundLedger ? D.refundLedger.rows : [];
+  var trendMonths = {};
+  allRefForTrend.forEach(function(r) {
+    var d = parseDate(g(r,'DATE')); if (!d) return;
+    var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    var cat = classifyCategory(r);
+    if (!trendMonths[mk]) trendMonths[mk] = {};
+    trendMonths[mk][cat] = (trendMonths[mk][cat] || 0) + 1;
+  });
+  var tMonths = Object.keys(trendMonths).sort().slice(-8);
+  var tCats = Object.keys(catCntMap).sort();
+  if (CH['cref-cat-trend']) CH['cref-cat-trend'].destroy();
+  var ctxTrend = document.getElementById('cref-cat-trend');
+  if (ctxTrend && tMonths.length) {
+    CH['cref-cat-trend'] = new Chart(ctxTrend, {
+      type: 'bar',
+      data: {
+        labels: tMonths,
+        datasets: tCats.map(function(cat) {
+          return {
+            label: cat,
+            data: tMonths.map(function(m){ return (trendMonths[m] && trendMonths[m][cat]) || 0; }),
+            backgroundColor: getCatColor(cat) + 'bb',
+            borderRadius: 3
+          };
+        })
+      },
+      options: Object.assign({}, baseOpts, {
+        plugins: { legend: { display: true, labels: { color: '#666', font: { size: 10 }, boxWidth: 12 } } },
+        scales: {
+          x: { stacked: true, grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } },
+          y: { stacked: true, grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } }
+        }
+      })
+    });
+  }
+
+  document.getElementById('crefl').textContent = ref.length;
+  pTable('trefl', 'pgrefl', ['Date','Order #','Category','Issue','Product','Amount','Mode','Status'],
+    ref.map(function(r) {
+      return row([esc(g(r,'DATE')), '<span class="oid">' + esc(g(r,'ORDER NUMBER')) + '</span>', esc(g(r,'CATEGORY')), esc(g(r,'ISSUE').substring(0,20)), esc(g(r,'PRODUCT DESC','PRODUCT DETAILS').substring(0,26)), g(r,'AMOUNT') ? '\u20B9'+esc(g(r,'AMOUNT')) : '', esc(g(r,'RETURN MODE')), statusBadge(g(r,'COMPLAINT STATUS'))]);
+    }));
+
+  document.getElementById('crefp').textContent = refP.length;
+  var rph = (D.refundProcessed ? D.refundProcessed.h : []).slice(0, 8);
+  pTable('trefp', 'pgrefp', rph.map(function(h){return h.substring(0,15);}),
+    refP.map(function(r) {
+      return row(rph.map(function(h) { var v=(r[h]||'').substring(0,25); return h.includes('STATUS') ? statusBadge(v) : esc(v); }));
+    }));
+}
+
+/* ── FULFILMENT ── */
+function buildFul(snkRaw, swRaw) {
+  var snkF = [];
+  snkRaw.forEach(function(r) {
+    var od = parseDate(g(r,'DATE','ORDER DATE'));
+    var td = parseDate(g(r,'TRACKING DATE'));
+    if (!od || !td) return;
+    var days = daysBetween(od, td);
+    if (days === null || days < 0 || days > 90) return;
+    snkF.push({ days: days, od: g(r,'DATE'), td: g(r,'TRACKING DATE'), id: g(r,'ORDER ID'), item: g(r,'ITEM NAME').substring(0,26), status: g(r,'STATUS') });
+  });
+
+  var swF = [];
+  swRaw.forEach(function(r) {
+    var st = (g(r,'ORDER STATUS','TRACKING STATUS') || '').toUpperCase();
+    if (!st.includes('SHIP') && !st.includes('TRANSIT') && !st.includes('DELIVER')) return;
+    var od = parseDate(g(r,'ORDER DATE'));
+    var td = parseDate(g(r,'TRACKING UPDATE DATE','SHIPPED DATE'));
+    if (!od || !td) return;
+    var days = daysBetween(od, td);
+    if (days === null || days < 0 || days > 120) return;
+    swF.push({ days: days, od: g(r,'ORDER DATE'), td: g(r,'TRACKING UPDATE DATE','SHIPPED DATE'), id: g(r,'ORDER NUMBER'), item: g(r,'PRODUCT NAME').substring(0,26), brand: g(r,'BRAND'), status: g(r,'ORDER STATUS') });
+  });
+
+  function stats(arr) {
+    if (!arr.length) return { avg: 0, med: 0, min: 0, max: 0, n: 0 };
+    var d = arr.map(function(x) { return x.days; }).sort(function(a,b){return a-b;});
+    var avg = d.reduce(function(a,b){return a+b;},0) / d.length;
+    var med = d.length % 2 === 0 ? (d[d.length/2-1] + d[d.length/2]) / 2 : d[Math.floor(d.length/2)];
+    return { avg: Math.round(avg * 10) / 10, med: Math.round(med * 10) / 10, min: d[0], max: d[d.length-1], n: d.length };
+  }
+
+  var sS = stats(snkF), swS = stats(swF);
+
+  document.getElementById('kful').innerHTML =
+    kpiCard('Avg sneaker dispatch', sS.avg + ' days', sS.n + ' orders analysed', C.lime) +
+    kpiCard('Median sneaker', sS.med + ' days', 'Min ' + sS.min + 'd / Max ' + sS.max + 'd', C.grn) +
+    kpiCard('Avg SW dispatch', swS.avg + ' days', swS.n + ' orders analysed', C.blu) +
+    kpiCard('Median SW', swS.med + ' days', 'Min ' + swS.min + 'd / Max ' + swS.max + 'd', C.tel) +
+    kpiCard('Same-day snk', snkF.filter(function(x){return x.days===0;}).length, 'dispatched same day', C.lime2) +
+    kpiCard('SW within 3 days', swF.filter(function(x){return x.days<=3;}).length, 'fast dispatch', C.blu);
+
+  function stH(s) {
+    var labels = ['Average','Median','Fastest','Slowest','Orders'];
+    var vals = [s.avg + ' days', s.med + ' days', s.min + ' days', s.max + ' days', s.n];
+    return labels.map(function(l,i) {
+      return '<div class="frow"><span class="frl">' + l + '</span><span class="frv">' + vals[i] + '</span></div>';
+    }).join('');
+  }
+  document.getElementById('fsnkst').innerHTML = stH(sS);
+  document.getElementById('fswst').innerHTML = stH(swS);
+
+  var bkL = ['0d','1d','2d','3d','4-5d','6-7d','8-14d','15-30d','30d+'];
+  var bkR = [[0,0],[1,1],[2,2],[3,3],[4,5],[6,7],[8,14],[15,30],[31,999]];
+  function bk(arr, ranges) {
+    return ranges.map(function(ab) { return arr.filter(function(x){return x.days>=ab[0]&&x.days<=ab[1];}).length; });
+  }
+  mkBar('cfulsnk', bkL, bk(snkF, bkR), C.lime);
+  mkBar('cfulsw', bkL, bk(swF, bkR), C.blu);
+
+  if (CH['cfulcmp']) CH['cfulcmp'].destroy();
+  var ctx = document.getElementById('cfulcmp');
+  if (ctx) {
+    CH['cfulcmp'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Average','Median','Min'],
+        datasets: [
+          { label: 'Sneaker', data: [sS.avg, sS.med, sS.min], backgroundColor: C.lime, borderRadius: 3 },
+          { label: 'Streetwear', data: [swS.avg, swS.med, swS.min], backgroundColor: C.blu, borderRadius: 3 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+        plugins: { legend: { display: true, labels: { color: '#666', font: { size: 10 } } } },
+        scales: {
+          x: { grid: { color: '#1e1e1e' }, ticks: { color: '#555' } },
+          y: { grid: { color: '#1e1e1e' }, ticks: { color: '#555' } }
+        }
+      }
+    });
+  }
+}
+
+/* ── TOP PRODUCTS ── */
+function buildTopProducts() {
+  var periodDays = parseInt(document.getElementById('tp-period') ? document.getElementById('tp-period').value : '30');
+  var today = new Date();
+  var cutoff = periodDays > 0 ? new Date(today.getTime() - periodDays * 864e5) : null;
+  var infoEl = document.getElementById('tp-info');
+
+  function inPeriod(dateStr) {
+    if (!cutoff) return true;
+    var d = parseDate(dateStr);
+    return d && d >= cutoff;
+  }
+
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var allSW  = D.streetwearOrders ? D.streetwearOrders.rows : [];
+
+  var snkRows = allSnk.filter(function(r){ return inPeriod(g(r,'DATE','ORDER DATE')); });
+  var swRows  = allSW.filter(function(r){ return inPeriod(g(r,'ORDER DATE')); });
+
+  if (infoEl) infoEl.textContent = (cutoff ? 'Last '+periodDays+' days' : 'All time') + ' — '+snkRows.length+' sneaker, '+swRows.length+' SW orders';
+
+  // ── Sneaker top products by count ──
+  var snkProductCount = {};
+  var snkProductSizes = {};
+  snkRows.forEach(function(r) {
+    // Normalize item name: strip size suffix
+    var item = (g(r,'ITEM NAME')||'').trim();
+    // Remove UK X at end
+    var baseName = item.replace(/[-\s]*UK\s*[\d.]+\s*$/i,'').replace(/[-\s]*\d+(\.\d+)?\s*(UK|US|EU)?\s*$/i,'').trim() || item;
+    var size = (g(r,'QTY') === '' ? '' : '') + (item.match(/UK\s*([\d.]+)/i) ? 'UK '+item.match(/UK\s*([\d.]+)/i)[1] : (g(r,'SIZE')||'—'));
+    snkProductCount[baseName] = (snkProductCount[baseName] || 0) + 1;
+    if (!snkProductSizes[baseName]) snkProductSizes[baseName] = {};
+    snkProductSizes[baseName][size] = (snkProductSizes[baseName][size] || 0) + 1;
+  });
+
+  var snkTop10 = topN(snkProductCount, 10);
+  document.getElementById('cnt-tp-snk').textContent = snkTop10.length;
+
+  // Top products table
+  pTable('t-tp-snk', '', ['#','Product','Orders','Top size'],
+    snkTop10.map(function(x, i) {
+      var sizeMap = snkProductSizes[x[0]] || {};
+      var topSize = topN(sizeMap, 1);
+      return row([
+        '<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>',
+        '<span style="color:var(--lime);font-weight:600">'+esc(x[0].substring(0,40))+'</span>',
+        '<span style="font-size:.9rem;font-weight:800">'+x[1]+'</span>',
+        topSize.length ? esc(topSize[0][0])+' ('+topSize[0][1]+')' : '—'
+      ]);
+    }));
+
+  // Chart
+  mkHBar('c-tp-snk', snkTop10.map(function(x){return x[0].substring(0,30);}), snkTop10.map(function(x){return x[1];}), C.lime);
+
+  // Size breakdown table for sneakers
+  var snkSizeRows = [];
+  snkTop10.forEach(function(x) {
+    var sizeMap = snkProductSizes[x[0]] || {};
+    var sizeArr = topN(sizeMap, 5);
+    snkSizeRows.push(row([
+      '<strong style="color:var(--lime)">'+esc(x[0].substring(0,30))+'</strong>',
+      '<span style="font-weight:700">'+x[1]+' total</span>',
+      sizeArr.map(function(s){ return esc(s[0])+': '+s[1]; }).join(' | '),
+      sizeArr.length ? esc(sizeArr[0][0]) : '—'
+    ]));
+  });
+  pTable('t-tp-snk-size', '', ['Product','Total','Size breakdown (top 5)','Best size'], snkSizeRows);
+
+  // ── Streetwear top products ──
+  var swProductCount = {};
+  var swProductSizes = {};
+  swRows.forEach(function(r) {
+    var item = (g(r,'PRODUCT NAME')||'').trim();
+    // strip size from end: " - XL", " - M", " - S/M" etc
+    var baseName = item.replace(/\s*[-–]\s*[XSMXL2]{1,4}L?\s*$/i,'').replace(/\s*[-–]\s*(ONE SIZE|OS|FREE SIZE)\s*$/i,'').trim() || item;
+    var size = (item.match(/[-–]\s*([XSMXL2]{1,4}L?)\s*$/i) || ['',''])[1] || g(r,'SIZE') || '—';
+    swProductCount[baseName] = (swProductCount[baseName] || 0) + 1;
+    if (!swProductSizes[baseName]) swProductSizes[baseName] = {};
+    swProductSizes[baseName][size] = (swProductSizes[baseName][size] || 0) + 1;
+  });
+
+  var swTop10 = topN(swProductCount, 10);
+  document.getElementById('cnt-tp-sw').textContent = swTop10.length;
+
+  pTable('t-tp-sw', '', ['#','Product','Orders','Top size'],
+    swTop10.map(function(x, i) {
+      var sizeMap = swProductSizes[x[0]] || {};
+      var topSize = topN(sizeMap, 1);
+      return row([
+        '<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>',
+        '<span style="color:var(--blu);font-weight:600">'+esc(x[0].substring(0,40))+'</span>',
+        '<span style="font-size:.9rem;font-weight:800">'+x[1]+'</span>',
+        topSize.length ? esc(topSize[0][0])+' ('+topSize[0][1]+')' : '—'
+      ]);
+    }));
+
+  mkHBar('c-tp-sw', swTop10.map(function(x){return x[0].substring(0,30);}), swTop10.map(function(x){return x[1];}), C.blu);
+
+  var swSizeRows = [];
+  swTop10.forEach(function(x) {
+    var sizeMap = swProductSizes[x[0]] || {};
+    var sizeArr = topN(sizeMap, 5);
+    swSizeRows.push(row([
+      '<strong style="color:var(--blu)">'+esc(x[0].substring(0,30))+'</strong>',
+      '<span style="font-weight:700">'+x[1]+' total</span>',
+      sizeArr.map(function(s){ return esc(s[0])+': '+s[1]; }).join(' | '),
+      sizeArr.length ? esc(sizeArr[0][0]) : '—'
+    ]));
+  });
+  pTable('t-tp-sw-size', '', ['Product','Total','Size breakdown (top 5)','Best size'], swSizeRows);
+}
+
+/* ── BRAND PERFORMANCE ── */
+function buildBrands() {
+  var swAll      = D.streetwearOrders  ? D.streetwearOrders.rows  : [];
+  var del26All   = D.swDelivered2026   ? D.swDelivered2026.rows   : [];
+  var cancelAll  = D.cancelledOrders   ? D.cancelledOrders.rows   : [];
+  var source     = document.getElementById('bp-source') ? document.getElementById('bp-source').value : 'sw';
+  var selMonth   = document.getElementById('bp-month')  ? document.getElementById('bp-month').value  : '';
+
+  // Populate month dropdown once — combine swOrders + swDelivered2026 dates
+  var monthSel = document.getElementById('bp-month');
+  if (monthSel && monthSel.options.length <= 1) {
+    var mSet = {};
+    function addToMSet(rows, col) {
+      rows.forEach(function(r) {
+        var d = parseDate(g(r, col)); if (!d) return;
+        var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        mSet[mk] = true;
+      });
+    }
+    addToMSet(swAll, 'ORDER DATE');
+    addToMSet(del26All, 'ORDER DATE');
+    addToMSet(cancelAll, 'ORDER DATE');
+    Object.keys(mSet).sort().reverse().forEach(function(m) {
+      var opt = document.createElement('option'); opt.value = m; opt.textContent = m; monthSel.appendChild(opt);
+    });
+  }
+
+  function filterMonth(rows, dateCols) {
+    if (!selMonth) return rows;
+    return rows.filter(function(r) {
+      for (var i = 0; i < dateCols.length; i++) {
+        var v = r[dateCols[i].toUpperCase()]; if (!v) continue;
+        var d = parseDate(v); if (!d) continue;
+        var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        return mk === selMonth;
+      }
+      return false;
+    });
+  }
+
+  var swRows      = filterMonth(swAll,    ['ORDER DATE']);
+  var del26Rows   = filterMonth(del26All, ['ORDER DATE']);
+  var cancelRows  = filterMonth(cancelAll,['ORDER DATE']);
+
+  // Combine pending (streetwear) + delivered (new delivered 2026) for the selected month
+  // This gives true "total orders placed that month" picture
+  var combinedOrderRows = swRows.slice(); // start with pending/active
+  // Add delivered rows that aren't already in swRows (they've moved to delivered sheet)
+  del26Rows.forEach(function(r) {
+    combinedOrderRows.push(r);
+  });
+
+  // Brand order counts — use combined source
+  var brandOrders = {};
+  if (source === 'sw' || source === 'both') {
+    combinedOrderRows.forEach(function(r) { var b=g(r,'BRAND')||'(blank)'; brandOrders[b]=(brandOrders[b]||0)+1; });
+  }
+  if (source === 'cancel' || source === 'both') {
+    cancelRows.forEach(function(r) { var b=g(r,'BRAND')||'(blank)'; brandOrders[b]=(brandOrders[b]||0)+1; });
+  }
+
+  // Cancellation rate: cancelled ÷ (combined orders + cancelled)
+  var brandCancel = {};
+  cancelRows.forEach(function(r) { var b=g(r,'BRAND')||'(blank)'; brandCancel[b]=(brandCancel[b]||0)+1; });
+  var brandTotal = {};
+  combinedOrderRows.forEach(function(r) { var b=g(r,'BRAND')||'(blank)'; brandTotal[b]=(brandTotal[b]||0)+1; });
+
+  // Brand delay: use combined rows — check shipped/delivered status or tracking update date
+  var brandDelay = {};
+  combinedOrderRows.forEach(function(r) {
+    var os = (g(r,'ORDER STATUS')||'').toUpperCase();
+    if (!os.includes('SHIP') && !os.includes('DELIVER') && !os.includes('TRANSIT')) return;
+    var od = parseDate(g(r,'ORDER DATE'));
+    var sd = parseDate(g(r,'TRACKING UPDATE DATE','SHIPPED DATE'));
+    if (!od || !sd) return;
+    var days = daysBetween(od, sd);
+    if (days === null || days < 0 || days > 120) return;
+    var b = g(r,'BRAND') || '(blank)';
+    if (!brandDelay[b]) brandDelay[b] = [];
+    brandDelay[b].push(days);
+  });
+
+  var top10 = topN(brandOrders, 10);
+  var top10Cancel = topN(brandCancel, 10);
+
+  // Delay chart — only brands with 3+ orders
+  var delayBrands = Object.keys(brandDelay).filter(function(b){ return brandDelay[b].length >= 3; });
+  delayBrands.sort(function(a,b) {
+    var aA = brandDelay[a].reduce(function(x,y){return x+y;},0)/brandDelay[a].length;
+    var bA = brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length;
+    return bA - aA;
+  });
+  var delayTop = delayBrands.slice(0, 12);
+  var delayAvgs = delayTop.map(function(b) {
+    return Math.round((brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length)*10)/10;
+  });
+  var delayColors = delayAvgs.map(function(d) {
+    return d > 14 ? C.red : d > 7 ? C.amb : d > 3 ? C.lime : C.grn;
+  });
+
+  var totalBrands = Object.keys(brandOrders).length;
+  var totalOrders = Object.values(brandOrders).reduce(function(a,b){return a+b;},0);
+  var totalForRate = combinedOrderRows.length + cancelRows.length;
+  var overallCancelRate = totalForRate > 0 ? Math.round(cancelRows.length / totalForRate * 100) : 0;
+  var slowBrands = delayBrands.filter(function(b){ var a=brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length; return a > 10; }).length;
+
+  document.getElementById('kbp').innerHTML =
+    kpiCard('Brands active', totalBrands, selMonth || 'all time', C.lime) +
+    kpiCard('Total orders', totalOrders, 'compiled + delivered', C.blu) +
+    kpiCard('Delivered (period)', del26Rows.length, 'from new delivered sheet', C.grn) +
+    kpiCard('Cancellations', cancelRows.length, overallCancelRate + '% cancel rate', C.red, overallCancelRate > 15) +
+    kpiCard('Slow brands (>10d)', slowBrands, 'avg dispatch >10 days', C.amb, slowBrands > 3) +
+    kpiCard('Best brand', top10.length ? top10[0][0].substring(0,12) : '—', top10.length ? top10[0][1] + ' orders' : '', C.grn);
+
+  var srcLabel = selMonth ? selMonth : 'All time';
+  document.getElementById('bp-summary').textContent = srcLabel + ' — ' + swRows.length + ' pending + ' + del26Rows.length + ' delivered = ' + (swRows.length + del26Rows.length) + ' orders';
+
+  mkHBar('cbp-orders', top10.map(function(x){return x[0];}), top10.map(function(x){return x[1];}), C.blu);
+
+  var crLabels = top10Cancel.map(function(x){return x[0];});
+  var crRates  = crLabels.map(function(b) {
+    var tot = (brandTotal[b]||0) + (brandCancel[b]||0);
+    return tot ? Math.round((brandCancel[b]||0)/tot*100) : 0;
+  });
+  var crColors = crRates.map(function(r) { return r > 30 ? C.red : r > 15 ? C.amb : C.grn; });
+  mkHBar('cbp-cancel', crLabels, crRates, crColors);
+  mkHBar('cbp-delay', delayTop, delayAvgs, delayColors);
+
+  var allBrands = Object.keys(brandOrders);
+  allBrands.sort(function(a,b) { return (brandOrders[b]||0) - (brandOrders[a]||0); });
+  document.getElementById('cbp-cnt').textContent = allBrands.length;
+  var tableRows = allBrands.map(function(b) {
+    var pendOrd  = swRows.filter(function(r){return (g(r,'BRAND')||'(blank)')=== b;}).length;
+    var delOrd   = del26Rows.filter(function(r){return (g(r,'BRAND')||'(blank)')=== b;}).length;
+    var cancels  = brandCancel[b] || 0;
+    var totalB   = (brandTotal[b]||0) + cancels;
+    var cr = totalB > 0 ? Math.round(cancels / totalB * 100) : 0;
+    var dArr = brandDelay[b];
+    var avgD = dArr && dArr.length ? (dArr.reduce(function(x,y){return x+y;},0)/dArr.length).toFixed(1) : '—';
+    var delayColor = dArr ? (parseFloat(avgD) > 14 ? C.red : parseFloat(avgD) > 7 ? C.amb : C.grn) : '#555';
+    var crColor = cr > 30 ? C.red : cr > 15 ? C.amb : C.grn;
+    return row([
+      '<strong style="color:var(--tx)">' + esc(b) + '</strong>',
+      '<span style="color:var(--amb)">' + pendOrd + '</span>',
+      '<span style="color:var(--grn)">' + delOrd + '</span>',
+      cancels,
+      '<span style="color:' + crColor + ';font-weight:700">' + cr + '%</span>',
+      '<span style="color:' + delayColor + ';font-weight:700">' + avgD + (avgD !== '—' ? 'd' : '') + '</span>',
+      dArr ? dArr.length + ' tracked' : '<span style="color:#555">no data</span>'
+    ]);
+  });
+  pTable('tbp', '', ['Brand', 'Pending Orders', 'Delivered', 'Cancelled', 'Cancel Rate', 'Avg Dispatch Days', 'Delay Data'], tableRows);
+}
+
+/* ── SCORECARD ── */
+function buildScore(snkRaw, swRaw) {
+  // Populate scorecard month dropdown once
+  var smSel = document.getElementById('score-month');
+  if (smSel && smSel.options.length <= 1) {
+    var smSet = {};
+    snkRaw.forEach(function(r) {
+      var d = parseDate(g(r,'DATE','ORDER DATE')); if (!d) return;
+      var mk = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      smSet[mk] = true;
+    });
+    Object.keys(smSet).sort().reverse().forEach(function(m) {
+      var opt = document.createElement('option'); opt.value = m; opt.textContent = m; smSel.appendChild(opt);
+    });
+  }
+
+  var selMonth = smSel ? smSel.value : '';
+  function filterMo(rows, cols) {
+    if (!selMonth) return rows;
+    return rows.filter(function(r) {
+      for (var i=0;i<cols.length;i++) {
+        var v=r[cols[i].toUpperCase()]; if(!v) continue;
+        var d=parseDate(v); if(!d) continue;
+        var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+        return mk===selMonth;
+      }
+      return false;
+    });
+  }
+  var snkF = filterMo(snkRaw, ['DATE','ORDER DATE']);
+  var swF  = filterMo(swRaw, ['ORDER DATE']);
+  var refAll = D.refundLedger ? D.refundLedger.rows : [];
+  var refF = filterMo(refAll, ['DATE']);
+  var cancelF = filterMo(D.cancelledOrders ? D.cancelledOrders.rows : [], ['ORDER DATE']);
+
+  var noteEl = document.getElementById('score-note');
+  if (noteEl) noteEl.textContent = selMonth ? selMonth+' - '+snkF.length+' snk, '+swF.length+' SW' : 'All time - '+snkRaw.length+' snk, '+swRaw.length+' SW';
+
+  var snkValM = snkF.reduce(function(s,r){return s+fmtAmt(g(r,'VALUE','RATE','PRICE'));},0);
+  var swValM  = swF.reduce(function(s,r){return s+fmtAmt(g(r,'PRICE'));},0);
+  var refValM = refF.reduce(function(s,r){return s+fmtAmt(g(r,'AMOUNT'));},0);
+  var snkDelM = snkF.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('DELIVER');}).length;
+  var swDelM  = swF.filter(function(r){return (g(r,'ORDER STATUS','TRACKING STATUS')||'').toUpperCase().includes('DELIVER');}).length;
+
+  var kpiMEl = document.getElementById('score-monthly-kpis');
+  if (kpiMEl) kpiMEl.innerHTML =
+    kpiCard('SNK orders', snkF.length, snkDelM+' delivered', C.lime) +
+    kpiCard('SW orders', swF.length, swDelM+' delivered', C.blu) +
+    kpiCard('SNK value', '\u20B9'+Math.round(snkValM/1000)+'K', '', C.grn) +
+    kpiCard('SW value', '\u20B9'+Math.round(swValM/1000)+'K', '', C.tel) +
+    kpiCard('Refunds', '\u20B9'+Math.round(refValM/1000)+'K', refF.length+' cases', C.red) +
+    kpiCard('Cancelled', cancelF.length, '', C.amb);
+
+  // Use filtered for rates
+  var ref = D.refundLedger ? D.refundLedger.rows : [];
+  var cancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
+  var snkDel = snkF.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('DELIVER');}).length;
+  var snkRTO = snkF.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('RTO');}).length;
+  var swDel  = swF.filter(function(r){return (g(r,'ORDER STATUS')||'').toUpperCase().includes('DELIVER');}).length;
+  var closedRef = ref.filter(function(r){return (g(r,'COMPLAINT STATUS')||'').toUpperCase()==='CLOSED';}).length;
+  var delivRate = snkF.length ? Math.round(snkDel / snkF.length * 100) : 0;
+  var rtoRate = snkF.length ? Math.round(snkRTO / snkF.length * 100) : 0;
+  var swDelivRate = swF.length ? Math.round(swDel / swF.length * 100) : 0;
+  var cancelRate = (snkF.length + swF.length) ? Math.round(cancelF.length / (snkF.length + swF.length) * 100) : 0;
+  var refResRate = ref.length ? Math.round(closedRef / ref.length * 100) : 0;
+
+  function scoreCard(title, val, unit, color, note) {
+    var pct = Math.min(Math.abs(val), 100);
+    return '<div class="score-card">' +
+      '<div class="score-title">' + title + '</div>' +
+      '<div style="display:flex;align-items:baseline;gap:.3rem">' +
+        '<span style="font-size:1.7rem;font-weight:800;color:' + color + '">' + val + '</span>' +
+        '<span style="color:var(--mu);font-size:.8rem">' + unit + '</span>' +
+      '</div>' +
+      '<div class="score-meter"><div class="score-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+      '<div style="font-size:.7rem;color:' + color + ';margin-top:.2rem">' + (note || '') + '</div>' +
+      '</div>';
+  }
+  function snkNote(r) { return r > 80 ? 'Excellent' : r > 60 ? 'Good' : r > 40 ? 'Average' : 'Low - investigate'; }
+  function rtoNote(r) { return r < 10 ? 'Excellent - very low RTO' : r < 20 ? 'Monitor closely' : 'High - investigate'; }
+  function cancelNote(r) { return r < 5 ? 'Very low - excellent' : r < 10 ? 'Moderate' : 'High - review'; }
+  function refNote(r) { return r > 80 ? 'Efficient' : r > 50 ? 'Needs improvement' : 'Critical - backlog'; }
+
+  document.getElementById('scorecard').innerHTML =
+    scoreCard('Sneaker Delivery Rate', delivRate, '%', C.grn, snkNote(delivRate)) +
+    scoreCard('Sneaker RTO Rate', rtoRate, '%', rtoRate > 20 ? C.red : rtoRate > 10 ? C.amb : C.grn, rtoNote(rtoRate)) +
+    scoreCard('SW Delivery Rate', swDelivRate, '%', C.blu, swDelivRate > 70 ? 'Strong' : 'Keep improving') +
+    scoreCard('Cancellation Rate', cancelRate, '%', cancelRate > 15 ? C.red : cancelRate > 8 ? C.amb : C.grn, cancelNote(cancelRate)) +
+    scoreCard('Refund Resolution', refResRate, '%', refResRate > 80 ? C.grn : refResRate > 50 ? C.amb : C.red, refNote(refResRate));
+
+  var monthMap = {};
+  snkRaw.forEach(function(r) {
+    var d = parseDate(g(r,'DATE','ORDER DATE')); if (!d) return;
+    var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    monthMap[mk] = (monthMap[mk] || 0) + 1;
+  });
+  var months = Object.keys(monthMap).sort().slice(-12);
+  mkLine('ctrend', months, [{
+    label: 'Orders', data: months.map(function(m){return monthMap[m]||0;}),
+    borderColor: C.lime, backgroundColor: C.lime + '22', fill: true
+  }]);
+
+  var rtoRows = snkRaw.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('RTO');});
+  var courierRTO = topN(countBy(rtoRows, 'COURIER SERVICE NAME'), 6);
+  mkHBar('crto', courierRTO.map(function(x){return x[0];}), courierRTO.map(function(x){return x[1];}), C.red);
+
+  var refByMonth = {};
+  ref.forEach(function(r) {
+    var d = parseDate(g(r,'DATE')); if (!d) return;
+    var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    refByMonth[mk] = (refByMonth[mk] || 0) + fmtAmt(g(r,'AMOUNT'));
+  });
+  var revMonths = Object.keys(monthMap).sort().slice(-8);
+  if (CH['crevref']) CH['crevref'].destroy();
+  var ctx2 = document.getElementById('crevref');
+  if (ctx2) {
+    CH['crevref'] = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: revMonths,
+        datasets: [
+          { label: 'Orders', data: revMonths.map(function(m){return monthMap[m]||0;}), backgroundColor: C.lime + '88', borderRadius: 3 },
+          { label: 'Refunds (K)', data: revMonths.map(function(m){return Math.round((refByMonth[m]||0)/1000);}), backgroundColor: C.red + '88', borderRadius: 3 }
+        ]
+      },
+      options: Object.assign({}, baseOpts, {
+        plugins: { legend: { display: true, labels: { color: '#555', font: { size: 10 } } } }
+      })
+    });
+  }
+
+  var totalOrders = snkRaw.length + swRaw.length;
+  var totalRefund = ref.reduce(function(s,r){return s+fmtAmt(g(r,'AMOUNT'));},0);
+  document.getElementById('bizinsights').innerHTML =
+    insCard('\u{1F3C6}', 'Snk delivery rate', delivRate + '%', C.lime) +
+    insCard('\u26A1', 'Total orders', totalOrders.toLocaleString(), C.blu) +
+    insCard('\u{1F4B0}', 'Refund exposure', '\u20B9' + Math.round(totalRefund/1000) + 'K', C.red) +
+    insCard('\u{1F4C8}', 'SW delivered 2026', (D.swDelivered2026 ? D.swDelivered2026.rows.length : 0) + ' orders', C.grn) +
+    insCard('\u{1F3AF}', 'Refund resolution', refResRate + '% closed', refResRate > 75 ? C.grn : C.amb);
+}
+
+/* ── FOLLOW-UP ASSIGNMENTS ── */
+var VENDOR_MAP = [
+  // { keywords in LOCATION (uppercase), assignee key }
+  // Note: order matters — ZHU HK must come before HK so it matches first
+  { keys: ['NAVYA', 'SAMEER', 'SHIVIL', 'NEHAL', 'SARTHAK', 'ZHU HK', 'ZHUHK', 'HK'], owner: 'ANUBHAV' },
+  { keys: ['RUPESH'],  owner: 'BHARAT'  },
+  { keys: ['DIVIJ'],   owner: 'SHAURYA' }
+  // anything else with "COMING FROM" → ABHISHEK (handled as fallback)
+];
+
+var OWNERS = {
+  ANUBHAV:  { name: 'Anubhav Dhyani', color: '#ff6b95', role: 'Vendor Lead', vendors: ['Navya', 'Sameer', 'Shivil', 'Nehal', 'Sarthak', 'Zhu HK', 'HK'] },
+  BHARAT:   { name: 'Bharat',         color: '#3d9be9', role: 'Vendor Lead', vendors: ['Rupesh'] },
+  SHAURYA:  { name: 'Shaurya',        color: '#9b59b6', role: 'Vendor Lead', vendors: ['Divij'] },
+  ABHISHEK: { name: 'Abhishek',       color: '#1abc9c', role: 'Vendor Lead', vendors: ['All other vendors'] }
+};
+
+var fuActiveFilter = 'ALL';
+
+function getOwnerForLocation(loc) {
+  if (!loc) return null;
+  var u = loc.toUpperCase();
+  if (!u.includes('COMING FROM') && !u.includes('COMING  FROM')) return null; // not a vendor entry
+  for (var i = 0; i < VENDOR_MAP.length; i++) {
+    for (var j = 0; j < VENDOR_MAP[i].keys.length; j++) {
+      if (u.includes(VENDOR_MAP[i].keys[j])) return VENDOR_MAP[i].owner;
+    }
+  }
+  return 'ABHISHEK'; // fallback for any other "coming from"
+}
+
+function fuFilter(name) {
+  fuActiveFilter = name;
+  // update chip styles
+  ['ALL','ANUBHAV','BHARAT','SHAURYA','ABHISHEK'].forEach(function(k) {
+    var chip = document.getElementById('fu-filter-' + k);
+    if (!chip) return;
+    if (name === 'ALL') {
+      chip.classList.add('selected');
+    } else {
+      if (k === name || k === 'ALL') chip.classList.add('selected');
+      else chip.classList.remove('selected');
+    }
+  });
+  renderFuTable();
+}
+
+function buildFollowups() {
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+
+  // Filter to only pending/non-delivered orders that have a "coming from" location
+  var vendorOrders = [];
+  allSnk.forEach(function(r) {
+    var status = (g(r, 'STATUS') || '').toUpperCase();
+    // skip fully delivered or cancelled
+    if (status.includes('DELIVER') || status.includes('CANCEL')) return;
+    var loc = g(r, 'LOCATION') || '';
+    var owner = getOwnerForLocation(loc);
+    if (!owner) return;
+    vendorOrders.push({
+      orderId:  g(r, 'ORDER ID'),
+      date:     g(r, 'DATE', 'ORDER DATE'),
+      city:     g(r, 'SHIPPING CITY'),
+      item:     g(r, 'ITEM NAME'),
+      status:   g(r, 'STATUS'),
+      location: loc,
+      owner:    owner,
+      remarks:  g(r, 'SPECIAL REMARKS', 'REMARKS')
+    });
+  });
+
+  // Group by owner
+  var grouped = { ANUBHAV: [], BHARAT: [], SHAURYA: [], ABHISHEK: [] };
+  vendorOrders.forEach(function(o) { grouped[o.owner].push(o); });
+
+  // Build person cards
+  var cardHTML = '';
+
+  // ── Anubhav avg days: ORDER DATE → BUYING DATE (= barcode allocated / received from vendor) ──
+  var allSnkRows = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var anuTrackingDays = [];
+  allSnkRows.forEach(function(r) {
+    var loc = (g(r, 'LOCATION') || '').toUpperCase();
+    var isAnubhav = false;
+    for (var vi = 0; vi < VENDOR_MAP.length; vi++) {
+      if (VENDOR_MAP[vi].owner !== 'ANUBHAV') continue;
+      for (var vj = 0; vj < VENDOR_MAP[vi].keys.length; vj++) {
+        if (loc.includes(VENDOR_MAP[vi].keys[vj])) { isAnubhav = true; break; }
+      }
+      if (isAnubhav) break;
+    }
+    if (!isAnubhav) return;
+    var od = parseDate(g(r, 'DATE', 'ORDER DATE'));
+    // BUYING DATE = when CDC purchased/received item from vendor = barcode allocation moment
+    var barcodeDate = parseDate(g(r, 'BUYING DATE'));
+    if (!od || !barcodeDate) return;
+    var d = daysBetween(od, barcodeDate);
+    if (d !== null && d >= 0 && d <= 90) anuTrackingDays.push(d);
+  });
+  var anuAvgTrack = anuTrackingDays.length
+    ? (anuTrackingDays.reduce(function(a,b){return a+b;},0) / anuTrackingDays.length).toFixed(1)
+    : null;
+  var anuMedianTrack = null;
+  if (anuTrackingDays.length) {
+    var sorted = anuTrackingDays.slice().sort(function(a,b){return a-b;});
+    anuMedianTrack = sorted.length % 2 === 0
+      ? ((sorted[sorted.length/2-1] + sorted[sorted.length/2]) / 2).toFixed(1)
+      : sorted[Math.floor(sorted.length/2)].toFixed(1);
+  }
+  window._anuTrackStats = { avg: anuAvgTrack, median: anuMedianTrack, count: anuTrackingDays.length, days: anuTrackingDays };
+
+  ['ANUBHAV', 'BHARAT', 'SHAURYA', 'ABHISHEK'].forEach(function(key) {
+    var ow = OWNERS[key];
+    var orders = grouped[key];
+    var rtoCount = orders.filter(function(o){ return (o.status||'').toUpperCase().includes('RTO'); }).length;
+    var pendCount = orders.filter(function(o){ var s=(o.status||'').toUpperCase(); return !s.includes('DELIVER')&&!s.includes('RTO')&&s!==''; }).length;
+    var unassCount = orders.filter(function(o){ return (o.status||'')===''; }).length;
+    var vendorSet = {};
+    orders.forEach(function(o){ var v=extractVendorName(o.location); if(v) vendorSet[v]=(vendorSet[v]||0)+1; });
+
+    // Extra stat for Anubhav — avg tracking days
+    var extraStat = '';
+    if (key === 'ANUBHAV') {
+      var avgDisp = anuAvgTrack !== null ? anuAvgTrack + ' days' : 'No data';
+      var medDisp = anuMedianTrack !== null ? anuMedianTrack + ' days' : '-';
+      var trackColor = anuAvgTrack !== null ? (parseFloat(anuAvgTrack) <= 3 ? C.grn : parseFloat(anuAvgTrack) <= 7 ? C.amb : C.red) : '#555';
+      extraStat =
+        '<div style="margin:.35rem 1rem 0;padding:.5rem .75rem;background:#ff6b9511;border:1px solid #ff6b9530;border-radius:6px">' +
+          '<div style="font-size:.63rem;color:#ff6b95;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.3rem">&#9201; Avg days: order &#8594; barcode allocated</div>' +
+          '<div style="display:flex;gap:.75rem;align-items:center">' +
+            '<div><div style="font-size:.62rem;color:#888">Average</div><div style="font-size:1.2rem;font-weight:900;color:' + trackColor + '">' + avgDisp + '</div></div>' +
+            '<div style="width:1px;height:28px;background:#333"></div>' +
+            '<div><div style="font-size:.62rem;color:#888">Median</div><div style="font-size:1.2rem;font-weight:900;color:' + trackColor + '">' + medDisp + '</div></div>' +
+            '<div style="width:1px;height:28px;background:#333"></div>' +
+            '<div><div style="font-size:.62rem;color:#888">Sample</div><div style="font-size:1.2rem;font-weight:900;color:#888">' + anuTrackingDays.length + '</div></div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    cardHTML += '<div class="fu-card" style="border-top:3px solid ' + ow.color + '">' +
+      '<div class="fu-header">' +
+        '<div><div class="fu-name" style="color:' + ow.color + '">' + ow.name + '</div><div class="fu-role">' + ow.role + '</div></div>' +
+        '<div class="fu-count" style="color:' + ow.color + '">' + orders.length + '</div>' +
+      '</div>' +
+      '<div class="fu-vendors">' +
+        ow.vendors.map(function(v){ return '<span class="fu-vtag" style="background:' + ow.color + '22;color:' + ow.color + '">' + v + '</span>'; }).join('') +
+      '</div>' +
+      '<div class="fu-body">' +
+        '<div class="fu-stat"><span class="fu-stat-l">Pending dispatch</span><span class="fu-stat-v" style="color:' + C.amb + '">' + pendCount + '</span></div>' +
+        '<div class="fu-stat"><span class="fu-stat-l">RTO / Return</span><span class="fu-stat-v" style="color:' + C.red + '">' + rtoCount + '</span></div>' +
+        '<div class="fu-stat"><span class="fu-stat-l">Unassigned status</span><span class="fu-stat-v" style="color:#555">' + unassCount + '</span></div>' +
+        Object.entries(vendorSet).slice(0,5).map(function(e){ return '<div class="fu-stat"><span class="fu-stat-l" style="font-size:.68rem">&#8627; ' + esc(e[0]) + '</span><span class="fu-stat-v" style="color:' + ow.color + '">' + e[1] + '</span></div>'; }).join('') +
+      '</div>' +
+      extraStat +
+      '<div style="padding:.5rem 1rem .75rem;margin-top:.35rem">' +
+        '<button onclick="fuFilter(\'' + key + '\')" style="width:100%;padding:.35rem;background:' + ow.color + '22;border:1px solid ' + ow.color + '44;border-radius:6px;color:' + ow.color + ';font-size:.72rem;font-weight:700;cursor:pointer;">View ' + ow.name.split(' ')[0] + '\'s orders &#8594;</button>' +
+      '</div>' +
+      '</div>';
+  });
+  document.getElementById('fu-cards').innerHTML = cardHTML;
+
+  // store all for table rendering
+  window._fuAllOrders = vendorOrders;
+  fuActiveFilter = 'ALL';
+  ['ALL','ANUBHAV','BHARAT','SHAURYA','ABHISHEK'].forEach(function(k){
+    var c=document.getElementById('fu-filter-'+k); if(c) c.classList.add('selected');
+  });
+  renderFuTable();
+  renderDelayTables();
+  buildInstantShipping();
+}
+
+function buildAnubhavTrackAnalytics() {
+  var allSnkRows = D.sneakerOrders ? D.sneakerOrders.rows : [];
+
+  // Per-vendor breakdown using BUYING DATE as barcode allocation date
+  var vendorStats = {};
+  allSnkRows.forEach(function(r) {
+    var loc = g(r, 'LOCATION') || '';
+    var locU = loc.toUpperCase();
+    var isAnubhav = false;
+    for (var vi = 0; vi < VENDOR_MAP.length; vi++) {
+      if (VENDOR_MAP[vi].owner !== 'ANUBHAV') continue;
+      for (var vj = 0; vj < VENDOR_MAP[vi].keys.length; vj++) {
+        if (locU.includes(VENDOR_MAP[vi].keys[vj])) { isAnubhav = true; break; }
+      }
+      if (isAnubhav) break;
+    }
+    if (!isAnubhav) return;
+    var vendorName = extractVendorName(loc) || 'Unknown';
+    var cleanV = vendorName.split(/\s+/).slice(0, 2).join(' ').substring(0, 18);
+    var od = parseDate(g(r, 'DATE', 'ORDER DATE'));
+    var buyDate = parseDate(g(r, 'BUYING DATE'));
+    if (!vendorStats[cleanV]) vendorStats[cleanV] = { days: [], total: 0 };
+    vendorStats[cleanV].total++;
+    if (od && buyDate) {
+      var d = daysBetween(od, buyDate);
+      if (d !== null && d >= 0 && d <= 90) vendorStats[cleanV].days.push(d);
+    }
+  });
+
+  var stats = window._anuTrackStats || { avg: null, median: null, count: 0, days: [] };
+  var allDays = stats.days;
+  var fastCount = allDays.filter(function(d) { return d <= 3; }).length;
+  var slowCount = allDays.filter(function(d) { return d > 10; }).length;
+  var avgColor = stats.avg !== null ? (parseFloat(stats.avg) <= 5 ? C.grn : parseFloat(stats.avg) <= 10 ? C.amb : C.red) : '#555';
+
+  var kpiHTML =
+    '<div class="kc" style="--ac:#ff6b95"><div class="kl">Avg: order → barcode</div><div class="kv">' + (stats.avg !== null ? stats.avg + 'd' : '—') + '</div><div class="ks">' + stats.count + ' orders with buying date</div></div>' +
+    '<div class="kc" style="--ac:' + avgColor + '"><div class="kl">Median days</div><div class="kv">' + (stats.median !== null ? stats.median + 'd' : '—') + '</div><div class="ks">50th percentile</div></div>' +
+    '<div class="kc" style="--ac:' + C.grn + '"><div class="kl">Fast (≤3 days)</div><div class="kv">' + fastCount + '</div><div class="ks">' + (stats.count ? Math.round(fastCount / stats.count * 100) : 0) + '% of orders</div></div>' +
+    '<div class="kc" style="--ac:' + C.red + '"><div class="kl">Slow (&gt;10 days)</div><div class="kv">' + slowCount + '</div><div class="ks">' + (stats.count ? Math.round(slowCount / stats.count * 100) : 0) + '% of orders</div></div>';
+  var kpiEl = document.getElementById('anu-track-kpis');
+  if (kpiEl) kpiEl.innerHTML = kpiHTML;
+
+  var vbHTML = '<table style="width:100%;border-collapse:collapse;font-size:.74rem"><thead><tr>' +
+    '<th style="text-align:left;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Vendor</th>' +
+    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Orders</th>' +
+    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Avg Days (order→barcode)</th>' +
+    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Fastest</th>' +
+    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Slowest</th>' +
+    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">No Date</th>' +
+    '</tr></thead><tbody>';
+  Object.keys(vendorStats).sort().forEach(function(v) {
+    var vs = vendorStats[v];
+    var nDate = vs.total - vs.days.length;
+    var vAvg = vs.days.length ? (vs.days.reduce(function(a, b) { return a + b; }, 0) / vs.days.length).toFixed(1) : '—';
+    var vMin = vs.days.length ? Math.min.apply(null, vs.days) : '—';
+    var vMax = vs.days.length ? Math.max.apply(null, vs.days) : '—';
+    var vc = vs.days.length ? (parseFloat(vAvg) > 10 ? C.red : parseFloat(vAvg) > 5 ? C.amb : C.grn) : '#555';
+    vbHTML += '<tr>' +
+      '<td style="padding:.32rem .5rem;color:#ff6b95;font-weight:600">' + esc(v) + '</td>' +
+      '<td style="text-align:center;padding:.32rem .5rem">' + vs.total + '</td>' +
+      '<td style="text-align:center;padding:.32rem .5rem;color:' + vc + ';font-weight:700">' + vAvg + (vAvg !== '—' ? 'd' : '') + '</td>' +
+      '<td style="text-align:center;padding:.32rem .5rem;color:var(--mu)">' + vMin + (vMin !== '—' ? 'd' : '') + '</td>' +
+      '<td style="text-align:center;padding:.32rem .5rem;color:var(--mu)">' + vMax + (vMax !== '—' ? 'd' : '') + '</td>' +
+      '<td style="text-align:center;padding:.32rem .5rem;color:#555;font-size:.7rem">' + nDate + '</td></tr>';
+  });
+  vbHTML += '</tbody></table>';
+  var vbEl = document.getElementById('anu-vendor-breakdown');
+  if (vbEl) vbEl.innerHTML = vbHTML;
+
+  var bkL = ['0d', '1d', '2-3d', '4-5d', '6-7d', '8-10d', '11-15d', '16-30d', '30d+'];
+  var bkR = [[0,0],[1,1],[2,3],[4,5],[6,7],[8,10],[11,15],[16,30],[31,999]];
+  var bkColors = [C.grn, C.grn, C.grn, C.lime, C.lime, C.amb, C.amb, C.red, C.red];
+  var bkData = bkR.map(function(ab) {
+    return allDays.filter(function(d) { return d >= ab[0] && d <= ab[1]; }).length;
+  });
+  mkBar('c-anu-track', bkL, bkData, bkColors);
+}
+
+function extractVendorName(loc) {
+  if (!loc) return null;
+  var u = loc.toUpperCase();
+  var idx = u.indexOf('COMING FROM');
+  if (idx === -1) idx = u.indexOf('COMING  FROM');
+  if (idx === -1) return null;
+  var after = loc.substring(idx + 11).trim();
+  return after.length > 0 ? after : null;
+}
+
+function renderDelayTables() {
+  var orders = window._fuAllOrders || [];
+  var today = new Date();
+  var anuThreshold = parseInt(document.getElementById('anu-slider') ? document.getElementById('anu-slider').value : 25);
+  var abhiThreshold = 5;
+
+  // ── ANUBHAV DELAY ──
+  var anuDelayed = orders.filter(function(o) {
+    if (o.owner !== 'ANUBHAV') return false;
+    var od = parseDate(o.date);
+    if (!od) return false;
+    var age = daysBetween(od, today);
+    return age !== null && age >= anuThreshold;
+  });
+  anuDelayed.sort(function(a, b) {
+    var da = parseDate(a.date), db = parseDate(b.date);
+    return (da && db) ? da - db : 0; // oldest first
+  });
+  document.getElementById('cnt-anu-delay').textContent = anuDelayed.length;
+  pTable('t-anu-delay', 'pg-anu-delay',
+    ['Order ID', 'Order Date', 'Age (days)', 'City', 'Item', 'Vendor', 'Status', 'Remarks'],
+    anuDelayed.map(function(o) {
+      var od = parseDate(o.date);
+      var age = od ? daysBetween(od, today) : '?';
+      var ageColor = age >= 35 ? C.red : age >= 28 ? C.amb : '#ff6b95';
+      return row([
+        '<span class="oid">' + esc(o.orderId) + '</span>',
+        esc(o.date),
+        '<span style="color:' + ageColor + ';font-weight:800;font-size:.85rem">' + age + 'd</span>',
+        esc(o.city),
+        esc(o.item.substring(0, 30)),
+        '<span style="color:#ff6b95;font-size:.68rem">' + esc(extractVendorName(o.location) || o.location).substring(0, 22) + '</span>',
+        statusBadge(o.status),
+        esc((o.remarks || '').substring(0, 28))
+      ], age >= 30);
+    })
+  );
+
+  // ── ABHISHEK DELAY ──
+  var abhiDelayed = orders.filter(function(o) {
+    if (o.owner !== 'ABHISHEK') return false;
+    var od = parseDate(o.date);
+    if (!od) return false;
+    var age = daysBetween(od, today);
+    return age !== null && age >= abhiThreshold;
+  });
+  abhiDelayed.sort(function(a, b) {
+    var da = parseDate(a.date), db = parseDate(b.date);
+    return (da && db) ? da - db : 0;
+  });
+  document.getElementById('cnt-abhi-delay').textContent = abhiDelayed.length;
+  pTable('t-abhi-delay', 'pg-abhi-delay',
+    ['Order ID', 'Order Date', 'Age (days)', 'City', 'Item', 'Vendor', 'Status', 'Remarks'],
+    abhiDelayed.map(function(o) {
+      var od = parseDate(o.date);
+      var age = od ? daysBetween(od, today) : '?';
+      var ageColor = age >= 15 ? C.red : age >= 10 ? C.amb : C.tel;
+      return row([
+        '<span class="oid">' + esc(o.orderId) + '</span>',
+        esc(o.date),
+        '<span style="color:' + ageColor + ';font-weight:800;font-size:.85rem">' + age + 'd</span>',
+        esc(o.city),
+        esc(o.item.substring(0, 30)),
+        '<span style="color:#1abc9c;font-size:.68rem">' + esc(extractVendorName(o.location) || o.location).substring(0, 22) + '</span>',
+        statusBadge(o.status),
+        esc((o.remarks || '').substring(0, 28))
+      ], age >= 10);
+    })
+  );
+}
+
+function buildInstantShipping() {
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var today = new Date();
+
+  var instant = allSnk.filter(function(r) {
+    var shipping = (g(r, 'SHIPPING', 'SHIPPING METHOD') || '').toUpperCase();
+    if (!shipping.includes('INSTANT')) return false;
+    // must be pending / not delivered
+    var status = (g(r, 'STATUS') || '').toUpperCase();
+    if (status.includes('DELIVER') || status.includes('CANCEL')) return false;
+    // tracking must be empty
+    var tracking = (g(r, 'CDC TRACKING NUMBER', 'TRACKING NUMBER', 'TRACKING') || '').trim();
+    if (tracking.length > 3) return false; // already has tracking
+    // order date must be > 2 days ago
+    var od = parseDate(g(r, 'DATE', 'ORDER DATE'));
+    if (!od) return false;
+    var age = daysBetween(od, today);
+    return age !== null && age >= 2;
+  });
+
+  instant.sort(function(a, b) {
+    var da = parseDate(g(a, 'DATE', 'ORDER DATE'));
+    var db = parseDate(g(b, 'DATE', 'ORDER DATE'));
+    return (da && db) ? da - db : 0;
+  });
+
+  document.getElementById('cnt-instant').textContent = instant.length;
+  pTable('t-instant', 'pg-instant',
+    ['Order ID', 'Order Date', 'Age (days)', 'City', 'Item', 'Status', 'Tracking (empty)', 'Remarks'],
+    instant.map(function(r) {
+      var od = parseDate(g(r, 'DATE', 'ORDER DATE'));
+      var age = od ? daysBetween(od, today) : '?';
+      var ageColor = age >= 5 ? C.red : C.amb;
+      return row([
+        '<span class="oid">' + esc(g(r, 'ORDER ID')) + '</span>',
+        esc(g(r, 'DATE', 'ORDER DATE')),
+        '<span style="color:' + ageColor + ';font-weight:800;font-size:.85rem">' + age + 'd</span>',
+        esc(g(r, 'SHIPPING CITY')),
+        esc(g(r, 'ITEM NAME').substring(0, 30)),
+        statusBadge(g(r, 'STATUS')),
+        '<span style="color:var(--red);font-size:.7rem">&#10007; Not added</span>',
+        esc((g(r, 'SPECIAL REMARKS', 'REMARKS') || '').substring(0, 28))
+      ], age >= 3);
+    })
+  );
+}
+function renderFuTable() {
+  var orders = window._fuAllOrders || [];
+  var filtered = fuActiveFilter === 'ALL' ? orders : orders.filter(function(o){ return o.owner === fuActiveFilter; });
+  var owName = fuActiveFilter === 'ALL' ? 'All vendors' : OWNERS[fuActiveFilter].name;
+  document.getElementById('fu-table-title').innerHTML = 'Follow-up orders — ' + owName + ' <span class="scnt" id="fu-count">' + filtered.length + '</span>';
+  var cntEl = document.getElementById('fu-count');
+  if (cntEl) cntEl.textContent = filtered.length;
+
+  pTable('tfu', 'pgfu',
+    ['Order ID', 'Date', 'City', 'Item', 'Vendor (Location)', 'Status', 'Follow-up By', 'Remarks'],
+    filtered.map(function(o) {
+      var ow = OWNERS[o.owner];
+      var owBadge = '<span style="background:' + ow.color + '22;color:' + ow.color + ';padding:2px 7px;border-radius:20px;font-size:.63rem;font-weight:700">' + ow.name.split(' ')[0] + '</span>';
+      return row([
+        '<span class="oid">' + esc(o.orderId) + '</span>',
+        esc(o.date),
+        esc(o.city),
+        esc(o.item.substring(0, 32)),
+        '<span style="color:var(--mu);font-size:.7rem">' + esc(o.location.substring(0, 28)) + '</span>',
+        statusBadge(o.status),
+        owBadge,
+        esc((o.remarks || '').substring(0, 30))
+      ]);
+    })
+  );
+}
+
+/* ── TAB SWITCH ── */
+function showTab(name) {
+  document.querySelectorAll('.tb').forEach(function(b) {
+    b.classList.toggle('on', b.getAttribute('onclick').indexOf("'" + name + "'") !== -1);
+  });
+  document.querySelectorAll('.tabp').forEach(function(p) {
+    p.classList.toggle('on', p.id === 'tab-' + name);
+  });
+}
+
+window.onload = function() { showScreen('setup'); };
+</script>
+</body>
+</html>
