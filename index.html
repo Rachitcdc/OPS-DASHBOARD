@@ -346,6 +346,7 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
     <!-- OPS -->
     <div id="tab-ops" class="tabp">
       <div class="kg" id="kops"></div>
+      <div id="ops-type-breakdown" style="margin-bottom:.75rem"></div>
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;flex-wrap:wrap;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.5rem .9rem">
         <span style="font-size:.7rem;color:var(--mu)">Exchange/RTO type:</span>
         <select id="exch-type" class="fi" onchange="buildOps()">
@@ -397,6 +398,16 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
       </div>
       <div class="shd">Refund ledger <span class="scnt" id="crefl">0</span></div>
       <div class="tc"><div class="ts"><table id="trefl"></table></div><div class="pg" id="pgrefl"></div></div>
+      <div style="display:flex;align-items:center;gap:.6rem;margin-top:1rem;margin-bottom:.65rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.5rem .9rem">
+        <span style="font-size:.7rem;color:var(--mu)">Payment method chart — month:</span>
+        <select id="ref-payment-month" class="fi" onchange="buildRef()" style="min-width:100px">
+          <option value="">All time</option>
+        </select>
+      </div>
+      <div class="cc" style="margin-bottom:1rem">
+        <div class="ct">Credit note vs bank transfer — monthly amounts (&#8377;)</div>
+        <div class="cw"><canvas id="cref-payment" style="height:200px" role="img" aria-label="Refund payment methods"></canvas></div>
+      </div>
       <div class="shd" style="margin-top:1rem">Processed refunds <span class="scnt" id="crefp">0</span></div>
       <div class="tc"><div class="ts"><table id="trefp"></table></div><div class="pg" id="pgrefp"></div></div>
     </div>
@@ -439,6 +450,11 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
         <div class="ct">Brand delay analysis — avg days order→shipped (brands with 3+ orders)</div>
         <div class="cw"><canvas id="cbp-delay" style="height:200px" role="img" aria-label="Brand delay"></canvas></div>
       </div>
+      <div class="cc" style="margin-bottom:1rem">
+        <div class="ct">Top 10 brands — revenue (&#8377;K)</div>
+        <div class="cw"><canvas id="cbp-value" style="height:200px" role="img" aria-label="Brand revenue"></canvas></div>
+      </div>
+      <div id="active-brands-list" style="display:none;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:1rem;overflow:hidden"></div>
       <div class="shd">Brand performance table <span class="scnt" id="cbp-cnt">0</span></div>
       <div class="tc"><div class="ts"><table id="tbp"></table></div></div>
     </div>
@@ -565,6 +581,7 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
           <span id="fu-filter-ANUBHAV" class="fu-chip selected" style="background:#ff6b9533;border-color:#ff6b95;color:#ff6b95" onclick="fuFilter('ANUBHAV')">Anubhav</span>
           <span id="fu-filter-BHARAT" class="fu-chip selected" style="background:#3d9be933;border-color:#3d9be9;color:#3d9be9" onclick="fuFilter('BHARAT')">Bharat</span>
           <span id="fu-filter-SHAURYA" class="fu-chip selected" style="background:#9b59b633;border-color:#9b59b6;color:#9b59b6" onclick="fuFilter('SHAURYA')">Shaurya</span>
+          <span id="fu-filter-SUNNY" class="fu-chip selected" style="background:#f0c04033;border-color:#f0c040;color:#f0c040" onclick="fuFilter('SUNNY')">Sunny</span>
           <span id="fu-filter-ABHISHEK" class="fu-chip selected" style="background:#1abc9c33;border-color:#1abc9c;color:#1abc9c" onclick="fuFilter('ABHISHEK')">Abhishek</span>
         </div>
       </div>
@@ -1449,7 +1466,6 @@ function buildSW(sw) {
 function buildOps() {
   var allExch = D.streetwearExch ? D.streetwearExch.rows : [];
   var allCancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
-  var exchTypeFilter = document.getElementById('exch-type') ? document.getElementById('exch-type').value.toUpperCase() : '';
   var cancelMonthSel = document.getElementById('cancel-month') ? document.getElementById('cancel-month').value : '';
 
   // Populate cancel month dropdown once
@@ -1466,72 +1482,76 @@ function buildOps() {
     });
   }
 
-  // Segregate Exchange vs RTO
-  var exchRows = allExch.filter(function(r) {
-    var type = (g(r,'TYPE') || '').toUpperCase();
-    var remarks = (g(r,'REMARKS','OLD TRACKING') || '').toUpperCase();
-    if (exchTypeFilter === 'EXCHANGE') return type.includes('EXCHANGE') || remarks.includes('EXCHANGE');
-    if (exchTypeFilter === 'RTO') return type.includes('RTO') || (!type.includes('EXCHANGE') && !remarks.includes('EXCHANGE'));
-    return true;
-  });
-  var exchOnlyRows = allExch.filter(function(r) {
-    var type = (g(r,'TYPE','REMARKS') || '').toUpperCase();
-    return type.includes('EXCHANGE') || (g(r,'REMARKS')||'').toUpperCase().includes('EXCHANGE');
-  });
-  var rtoOnlyRows = allExch.filter(function(r) {
-    var type = (g(r,'TYPE') || '').toUpperCase();
-    return type.includes('RTO') || (!type.includes('EXCHANGE') && !(g(r,'REMARKS')||'').toUpperCase().includes('EXCHANGE'));
-  });
+  // Segregate by TYPE column (Column I in sheet)
+  // Exchange types: SIZE EXCHANGE, PRODUCT CHANGE, WRONG SIZE, DAMAGED, WRONG PRODUCT
+  // RTO types: RTO, RTO IN TRANSIT, LOST
+  // Other: DELIVERED, UNDELIVERED, PICKUP PENDING, IN TRANSIT, DELAYED, OUT OF STOCK
+  function getTypeGroup(r) {
+    var t = (g(r,'TYPE') || '').trim().toUpperCase();
+    if (t.includes('SIZE EXCHANGE') || t.includes('SIZE CHANGE') || t.includes('PRODUCT CHANGE') || t.includes('WRONG SIZE') || t.includes('DAMAGED') || t.includes('WRONG PRODUCT') || t.includes('EXCHANGE')) return 'EXCHANGE';
+    if (t.includes('RTO') || t.includes('LOST')) return 'RTO';
+    if (t.includes('DELIVER')) return 'DELIVERED';
+    return 'OTHER';
+  }
 
-  // Filter cancelled by month
+  var exchOnlyRows = allExch.filter(function(r){ return getTypeGroup(r) === 'EXCHANGE'; });
+  var rtoOnlyRows  = allExch.filter(function(r){ return getTypeGroup(r) === 'RTO'; });
+  var deliveredRows = allExch.filter(function(r){ return getTypeGroup(r) === 'DELIVERED'; });
+  var otherRows    = allExch.filter(function(r){ return getTypeGroup(r) === 'OTHER'; });
+
+  // Count by TYPE value for breakdown
+  var typeCounts = {};
+  allExch.forEach(function(r){ var t=(g(r,'TYPE')||'(blank)').trim(); typeCounts[t]=(typeCounts[t]||0)+1; });
+
   var cancel = cancelMonthSel ? allCancel.filter(function(r) {
     var d = parseDate(g(r,'ORDER DATE')); if (!d) return false;
     var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     return mk === cancelMonthSel;
   }) : allCancel;
-
   var cancelLblEl = document.getElementById('cancel-month-label');
   if (cancelLblEl) cancelLblEl.textContent = cancelMonthSel ? '— ' + cancelMonthSel : '— all time';
 
+  var cancelAmt = cancel.reduce(function(s,r){ return s+fmtAmt(g(r,'PRICE')); },0);
+
   document.getElementById('kops').innerHTML =
     kpiCard('Total exchange/RTO', allExch.length, '', C.pur) +
-    kpiCard('Exchanges', exchOnlyRows.length, '', C.blu) +
-    kpiCard('RTOs', rtoOnlyRows.length, '', C.red) +
-    kpiCard('Resolved', allExch.filter(function(r){return (g(r,'TYPE','STATUS','REMARKS')||'').toUpperCase().includes('DELIVER');}).length, '', C.grn) +
+    kpiCard('Exchanges', exchOnlyRows.length, 'size / product / wrong', C.blu) +
+    kpiCard('RTOs', rtoOnlyRows.length, 'RTO / lost', C.red) +
+    kpiCard('Resolved/Delivered', deliveredRows.length, '', C.grn) +
     kpiCard('Cancelled (filtered)', cancel.length, cancelMonthSel||'all time', C.red, cancel.length > 50) +
+    kpiCard('Cancel value', '\u20B9'+Math.round(cancelAmt).toLocaleString(), 'filtered period', C.amb) +
     kpiCard('Brands affected', Object.keys(countBy(allCancel,'BRAND')).length, 'all time', C.amb);
 
-  var eh = (D.streetwearExch ? D.streetwearExch.h : []).slice(0, 7);
-  var exchCols = ['ORDER ID','ORDER DATE','CUSTOMER NAME','BRAND NAME','PRODUCT DETAILS','REMARKS','REMARKS'];
-  var exchH = ['Order ID','Date','Customer','Brand','Product','Old Tracking','Remarks'];
+  // Type breakdown summary
+  var typeBreakdown = topN(typeCounts, 10);
+  var typeHTML = '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem;">' +
+    typeBreakdown.map(function(x){
+      var col = x[0].includes('RTO')||x[0].includes('LOST') ? C.red : x[0].includes('EXCHANGE')||x[0].includes('SIZE') ? C.blu : x[0].includes('DELIVER') ? C.grn : C.amb;
+      return '<span style="background:'+col+'22;color:'+col+';border:1px solid '+col+'44;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:600">'+esc(x[0])+': '+x[1]+'</span>';
+    }).join('') + '</div>';
+  var typeEl = document.getElementById('ops-type-breakdown');
+  if (typeEl) typeEl.innerHTML = typeHTML;
 
-  // Exchange table
+  var exchH = ['Order ID','Date','Customer','Brand','Product','Type','Old Tracking','Remarks'];
+  function exchRow(r) {
+    var typeVal = g(r,'TYPE') || '';
+    var typeColor = getTypeGroup(r)==='EXCHANGE' ? C.blu : getTypeGroup(r)==='RTO' ? C.red : getTypeGroup(r)==='DELIVERED' ? C.grn : C.amb;
+    return row([
+      '<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',
+      esc(g(r,'ORDER DATE')), esc(g(r,'CUSTOMER NAME')),
+      esc(g(r,'BRAND NAME','BRAND')),
+      esc(g(r,'PRODUCT DETAILS','PRODUCT NAME').substring(0,28)),
+      '<span style="color:'+typeColor+';font-weight:600;font-size:.68rem">'+esc(typeVal)+'</span>',
+      esc((g(r,'OLD TRACKING')||'').substring(0,20)),
+      esc((g(r,'REMARKS')||'').substring(0,22))
+    ]);
+  }
+
   document.getElementById('cexch-e').textContent = exchOnlyRows.length;
-  pTable('texch-e', 'pgexch-e', exchH,
-    exchOnlyRows.map(function(r) {
-      return row([
-        '<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',
-        esc(g(r,'ORDER DATE')), esc(g(r,'CUSTOMER NAME')),
-        esc(g(r,'BRAND NAME','BRAND')),
-        esc(g(r,'PRODUCT DETAILS','PRODUCT NAME').substring(0,28)),
-        esc((g(r,'OLD TRACKING','REMARKS')||'').substring(0,22)),
-        esc((g(r,'REMARKS')||'').substring(0,22))
-      ]);
-    }));
+  pTable('texch-e', 'pgexch-e', exchH, exchOnlyRows.map(exchRow));
 
-  // RTO table
   document.getElementById('cexch-r').textContent = rtoOnlyRows.length;
-  pTable('texch-r', 'pgexch-r', exchH,
-    rtoOnlyRows.map(function(r) {
-      return row([
-        '<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',
-        esc(g(r,'ORDER DATE')), esc(g(r,'CUSTOMER NAME')),
-        esc(g(r,'BRAND NAME','BRAND')),
-        esc(g(r,'PRODUCT DETAILS','PRODUCT NAME').substring(0,28)),
-        esc((g(r,'OLD TRACKING','REMARKS')||'').substring(0,22)),
-        esc((g(r,'REMARKS')||'').substring(0,22))
-      ]);
-    }));
+  pTable('texch-r', 'pgexch-r', exchH, rtoOnlyRows.map(exchRow));
 
   document.getElementById('ccanc').textContent = cancel.length;
   pTable('tcanc', 'pgcanc', ['Order ID','Brand','Date','Product','Size','Price','Status'],
@@ -1545,7 +1565,6 @@ function buildOps() {
 
 /* ── REFUNDS ── */
 function buildRef() {
-  // Use refund-tab specific date pickers (default: from 01-Apr-2026)
   var refFrom = document.getElementById('ref-from') ? document.getElementById('ref-from').value : '2026-04-01';
   var refTo   = document.getElementById('ref-to')   ? document.getElementById('ref-to').value   : '';
 
@@ -1575,6 +1594,7 @@ function buildRef() {
   var open   = ref.filter(function(r) { return (g(r,'COMPLAINT STATUS')||'').toUpperCase() !== 'CLOSED'; }).length;
   var closed = ref.length - open;
   var bank   = ref.filter(function(r) { return (g(r,'RETURN MODE')||'').toUpperCase().includes('BANK'); }).length;
+  var creditNote = ref.filter(function(r) { return (g(r,'RETURN MODE')||'').toUpperCase().includes('CREDIT') || (g(r,'RETURN MODE')||'').toUpperCase().includes('NOTE'); }).length;
 
   document.getElementById('kref').innerHTML =
     kpiCard('Ledger total', '\u20B9' + Math.round(tot).toLocaleString(), '', C.red) +
@@ -1582,19 +1602,31 @@ function buildRef() {
     kpiCard('Closed', closed, Math.round(closed / (ref.length || 1) * 100) + '% resolution rate', C.grn) +
     kpiCard('Processed', refP.length, '\u20B9' + Math.round(totP).toLocaleString(), C.pur) +
     kpiCard('Bank transfers', bank, '', C.blu) +
-    kpiCard('Avg refund', ref.length ? '\u20B9' + Math.round(tot / ref.length).toLocaleString() : '-', '', C.tel);
+    kpiCard('Credit notes', creditNote, '', C.tel) +
+    kpiCard('Avg refund', ref.length ? '\u20B9' + Math.round(tot / ref.length).toLocaleString() : '-', '', C.amb);
 
+  // Complaint status donut
   mkDonut('ccomp', 'lcomp', countBy(ref, 'COMPLAINT STATUS'));
-  var iss = topN(countBy(ref, 'ISSUE'), 8);
-  mkHBar('ciss', iss.map(function(x){return x[0].substring(0,22);}), iss.map(function(x){return x[1];}), PAL);
 
-  // ── Category segmentation: Sneaker / Streetwear / Hype ──
+  // Issue bar — use REMARKS column (actual issues) not ISSUE column (refund type)
+  var remarksMap = {};
+  ref.forEach(function(r) {
+    var rem = (g(r,'REMARKS') || '').trim();
+    if (!rem) rem = '(no remark)';
+    // normalize common patterns
+    rem = rem.charAt(0).toUpperCase() + rem.slice(1).toLowerCase();
+    rem = rem.substring(0, 30);
+    remarksMap[rem] = (remarksMap[rem] || 0) + 1;
+  });
+  var topRemarks = topN(remarksMap, 8);
+  mkHBar('ciss', topRemarks.map(function(x){return x[0];}), topRemarks.map(function(x){return x[1];}), PAL);
+
+  // Category classification
   function classifyCategory(r) {
     var cat = (g(r,'CATEGORY') || '').toUpperCase();
     if (cat.includes('SNEAK') || cat.includes('SHOE') || cat.includes('JORDAN') || cat.includes('YEEZY') || cat.includes('DUNK')) return 'Sneaker';
-    if (cat.includes('HYPE') || cat.includes('WATCH') || cat.includes('ACCESSORY') || cat.includes('ACCESSORIES')) return 'Watch / Hype';
+    if (cat.includes('HYPE') || cat.includes('WATCH') || cat.includes('ACCESSORY')) return 'Watch / Hype';
     if (cat.includes('STREET') || cat.includes('APPAREL') || cat.includes('CLOTH') || cat.includes('TEE') || cat.includes('SHIRT') || cat.includes('HOODIE')) return 'Streetwear';
-    // fall back to actual category value if known
     var catRaw = (g(r,'CATEGORY') || '').trim();
     if (catRaw) return catRaw.charAt(0).toUpperCase() + catRaw.slice(1).toLowerCase();
     return 'Other';
@@ -1602,16 +1634,13 @@ function buildRef() {
   var catColors = { 'Sneaker': C.lime, 'Streetwear': C.blu, 'Watch / Hype': C.pur, 'Other': C.amb };
   function getCatColor(cat) { return catColors[cat] || C.org; }
 
-  var catValMap = {};
-  var catCntMap = {};
+  var catValMap = {}, catCntMap = {};
   ref.forEach(function(r) {
     var cat = classifyCategory(r);
-    var amt = fmtAmt(g(r,'AMOUNT'));
-    catValMap[cat] = (catValMap[cat] || 0) + amt;
+    catValMap[cat] = (catValMap[cat] || 0) + fmtAmt(g(r,'AMOUNT'));
     catCntMap[cat] = (catCntMap[cat] || 0) + 1;
   });
 
-  // Donut for value
   var catKeys = Object.keys(catValMap).sort(function(a,b){ return catValMap[b]-catValMap[a]; });
   var catVals = catKeys.map(function(k){ return Math.round(catValMap[k]); });
   var catClrs = catKeys.map(getCatColor);
@@ -1621,10 +1650,9 @@ function buildRef() {
     CH['cref-cat-val'] = new Chart(ctxCat, {
       type: 'doughnut',
       data: { labels: catKeys, datasets: [{ data: catVals, backgroundColor: catClrs, borderWidth: 2, borderColor: '#111' }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: { duration: 250 }, cutout: '62%', plugins: { legend: { display: false },
-        tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': \u20B9' + ctx.raw.toLocaleString(); } } } } }
+      options: { responsive: true, maintainAspectRatio: false, animation: { duration: 250 }, cutout: '62%',
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': \u20B9' + ctx.raw.toLocaleString(); } } } } }
     });
-    var catTot = catVals.reduce(function(a,b){return a+b;},0);
     var legEl = document.getElementById('lref-cat-val');
     if (legEl) legEl.innerHTML = catKeys.map(function(k,i) {
       return '<div class="li"><div class="ld" style="background:' + catClrs[i] + '"></div>' + esc(k) +
@@ -1633,48 +1661,85 @@ function buildRef() {
     }).join('');
   }
 
-  // Monthly trend by category (last 6 months)
-  var allRefForTrend = D.refundLedger ? D.refundLedger.rows : [];
-  var trendMonths = {};
-  allRefForTrend.forEach(function(r) {
+  // Monthly trend — USE ref (filtered) data, fix the bug where it always used allRef
+  var trendData = {};
+  ref.forEach(function(r) {
     var d = parseDate(g(r,'DATE')); if (!d) return;
     var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     var cat = classifyCategory(r);
-    if (!trendMonths[mk]) trendMonths[mk] = {};
-    trendMonths[mk][cat] = (trendMonths[mk][cat] || 0) + 1;
+    if (!trendData[mk]) trendData[mk] = {};
+    trendData[mk][cat] = (trendData[mk][cat] || 0) + 1;
   });
-  var tMonths = Object.keys(trendMonths).sort().slice(-8);
+  var tMonths = Object.keys(trendData).sort().slice(-10);
   var tCats = Object.keys(catCntMap).sort();
   if (CH['cref-cat-trend']) CH['cref-cat-trend'].destroy();
   var ctxTrend = document.getElementById('cref-cat-trend');
-  if (ctxTrend && tMonths.length) {
+  if (ctxTrend) {
     CH['cref-cat-trend'] = new Chart(ctxTrend, {
       type: 'bar',
       data: {
-        labels: tMonths,
+        labels: tMonths.length ? tMonths : ['No data'],
         datasets: tCats.map(function(cat) {
-          return {
-            label: cat,
-            data: tMonths.map(function(m){ return (trendMonths[m] && trendMonths[m][cat]) || 0; }),
-            backgroundColor: getCatColor(cat) + 'bb',
-            borderRadius: 3
-          };
+          return { label: cat, data: tMonths.map(function(m){ return (trendData[m] && trendData[m][cat]) || 0; }), backgroundColor: getCatColor(cat) + 'bb', borderRadius: 3 };
         })
       },
       options: Object.assign({}, baseOpts, {
         plugins: { legend: { display: true, labels: { color: '#666', font: { size: 10 }, boxWidth: 12 } } },
-        scales: {
-          x: { stacked: true, grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } },
-          y: { stacked: true, grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } }
-        }
+        scales: { x: { stacked: true, grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } }, y: { stacked: true, grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } } }
+      })
+    });
+  }
+
+  // ── Credit note vs bank transfer monthly bar chart ──
+  var refMonthSel = document.getElementById('ref-payment-month') ? document.getElementById('ref-payment-month').value : '';
+  var pmSel = document.getElementById('ref-payment-month');
+  if (pmSel && pmSel.options.length <= 1) {
+    var pmSet = {};
+    allRef.forEach(function(r){ var d=parseDate(g(r,'DATE')); if(!d) return; var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); pmSet[mk]=true; });
+    Object.keys(pmSet).sort().reverse().forEach(function(m){ var opt=document.createElement('option'); opt.value=m; opt.textContent=m; pmSel.appendChild(opt); });
+  }
+  var pmRows = refMonthSel ? allRef.filter(function(r){ var d=parseDate(g(r,'DATE')); if(!d) return false; var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); return mk===refMonthSel; }) : allRef;
+  var pmMonths = {};
+  pmRows.forEach(function(r) {
+    var d=parseDate(g(r,'DATE')); if(!d) return;
+    var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var mode=(g(r,'RETURN MODE')||'').toUpperCase();
+    if (!pmMonths[mk]) pmMonths[mk]={bank:0,credit:0,other:0};
+    var amt=fmtAmt(g(r,'AMOUNT'));
+    if (mode.includes('BANK')) pmMonths[mk].bank+=amt;
+    else if (mode.includes('CREDIT')||mode.includes('NOTE')) pmMonths[mk].credit+=amt;
+    else pmMonths[mk].other+=amt;
+  });
+  var pmLabels = Object.keys(pmMonths).sort();
+  if (CH['cref-payment']) CH['cref-payment'].destroy();
+  var ctxPm = document.getElementById('cref-payment');
+  if (ctxPm) {
+    CH['cref-payment'] = new Chart(ctxPm, {
+      type: 'bar',
+      data: {
+        labels: pmLabels.length ? pmLabels : ['No data'],
+        datasets: [
+          { label: 'Bank Transfer', data: pmLabels.map(function(m){ return Math.round((pmMonths[m]||{bank:0}).bank); }), backgroundColor: C.blu+'bb', borderRadius: 3 },
+          { label: 'Credit Note',   data: pmLabels.map(function(m){ return Math.round((pmMonths[m]||{credit:0}).credit); }), backgroundColor: C.grn+'bb', borderRadius: 3 },
+          { label: 'Other',         data: pmLabels.map(function(m){ return Math.round((pmMonths[m]||{other:0}).other); }), backgroundColor: C.amb+'bb', borderRadius: 3 }
+        ]
+      },
+      options: Object.assign({}, baseOpts, {
+        plugins: { legend: { display: true, labels: { color: '#666', font: { size: 10 }, boxWidth: 12 } } },
+        scales: { x: { grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } }, y: { grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } } }
       })
     });
   }
 
   document.getElementById('crefl').textContent = ref.length;
-  pTable('trefl', 'pgrefl', ['Date','Order #','Category','Issue','Product','Amount','Mode','Status'],
+  pTable('trefl', 'pgrefl', ['Date','Order #','Category','Refund Type (Issue)','Remark / Issue','Amount','Mode','Status'],
     ref.map(function(r) {
-      return row([esc(g(r,'DATE')), '<span class="oid">' + esc(g(r,'ORDER NUMBER')) + '</span>', esc(g(r,'CATEGORY')), esc(g(r,'ISSUE').substring(0,20)), esc(g(r,'PRODUCT DESC','PRODUCT DETAILS').substring(0,26)), g(r,'AMOUNT') ? '\u20B9'+esc(g(r,'AMOUNT')) : '', esc(g(r,'RETURN MODE')), statusBadge(g(r,'COMPLAINT STATUS'))]);
+      return row([esc(g(r,'DATE')), '<span class="oid">' + esc(g(r,'ORDER NUMBER')) + '</span>',
+        esc(g(r,'CATEGORY')),
+        esc((g(r,'ISSUE')||'').substring(0,18)),
+        esc((g(r,'REMARKS')||'').substring(0,24)),
+        g(r,'AMOUNT') ? '\u20B9'+esc(g(r,'AMOUNT')) : '',
+        esc(g(r,'RETURN MODE')), statusBadge(g(r,'COMPLAINT STATUS'))]);
     }));
 
   document.getElementById('crefp').textContent = refP.length;
@@ -1779,26 +1844,31 @@ function buildTopProducts() {
   function inPeriod(dateStr) {
     if (!cutoff) return true;
     var d = parseDate(dateStr);
-    return d && d >= cutoff;
+    return !!(d && d >= cutoff && d <= today);
   }
 
   var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
   var allSW  = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  // Also include delivered 2026 for SW
+  var allSWDel = D.swDelivered2026 ? D.swDelivered2026.rows : [];
 
   var snkRows = allSnk.filter(function(r){ return inPeriod(g(r,'DATE','ORDER DATE')); });
   var swRows  = allSW.filter(function(r){ return inPeriod(g(r,'ORDER DATE')); });
+  var swDelRows = allSWDel.filter(function(r){ return inPeriod(g(r,'ORDER DATE')); });
+  // Combine active + delivered SW
+  var swAll = swRows.concat(swDelRows);
 
-  if (infoEl) infoEl.textContent = (cutoff ? 'Last '+periodDays+' days' : 'All time') + ' — '+snkRows.length+' sneaker, '+swRows.length+' SW orders';
+  if (infoEl) infoEl.textContent = (cutoff ? 'Last '+periodDays+' days' : 'All time') + ' — '+snkRows.length+' sneaker, '+swAll.length+' SW orders';
 
-  // ── Sneaker top products by count ──
+  // ── Sneaker top products ──
   var snkProductCount = {};
   var snkProductSizes = {};
   snkRows.forEach(function(r) {
-    // Normalize item name: strip size suffix
     var item = (g(r,'ITEM NAME')||'').trim();
-    // Remove UK X at end
-    var baseName = item.replace(/[-\s]*UK\s*[\d.]+\s*$/i,'').replace(/[-\s]*\d+(\.\d+)?\s*(UK|US|EU)?\s*$/i,'').trim() || item;
-    var size = (g(r,'QTY') === '' ? '' : '') + (item.match(/UK\s*([\d.]+)/i) ? 'UK '+item.match(/UK\s*([\d.]+)/i)[1] : (g(r,'SIZE')||'—'));
+    // Extract base name by removing size suffix: "- UK 8", "UK8", etc.
+    var baseName = item.replace(/\s*-?\s*UK\s*[\d.]+\s*$/i,'').replace(/\s*-?\s*US\s*[\d.]+\s*$/i,'').trim() || item;
+    var sizeMatch = item.match(/UK\s*([\d.]+)/i);
+    var size = sizeMatch ? 'UK ' + sizeMatch[1] : (g(r,'SIZE')||'—');
     snkProductCount[baseName] = (snkProductCount[baseName] || 0) + 1;
     if (!snkProductSizes[baseName]) snkProductSizes[baseName] = {};
     snkProductSizes[baseName][size] = (snkProductSizes[baseName][size] || 0) + 1;
@@ -1806,45 +1876,39 @@ function buildTopProducts() {
 
   var snkTop10 = topN(snkProductCount, 10);
   document.getElementById('cnt-tp-snk').textContent = snkTop10.length;
-
-  // Top products table
   pTable('t-tp-snk', '', ['#','Product','Orders','Top size'],
     snkTop10.map(function(x, i) {
-      var sizeMap = snkProductSizes[x[0]] || {};
-      var topSize = topN(sizeMap, 1);
-      return row([
-        '<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>',
-        '<span style="color:var(--lime);font-weight:600">'+esc(x[0].substring(0,40))+'</span>',
+      var sm = snkProductSizes[x[0]] || {};
+      var ts = topN(sm,1);
+      return row(['<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>',
+        '<span style="color:var(--lime);font-weight:600">'+esc(x[0].substring(0,42))+'</span>',
         '<span style="font-size:.9rem;font-weight:800">'+x[1]+'</span>',
-        topSize.length ? esc(topSize[0][0])+' ('+topSize[0][1]+')' : '—'
-      ]);
+        ts.length ? esc(ts[0][0])+' ('+ts[0][1]+')' : '—']);
     }));
+  if (CH['c-tp-snk']) CH['c-tp-snk'].destroy();
+  var ctxSnk = document.getElementById('c-tp-snk');
+  if (ctxSnk) {
+    ctxSnk.parentElement.style.height = Math.max(180, snkTop10.length*28+40) + 'px';
+    CH['c-tp-snk'] = new Chart(ctxSnk, { type:'bar', data:{ labels:snkTop10.map(function(x){return x[0].substring(0,28);}), datasets:[{data:snkTop10.map(function(x){return x[1];}),backgroundColor:C.lime,borderRadius:3}]}, options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
+  }
 
-  // Chart
-  mkHBar('c-tp-snk', snkTop10.map(function(x){return x[0].substring(0,30);}), snkTop10.map(function(x){return x[1];}), C.lime);
-
-  // Size breakdown table for sneakers
-  var snkSizeRows = [];
-  snkTop10.forEach(function(x) {
-    var sizeMap = snkProductSizes[x[0]] || {};
-    var sizeArr = topN(sizeMap, 5);
-    snkSizeRows.push(row([
-      '<strong style="color:var(--lime)">'+esc(x[0].substring(0,30))+'</strong>',
-      '<span style="font-weight:700">'+x[1]+' total</span>',
-      sizeArr.map(function(s){ return esc(s[0])+': '+s[1]; }).join(' | '),
-      sizeArr.length ? esc(sizeArr[0][0]) : '—'
-    ]));
+  // Sneaker size breakdown table
+  var snkSizeRows = snkTop10.map(function(x) {
+    var sm = snkProductSizes[x[0]] || {};
+    var sa = topN(sm,6);
+    return row(['<strong style="color:var(--lime)">'+esc(x[0].substring(0,32))+'</strong>', '<span style="font-weight:700">'+x[1]+' total</span>', sa.map(function(s){return esc(s[0])+': '+s[1];}).join(' | '), sa.length?esc(sa[0][0]):'—']);
   });
-  pTable('t-tp-snk-size', '', ['Product','Total','Size breakdown (top 5)','Best size'], snkSizeRows);
+  pTable('t-tp-snk-size', '', ['Product','Total','Size breakdown (top 6)','Best size'], snkSizeRows);
 
   // ── Streetwear top products ──
   var swProductCount = {};
   var swProductSizes = {};
-  swRows.forEach(function(r) {
+  swAll.forEach(function(r) {
     var item = (g(r,'PRODUCT NAME')||'').trim();
-    // strip size from end: " - XL", " - M", " - S/M" etc
-    var baseName = item.replace(/\s*[-–]\s*[XSMXL2]{1,4}L?\s*$/i,'').replace(/\s*[-–]\s*(ONE SIZE|OS|FREE SIZE)\s*$/i,'').trim() || item;
-    var size = (item.match(/[-–]\s*([XSMXL2]{1,4}L?)\s*$/i) || ['',''])[1] || g(r,'SIZE') || '—';
+    // strip trailing size: " - XL", " - S", " - M/L", " - One Size"
+    var baseName = item.replace(/\s*[-–]\s*(XS|S|M|L|XL|XXL|XXXL|2XL|3XL|Free\s*Size|One\s*Size|OS)\s*$/i,'').trim() || item;
+    var sizeMatch = item.match(/[-–]\s*(XS|S|M|L|XL|XXL|XXXL|2XL|3XL|Free\s*Size|One\s*Size|OS)\s*$/i);
+    var size = sizeMatch ? sizeMatch[1].toUpperCase() : (g(r,'SIZE')||'—');
     swProductCount[baseName] = (swProductCount[baseName] || 0) + 1;
     if (!swProductSizes[baseName]) swProductSizes[baseName] = {};
     swProductSizes[baseName][size] = (swProductSizes[baseName][size] || 0) + 1;
@@ -1852,33 +1916,28 @@ function buildTopProducts() {
 
   var swTop10 = topN(swProductCount, 10);
   document.getElementById('cnt-tp-sw').textContent = swTop10.length;
-
   pTable('t-tp-sw', '', ['#','Product','Orders','Top size'],
     swTop10.map(function(x, i) {
-      var sizeMap = swProductSizes[x[0]] || {};
-      var topSize = topN(sizeMap, 1);
-      return row([
-        '<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>',
-        '<span style="color:var(--blu);font-weight:600">'+esc(x[0].substring(0,40))+'</span>',
+      var sm = swProductSizes[x[0]] || {};
+      var ts = topN(sm,1);
+      return row(['<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>',
+        '<span style="color:var(--blu);font-weight:600">'+esc(x[0].substring(0,42))+'</span>',
         '<span style="font-size:.9rem;font-weight:800">'+x[1]+'</span>',
-        topSize.length ? esc(topSize[0][0])+' ('+topSize[0][1]+')' : '—'
-      ]);
+        ts.length ? esc(ts[0][0])+' ('+ts[0][1]+')' : '—']);
     }));
+  if (CH['c-tp-sw']) CH['c-tp-sw'].destroy();
+  var ctxSW = document.getElementById('c-tp-sw');
+  if (ctxSW) {
+    ctxSW.parentElement.style.height = Math.max(180, swTop10.length*28+40) + 'px';
+    CH['c-tp-sw'] = new Chart(ctxSW, { type:'bar', data:{ labels:swTop10.map(function(x){return x[0].substring(0,28);}), datasets:[{data:swTop10.map(function(x){return x[1];}),backgroundColor:C.blu,borderRadius:3}]}, options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
+  }
 
-  mkHBar('c-tp-sw', swTop10.map(function(x){return x[0].substring(0,30);}), swTop10.map(function(x){return x[1];}), C.blu);
-
-  var swSizeRows = [];
-  swTop10.forEach(function(x) {
-    var sizeMap = swProductSizes[x[0]] || {};
-    var sizeArr = topN(sizeMap, 5);
-    swSizeRows.push(row([
-      '<strong style="color:var(--blu)">'+esc(x[0].substring(0,30))+'</strong>',
-      '<span style="font-weight:700">'+x[1]+' total</span>',
-      sizeArr.map(function(s){ return esc(s[0])+': '+s[1]; }).join(' | '),
-      sizeArr.length ? esc(sizeArr[0][0]) : '—'
-    ]));
+  var swSizeRows = swTop10.map(function(x) {
+    var sm = swProductSizes[x[0]] || {};
+    var sa = topN(sm,6);
+    return row(['<strong style="color:var(--blu)">'+esc(x[0].substring(0,32))+'</strong>', '<span style="font-weight:700">'+x[1]+' total</span>', sa.map(function(s){return esc(s[0])+': '+s[1];}).join(' | '), sa.length?esc(sa[0][0]):'—']);
   });
-  pTable('t-tp-sw-size', '', ['Product','Total','Size breakdown (top 5)','Best size'], swSizeRows);
+  pTable('t-tp-sw-size', '', ['Product','Total','Size breakdown (top 6)','Best size'], swSizeRows);
 }
 
 /* ── BRAND PERFORMANCE ── */
@@ -1988,7 +2047,7 @@ function buildBrands() {
   var slowBrands = delayBrands.filter(function(b){ var a=brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length; return a > 10; }).length;
 
   document.getElementById('kbp').innerHTML =
-    kpiCard('Brands active', totalBrands, selMonth || 'all time', C.lime) +
+    '<div class="kc" style="--ac:'+C.lime+';cursor:pointer" onclick="showActiveBrands()"><div class="kl">Brands active <span style="font-size:.6rem;color:var(--mu2)">(click to list)</span></div><div class="kv">'+totalBrands+'</div><div class="ks">'+((selMonth||'all time'))+'</div></div>' +
     kpiCard('Total orders', totalOrders, 'compiled + delivered', C.blu) +
     kpiCard('Delivered (period)', del26Rows.length, 'from new delivered sheet', C.grn) +
     kpiCard('Cancellations', cancelRows.length, overallCancelRate + '% cancel rate', C.red, overallCancelRate > 15) +
@@ -2035,145 +2094,154 @@ function buildBrands() {
   pTable('tbp', '', ['Brand', 'Pending Orders', 'Delivered', 'Cancelled', 'Cancel Rate', 'Avg Dispatch Days', 'Delay Data'], tableRows);
 }
 
+function showActiveBrands() {
+  var swAll  = D.streetwearOrders  ? D.streetwearOrders.rows  : [];
+  var del26  = D.swDelivered2026   ? D.swDelivered2026.rows   : [];
+  var selMonth = document.getElementById('bp-month') ? document.getElementById('bp-month').value : '';
+  function filterMo(rows,cols){ if(!selMonth) return rows; return rows.filter(function(r){for(var i=0;i<cols.length;i++){var v=r[cols[i].toUpperCase()];if(!v)continue;var d=parseDate(v);if(!d)continue;return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===selMonth;}return false;}); }
+  var combined = filterMo(swAll,['ORDER DATE']).concat(filterMo(del26,['ORDER DATE']));
+  var brandMap = {};
+  combined.forEach(function(r){ var b=g(r,'BRAND')||'(blank)'; brandMap[b]=(brandMap[b]||0)+1; });
+  var brandList = topN(brandMap,100);
+  var html = '<div style="max-height:300px;overflow-y:auto">';
+  brandList.forEach(function(x){ html+='<div style="display:flex;justify-content:space-between;padding:.28rem .6rem;border-bottom:1px solid var(--b1)"><span>'+esc(x[0])+'</span><span style="color:var(--lime);font-weight:700">'+x[1]+'</span></div>'; });
+  html += '</div>';
+  var el = document.getElementById('active-brands-list');
+  if (el) { el.innerHTML = html; el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+}
+
 /* ── SCORECARD ── */
 function buildScore(snkRaw, swRaw) {
-  // Populate scorecard month dropdown once
   var smSel = document.getElementById('score-month');
   if (smSel && smSel.options.length <= 1) {
     var smSet = {};
-    snkRaw.forEach(function(r) {
-      var d = parseDate(g(r,'DATE','ORDER DATE')); if (!d) return;
-      var mk = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-      smSet[mk] = true;
-    });
-    Object.keys(smSet).sort().reverse().forEach(function(m) {
-      var opt = document.createElement('option'); opt.value = m; opt.textContent = m; smSel.appendChild(opt);
-    });
+    snkRaw.forEach(function(r){ var d=parseDate(g(r,'DATE','ORDER DATE')); if(!d) return; smSet[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')]=true; });
+    swRaw.forEach(function(r){ var d=parseDate(g(r,'ORDER DATE')); if(!d) return; smSet[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')]=true; });
+    Object.keys(smSet).sort().reverse().forEach(function(m){ var opt=document.createElement('option'); opt.value=m; opt.textContent=m; smSel.appendChild(opt); });
   }
-
   var selMonth = smSel ? smSel.value : '';
   function filterMo(rows, cols) {
     if (!selMonth) return rows;
-    return rows.filter(function(r) {
-      for (var i=0;i<cols.length;i++) {
-        var v=r[cols[i].toUpperCase()]; if(!v) continue;
-        var d=parseDate(v); if(!d) continue;
-        var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-        return mk===selMonth;
-      }
-      return false;
-    });
+    return rows.filter(function(r){ for(var i=0;i<cols.length;i++){ var v=r[cols[i].toUpperCase()]; if(!v) continue; var d=parseDate(v); if(!d) continue; return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===selMonth; } return false; });
   }
-  var snkF = filterMo(snkRaw, ['DATE','ORDER DATE']);
-  var swF  = filterMo(swRaw, ['ORDER DATE']);
-  var refAll = D.refundLedger ? D.refundLedger.rows : [];
-  var refF = filterMo(refAll, ['DATE']);
-  var cancelF = filterMo(D.cancelledOrders ? D.cancelledOrders.rows : [], ['ORDER DATE']);
+
+  // IMPORTANT: For delivery/RTO rates, use ALL historical data (not filtered by month)
+  // so rates are accurate even when filter shows only pending
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var allSW  = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  var allSWDel = D.swDelivered2026 ? D.swDelivered2026.rows : [];
+  var allCancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
+  var ref = D.refundLedger ? D.refundLedger.rows : [];
+
+  // For rate calculations — use period-appropriate data
+  var snkF = selMonth ? filterMo(allSnk, ['DATE','ORDER DATE']) : allSnk;
+  var swF  = selMonth ? filterMo(allSW,  ['ORDER DATE'])       : allSW;
+  var swDelF = selMonth ? filterMo(allSWDel, ['ORDER DATE'])   : allSWDel;
+  var cancelF = selMonth ? filterMo(allCancel, ['ORDER DATE']) : allCancel;
+  var refF = selMonth ? filterMo(ref, ['DATE']) : ref;
+
+  // SW total = active orders + delivered orders
+  var swCombined = swF.concat(swDelF);
 
   var noteEl = document.getElementById('score-note');
-  if (noteEl) noteEl.textContent = selMonth ? selMonth+' - '+snkF.length+' snk, '+swF.length+' SW' : 'All time - '+snkRaw.length+' snk, '+swRaw.length+' SW';
+  if (noteEl) noteEl.textContent = selMonth ? selMonth+' — '+snkF.length+' snk, '+swCombined.length+' SW' : 'All time — '+allSnk.length+' snk, '+(allSW.length+allSWDel.length)+' SW';
 
-  var snkValM = snkF.reduce(function(s,r){return s+fmtAmt(g(r,'VALUE','RATE','PRICE'));},0);
-  var swValM  = swF.reduce(function(s,r){return s+fmtAmt(g(r,'PRICE'));},0);
-  var refValM = refF.reduce(function(s,r){return s+fmtAmt(g(r,'AMOUNT'));},0);
-  var snkDelM = snkF.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('DELIVER');}).length;
-  var swDelM  = swF.filter(function(r){return (g(r,'ORDER STATUS','TRACKING STATUS')||'').toUpperCase().includes('DELIVER');}).length;
+  // Delivery rates — count delivered in the combined set
+  var snkDel = snkF.filter(function(r){ return (g(r,'STATUS')||'').toUpperCase().includes('DELIVER'); }).length;
+  var snkRTO = snkF.filter(function(r){ return (g(r,'STATUS')||'').toUpperCase().includes('RTO'); }).length;
+  var swDel  = swDelF.length; // swDelivered2026 rows ARE delivered orders
+  var swRTO  = swF.filter(function(r){ var ts=(g(r,'TRACKING STATUS')||'').toUpperCase(); var os=(g(r,'ORDER STATUS')||'').toUpperCase(); return ts.includes('RTO')||os.includes('RTO'); }).length;
+  var closedRef = ref.filter(function(r){ return (g(r,'COMPLAINT STATUS')||'').toUpperCase()==='CLOSED'; }).length;
+
+  var snkTotal = snkF.length;
+  var swTotal  = swCombined.length;
+  var delivRate  = snkTotal ? Math.round(snkDel / snkTotal * 100) : 0;
+  var rtoRate    = snkTotal ? Math.round(snkRTO / snkTotal * 100) : 0;
+  var swDelivRate= swTotal  ? Math.round(swDel  / swTotal  * 100) : 0;
+  var snkCancelRate = snkTotal ? Math.round(cancelF.filter(function(r){ return (g(r,'CATEGORY')||'').toUpperCase().includes('SNEAK')||!(g(r,'CATEGORY')||'').toUpperCase().includes('STREET'); }).length / snkTotal * 100) : 0;
+  var swCancelRate  = swTotal  ? Math.round(cancelF.filter(function(r){ return (g(r,'CATEGORY')||'').toUpperCase().includes('STREET'); }).length / swTotal * 100) : 0;
+  var refResRate = ref.length ? Math.round(closedRef / ref.length * 100) : 0;
+
+  // Cancellation detail
+  var snkCancelRows = cancelF.filter(function(r){ var c=(g(r,'CATEGORY')||'').toUpperCase(); return !c.includes('STREET'); });
+  var swCancelRows  = cancelF.filter(function(r){ return (g(r,'CATEGORY')||'').toUpperCase().includes('STREET'); });
+  var snkCancelAmt = snkCancelRows.reduce(function(s,r){ return s+fmtAmt(g(r,'PRICE')); },0);
+  var swCancelAmt  = swCancelRows.reduce(function(s,r){ return s+fmtAmt(g(r,'PRICE')); },0);
+
+  var snkValM = snkF.reduce(function(s,r){ return s+fmtAmt(g(r,'VALUE','RATE','PRICE')); },0);
+  var swValM  = swCombined.reduce(function(s,r){ return s+fmtAmt(g(r,'PRICE')); },0);
+  var refValM = refF.reduce(function(s,r){ return s+fmtAmt(g(r,'AMOUNT')); },0);
 
   var kpiMEl = document.getElementById('score-monthly-kpis');
   if (kpiMEl) kpiMEl.innerHTML =
-    kpiCard('SNK orders', snkF.length, snkDelM+' delivered', C.lime) +
-    kpiCard('SW orders', swF.length, swDelM+' delivered', C.blu) +
+    kpiCard('SNK orders', snkF.length, snkDel+' delivered ('+delivRate+'%)', C.lime) +
+    kpiCard('SW orders', swCombined.length, swDel+' delivered ('+swDelivRate+'%)', C.blu) +
     kpiCard('SNK value', '\u20B9'+Math.round(snkValM/1000)+'K', '', C.grn) +
     kpiCard('SW value', '\u20B9'+Math.round(swValM/1000)+'K', '', C.tel) +
     kpiCard('Refunds', '\u20B9'+Math.round(refValM/1000)+'K', refF.length+' cases', C.red) +
-    kpiCard('Cancelled', cancelF.length, '', C.amb);
-
-  // Use filtered for rates
-  var ref = D.refundLedger ? D.refundLedger.rows : [];
-  var cancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
-  var snkDel = snkF.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('DELIVER');}).length;
-  var snkRTO = snkF.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('RTO');}).length;
-  var swDel  = swF.filter(function(r){return (g(r,'ORDER STATUS')||'').toUpperCase().includes('DELIVER');}).length;
-  var closedRef = ref.filter(function(r){return (g(r,'COMPLAINT STATUS')||'').toUpperCase()==='CLOSED';}).length;
-  var delivRate = snkF.length ? Math.round(snkDel / snkF.length * 100) : 0;
-  var rtoRate = snkF.length ? Math.round(snkRTO / snkF.length * 100) : 0;
-  var swDelivRate = swF.length ? Math.round(swDel / swF.length * 100) : 0;
-  var cancelRate = (snkF.length + swF.length) ? Math.round(cancelF.length / (snkF.length + swF.length) * 100) : 0;
-  var refResRate = ref.length ? Math.round(closedRef / ref.length * 100) : 0;
+    kpiCard('SNK cancelled', snkCancelRows.length, '\u20B9'+Math.round(snkCancelAmt/1000)+'K cancelled value', snkCancelRows.length>20?C.red:C.amb) +
+    kpiCard('SW cancelled', swCancelRows.length, '\u20B9'+Math.round(swCancelAmt/1000)+'K cancelled value', swCancelRows.length>20?C.red:C.amb);
 
   function scoreCard(title, val, unit, color, note) {
     var pct = Math.min(Math.abs(val), 100);
-    return '<div class="score-card">' +
-      '<div class="score-title">' + title + '</div>' +
-      '<div style="display:flex;align-items:baseline;gap:.3rem">' +
-        '<span style="font-size:1.7rem;font-weight:800;color:' + color + '">' + val + '</span>' +
-        '<span style="color:var(--mu);font-size:.8rem">' + unit + '</span>' +
-      '</div>' +
+    return '<div class="score-card"><div class="score-title">' + title + '</div>' +
+      '<div style="display:flex;align-items:baseline;gap:.3rem"><span style="font-size:1.7rem;font-weight:800;color:' + color + '">' + val + '</span><span style="color:var(--mu);font-size:.8rem">' + unit + '</span></div>' +
       '<div class="score-meter"><div class="score-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
-      '<div style="font-size:.7rem;color:' + color + ';margin-top:.2rem">' + (note || '') + '</div>' +
-      '</div>';
+      '<div style="font-size:.7rem;color:' + color + ';margin-top:.2rem">' + (note||'') + '</div></div>';
   }
-  function snkNote(r) { return r > 80 ? 'Excellent' : r > 60 ? 'Good' : r > 40 ? 'Average' : 'Low - investigate'; }
-  function rtoNote(r) { return r < 10 ? 'Excellent - very low RTO' : r < 20 ? 'Monitor closely' : 'High - investigate'; }
-  function cancelNote(r) { return r < 5 ? 'Very low - excellent' : r < 10 ? 'Moderate' : 'High - review'; }
-  function refNote(r) { return r > 80 ? 'Efficient' : r > 50 ? 'Needs improvement' : 'Critical - backlog'; }
+  function snkNote(r){ return r>80?'Excellent':r>60?'Good':r>40?'Average':'Low - investigate'; }
+  function rtoNote(r){ return r<10?'Excellent':r<20?'Monitor closely':'High - investigate'; }
+  function cancelNote(r){ return r<5?'Very low':r<10?'Moderate':'High - review'; }
+  function refNote(r){ return r>80?'Efficient':r>50?'Needs improvement':'Critical - backlog'; }
 
   document.getElementById('scorecard').innerHTML =
     scoreCard('Sneaker Delivery Rate', delivRate, '%', C.grn, snkNote(delivRate)) +
-    scoreCard('Sneaker RTO Rate', rtoRate, '%', rtoRate > 20 ? C.red : rtoRate > 10 ? C.amb : C.grn, rtoNote(rtoRate)) +
-    scoreCard('SW Delivery Rate', swDelivRate, '%', C.blu, swDelivRate > 70 ? 'Strong' : 'Keep improving') +
-    scoreCard('Cancellation Rate', cancelRate, '%', cancelRate > 15 ? C.red : cancelRate > 8 ? C.amb : C.grn, cancelNote(cancelRate)) +
-    scoreCard('Refund Resolution', refResRate, '%', refResRate > 80 ? C.grn : refResRate > 50 ? C.amb : C.red, refNote(refResRate));
+    scoreCard('Sneaker RTO Rate', rtoRate, '%', rtoRate>20?C.red:rtoRate>10?C.amb:C.grn, rtoNote(rtoRate)) +
+    scoreCard('SW Delivery Rate', swDelivRate, '%', C.blu, swDelivRate>70?'Strong':'Keep improving') +
+    scoreCard('SNK Cancel Rate', snkCancelRate, '%', snkCancelRate>15?C.red:snkCancelRate>8?C.amb:C.grn, cancelNote(snkCancelRate)+' ('+snkCancelRows.length+' orders, \u20B9'+Math.round(snkCancelAmt/1000)+'K)') +
+    scoreCard('SW Cancel Rate', swCancelRate, '%', swCancelRate>15?C.red:swCancelRate>8?C.amb:C.grn, cancelNote(swCancelRate)+' ('+swCancelRows.length+' orders, \u20B9'+Math.round(swCancelAmt/1000)+'K)') +
+    scoreCard('Refund Resolution', refResRate, '%', refResRate>80?C.grn:refResRate>50?C.amb:C.red, refNote(refResRate));
 
+  // Monthly trend
   var monthMap = {};
-  snkRaw.forEach(function(r) {
-    var d = parseDate(g(r,'DATE','ORDER DATE')); if (!d) return;
-    var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    monthMap[mk] = (monthMap[mk] || 0) + 1;
-  });
+  allSnk.forEach(function(r){ var d=parseDate(g(r,'DATE','ORDER DATE')); if(!d) return; var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); monthMap[mk]=(monthMap[mk]||0)+1; });
   var months = Object.keys(monthMap).sort().slice(-12);
-  mkLine('ctrend', months, [{
-    label: 'Orders', data: months.map(function(m){return monthMap[m]||0;}),
-    borderColor: C.lime, backgroundColor: C.lime + '22', fill: true
-  }]);
+  mkLine('ctrend', months, [{label:'Orders',data:months.map(function(m){return monthMap[m]||0;}),borderColor:C.lime,backgroundColor:C.lime+'22',fill:true}]);
 
-  var rtoRows = snkRaw.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('RTO');});
-  var courierRTO = topN(countBy(rtoRows, 'COURIER SERVICE NAME'), 6);
+  var rtoRows = allSnk.filter(function(r){ return (g(r,'STATUS')||'').toUpperCase().includes('RTO'); });
+  var courierRTO = topN(countBy(rtoRows,'COURIER SERVICE NAME'),6);
   mkHBar('crto', courierRTO.map(function(x){return x[0];}), courierRTO.map(function(x){return x[1];}), C.red);
 
-  var refByMonth = {};
-  ref.forEach(function(r) {
-    var d = parseDate(g(r,'DATE')); if (!d) return;
-    var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    refByMonth[mk] = (refByMonth[mk] || 0) + fmtAmt(g(r,'AMOUNT'));
+  // Monthly cancellation trend — SNK vs SW
+  var cancelByMonth = {};
+  allCancel.forEach(function(r) {
+    var d=parseDate(g(r,'ORDER DATE')); if(!d) return;
+    var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var isSW = (g(r,'CATEGORY')||'').toUpperCase().includes('STREET');
+    if(!cancelByMonth[mk]) cancelByMonth[mk]={snk:0,sw:0};
+    if(isSW) cancelByMonth[mk].sw++; else cancelByMonth[mk].snk++;
   });
-  var revMonths = Object.keys(monthMap).sort().slice(-8);
+  var cMonths = Object.keys(cancelByMonth).sort().slice(-10);
   if (CH['crevref']) CH['crevref'].destroy();
   var ctx2 = document.getElementById('crevref');
   if (ctx2) {
-    CH['crevref'] = new Chart(ctx2, {
-      type: 'bar',
-      data: {
-        labels: revMonths,
-        datasets: [
-          { label: 'Orders', data: revMonths.map(function(m){return monthMap[m]||0;}), backgroundColor: C.lime + '88', borderRadius: 3 },
-          { label: 'Refunds (K)', data: revMonths.map(function(m){return Math.round((refByMonth[m]||0)/1000);}), backgroundColor: C.red + '88', borderRadius: 3 }
-        ]
-      },
-      options: Object.assign({}, baseOpts, {
-        plugins: { legend: { display: true, labels: { color: '#555', font: { size: 10 } } } }
-      })
+    CH['crevref'] = new Chart(ctx2, { type:'bar',
+      data:{ labels:cMonths, datasets:[
+        {label:'SNK Cancelled',data:cMonths.map(function(m){return (cancelByMonth[m]||{snk:0}).snk;}),backgroundColor:C.lime+'88',borderRadius:3},
+        {label:'SW Cancelled', data:cMonths.map(function(m){return (cancelByMonth[m]||{sw:0}).sw;}), backgroundColor:C.blu+'88',borderRadius:3}
+      ]},
+      options:Object.assign({},baseOpts,{plugins:{legend:{display:true,labels:{color:'#555',font:{size:10}}}}})
     });
   }
 
-  var totalOrders = snkRaw.length + swRaw.length;
+  var totalOrders = allSnk.length + allSW.length + allSWDel.length;
   var totalRefund = ref.reduce(function(s,r){return s+fmtAmt(g(r,'AMOUNT'));},0);
   document.getElementById('bizinsights').innerHTML =
-    insCard('\u{1F3C6}', 'Snk delivery rate', delivRate + '%', C.lime) +
+    insCard('\u{1F3C6}', 'Snk delivery rate', delivRate+'%', C.lime) +
     insCard('\u26A1', 'Total orders', totalOrders.toLocaleString(), C.blu) +
-    insCard('\u{1F4B0}', 'Refund exposure', '\u20B9' + Math.round(totalRefund/1000) + 'K', C.red) +
-    insCard('\u{1F4C8}', 'SW delivered 2026', (D.swDelivered2026 ? D.swDelivered2026.rows.length : 0) + ' orders', C.grn) +
-    insCard('\u{1F3AF}', 'Refund resolution', refResRate + '% closed', refResRate > 75 ? C.grn : C.amb);
+    insCard('\u{1F4B0}', 'Refund exposure', '\u20B9'+Math.round(totalRefund/1000)+'K', C.red) +
+    insCard('\u{1F4C8}', 'SW delivered 2026', allSWDel.length+' orders', C.grn) +
+    insCard('\u{1F3AF}', 'Refund resolution', refResRate+'% closed', refResRate>75?C.grn:C.amb);
 }
 
 /* ── FOLLOW-UP ASSIGNMENTS ── */
@@ -2182,7 +2250,8 @@ var VENDOR_MAP = [
   // Note: order matters — ZHU HK must come before HK so it matches first
   { keys: ['NAVYA', 'SAMEER', 'SHIVIL', 'NEHAL', 'SARTHAK', 'ZHU HK', 'ZHUHK', 'HK'], owner: 'ANUBHAV' },
   { keys: ['RUPESH'],  owner: 'BHARAT'  },
-  { keys: ['DIVIJ'],   owner: 'SHAURYA' }
+  { keys: ['DIVIJ'],   owner: 'SHAURYA' },
+  { keys: ['SUNNY'],   owner: 'SUNNY'   }
   // anything else with "COMING FROM" → ABHISHEK (handled as fallback)
 ];
 
@@ -2190,6 +2259,7 @@ var OWNERS = {
   ANUBHAV:  { name: 'Anubhav Dhyani', color: '#ff6b95', role: 'Vendor Lead', vendors: ['Navya', 'Sameer', 'Shivil', 'Nehal', 'Sarthak', 'Zhu HK', 'HK'] },
   BHARAT:   { name: 'Bharat',         color: '#3d9be9', role: 'Vendor Lead', vendors: ['Rupesh'] },
   SHAURYA:  { name: 'Shaurya',        color: '#9b59b6', role: 'Vendor Lead', vendors: ['Divij'] },
+  SUNNY:    { name: 'Sunny',          color: '#f0c040', role: 'Vendor Lead', vendors: ['Sunny'] },
   ABHISHEK: { name: 'Abhishek',       color: '#1abc9c', role: 'Vendor Lead', vendors: ['All other vendors'] }
 };
 
@@ -2210,7 +2280,7 @@ function getOwnerForLocation(loc) {
 function fuFilter(name) {
   fuActiveFilter = name;
   // update chip styles
-  ['ALL','ANUBHAV','BHARAT','SHAURYA','ABHISHEK'].forEach(function(k) {
+  ['ALL','ANUBHAV','BHARAT','SHAURYA','SUNNY','ABHISHEK'].forEach(function(k) {
     var chip = document.getElementById('fu-filter-' + k);
     if (!chip) return;
     if (name === 'ALL') {
@@ -2248,7 +2318,7 @@ function buildFollowups() {
   });
 
   // Group by owner
-  var grouped = { ANUBHAV: [], BHARAT: [], SHAURYA: [], ABHISHEK: [] };
+  var grouped = { ANUBHAV: [], BHARAT: [], SHAURYA: [], SUNNY: [], ABHISHEK: [] };
   vendorOrders.forEach(function(o) { grouped[o.owner].push(o); });
 
   // Build person cards
@@ -2287,7 +2357,7 @@ function buildFollowups() {
   }
   window._anuTrackStats = { avg: anuAvgTrack, median: anuMedianTrack, count: anuTrackingDays.length, days: anuTrackingDays };
 
-  ['ANUBHAV', 'BHARAT', 'SHAURYA', 'ABHISHEK'].forEach(function(key) {
+  ['ANUBHAV', 'BHARAT', 'SHAURYA', 'SUNNY', 'ABHISHEK'].forEach(function(key) {
     var ow = OWNERS[key];
     var orders = grouped[key];
     var rtoCount = orders.filter(function(o){ return (o.status||'').toUpperCase().includes('RTO'); }).length;
@@ -2340,7 +2410,7 @@ function buildFollowups() {
   // store all for table rendering
   window._fuAllOrders = vendorOrders;
   fuActiveFilter = 'ALL';
-  ['ALL','ANUBHAV','BHARAT','SHAURYA','ABHISHEK'].forEach(function(k){
+  ['ALL','ANUBHAV','BHARAT','SHAURYA','SUNNY','ABHISHEK'].forEach(function(k){
     var c=document.getElementById('fu-filter-'+k); if(c) c.classList.add('selected');
   });
   renderFuTable();
@@ -2556,27 +2626,39 @@ function buildInstantShipping() {
 }
 function renderFuTable() {
   var orders = window._fuAllOrders || [];
+  var today = new Date();
   var filtered = fuActiveFilter === 'ALL' ? orders : orders.filter(function(o){ return o.owner === fuActiveFilter; });
-  var owName = fuActiveFilter === 'ALL' ? 'All vendors' : OWNERS[fuActiveFilter].name;
+  var owName = fuActiveFilter === 'ALL' ? 'All vendors' : OWNERS[fuActiveFilter] ? OWNERS[fuActiveFilter].name : fuActiveFilter;
   document.getElementById('fu-table-title').innerHTML = 'Follow-up orders — ' + owName + ' <span class="scnt" id="fu-count">' + filtered.length + '</span>';
   var cntEl = document.getElementById('fu-count');
   if (cntEl) cntEl.textContent = filtered.length;
 
+  // Sort by oldest first
+  filtered = filtered.slice().sort(function(a,b){
+    var da=parseDate(a.date), db=parseDate(b.date);
+    return (da&&db)?da-db:0;
+  });
+
   pTable('tfu', 'pgfu',
-    ['Order ID', 'Date', 'City', 'Item', 'Vendor (Location)', 'Status', 'Follow-up By', 'Remarks'],
+    ['Order ID', 'Date', 'Age', 'City', 'Item', 'Vendor', 'Status', 'Follow-up By', 'Remarks'],
     filtered.map(function(o) {
-      var ow = OWNERS[o.owner];
+      var ow = OWNERS[o.owner] || { color: '#888', name: o.owner };
       var owBadge = '<span style="background:' + ow.color + '22;color:' + ow.color + ';padding:2px 7px;border-radius:20px;font-size:.63rem;font-weight:700">' + ow.name.split(' ')[0] + '</span>';
+      var od = parseDate(o.date);
+      var age = od ? daysBetween(od, today) : null;
+      var ageColor = age === null ? '#555' : age > 20 ? C.red : age > 10 ? C.amb : age > 5 ? '#ffcc00' : C.grn;
+      var ageDisp = age !== null ? '<span style="color:'+ageColor+';font-weight:700">'+age+'d</span>' : '—';
       return row([
         '<span class="oid">' + esc(o.orderId) + '</span>',
         esc(o.date),
+        ageDisp,
         esc(o.city),
-        esc(o.item.substring(0, 32)),
-        '<span style="color:var(--mu);font-size:.7rem">' + esc(o.location.substring(0, 28)) + '</span>',
+        esc(o.item.substring(0, 28)),
+        '<span style="color:var(--mu);font-size:.7rem">' + esc(o.location.substring(0, 24)) + '</span>',
         statusBadge(o.status),
         owBadge,
-        esc((o.remarks || '').substring(0, 30))
-      ]);
+        esc((o.remarks || '').substring(0, 28))
+      ], age !== null && age > 20);
     })
   );
 }
