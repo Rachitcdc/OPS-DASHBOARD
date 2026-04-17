@@ -242,8 +242,8 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
 <div id="loading">
   <div class="sp"></div>
   <p class="lmsg" id="lmsg">Connecting to Google Sheets...</p>
-  <div class="lsteps" id="lsteps"></div>
-  <p style="color:var(--mu2);font-size:.7rem;margin-top:.5rem;">Loading 10 sheets in parallel — should take ~5 seconds</p>
+  <div class="lsteps" id="lsteps" style="max-height:300px;overflow-y:auto"></div>
+  <p style="color:var(--mu2);font-size:.7rem;margin-top:.5rem;" id="load-sub">Loading sheets in parallel &mdash; should take ~5 seconds</p>
 </div>
 
 <!-- DASHBOARD -->
@@ -681,13 +681,13 @@ var SH = {
   sneakerOrders:    { id: '1s8ClY3rxWZIxX449DBgKGxljUvBgtK6Vmlg0Wu2ZEGg', gid: 218423464,  label: 'Sneaker Orders' },
   streetwearOrders: { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1543681932, label: 'Streetwear Orders' },
   streetwearExch:   { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 679868085,  label: 'Exchange & RTO' },
-  exchResolved:     { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1721607086, label: 'Exch & RTO Resolved' },
   cancelledOrders:  { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 2023490862, label: 'Cancelled Orders' },
-  refundLedger:     { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1404887182, label: 'Refund Ledger (Pending)' },
-  refundDone:       { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1057244868, label: 'Refund Done (Apr25+)' },
+  refundLedger:     { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1404887182, label: 'Refund Ledger' },
   sneakerRTO:       { id: '1C5agMGY0QlSLU4LrsqIvcLa8CXt7YaFOBUtKGSICxGo', gid: 0,          label: 'Sneaker RTO' },
   refundProcessed:  { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1057244868, label: 'Refund Processed' },
-  swDelivered2026:  { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1666284047, label: 'SW Delivered 2026' }
+  swDelivered2026:  { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1666284047, label: 'SW Delivered 2026' },
+  refundDone:       { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1057244868, label: 'Refund Done (Apr25+)' },
+  exchResolved:     { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1234567890, label: 'Exch & RTO Resolved', optional: true }  /* UPDATE GID: open your sheet, click the Exchange & RTO Resolved tab, copy the gid= number from the URL */
 };
 
 var PAGE = 50;
@@ -788,50 +788,75 @@ function showScreen(id) {
 /* ── LOAD ── */
 async function loadAll() {
   var keys = Object.keys(SH);
-  var steps = keys.map(function(k) { return { t: SH[k].label, s: 'act' }; });
+
+  // Show all sheets as pending in loading screen
+  document.getElementById('lmsg').textContent = 'Loading all sheets in parallel...';
+  var stateMap = {};
+  keys.forEach(function(k){ stateMap[k] = 'pending'; });
 
   function renderSteps() {
-    document.getElementById('lsteps').innerHTML = steps.map(function(s) {
-      return '<div class="lstep ' + s.s + '"><div class="ldot"></div>' + s.t + '</div>';
+    document.getElementById('lsteps').innerHTML = keys.map(function(k) {
+      var s = stateMap[k];
+      var cls = s === 'done' ? 'done' : s === 'err' ? 'done' : s === 'act' ? 'act' : '';
+      var icon = s === 'done' ? ' ✓' : s === 'err' ? ' ⚠' : '';
+      return '<div class="lstep ' + cls + '"><div class="ldot"></div>' + SH[k].label + icon + '</div>';
     }).join('');
+    document.getElementById('lmsg').textContent = 'Loading ' + keys.length + ' sheets in parallel…';
   }
-
-  document.getElementById('lmsg').textContent = 'Loading all sheets in parallel...';
   renderSteps();
 
-  async function loadOneSheet(k, idx) {
-    function withTimeout(promise, ms) {
-      return Promise.race([
-        promise,
-        new Promise(function(_, rej) {
-          setTimeout(function() { rej(new Error('Timed out after ' + ms + 'ms')); }, ms);
-        })
-      ]);
-    }
+  async function loadOne(k) {
+    stateMap[k] = 'act';
+    // Add small stagger to avoid rate limiting
+    await new Promise(function(r){ setTimeout(r, Math.random()*400); });
     try {
-      var meta = await withTimeout(apiGet('https://sheets.googleapis.com/v4/spreadsheets/' + SH[k].id), 15000);
+      if (SH[k].optional && SH[k].gid === 1234567890) {
+        // Placeholder GID - skip gracefully
+        D[k] = { h: [], rows: [] };
+        stateMap[k] = 'err';
+        renderSteps();
+        return;
+      }
+      var meta = await apiGet('https://sheets.googleapis.com/v4/spreadsheets/' + SH[k].id);
       var sh = null;
       for (var j = 0; j < meta.sheets.length; j++) {
-        if (meta.sheets[j].properties.sheetId === SH[k].gid) { sh = meta.sheets[j]; break; }
+        if (meta.sheets[j].properties.sheetId === SH[k].gid) {
+          sh = meta.sheets[j]; break;
+        }
       }
-      if (!sh) throw new Error('Tab not found gid=' + SH[k].gid);
-      var data = await withTimeout(apiGet(
-        'https://sheets.googleapis.com/v4/spreadsheets/' + SH[k].id +
-        '/values/' + encodeURIComponent(sh.properties.title) + '!A:ZZ'
-      ), 15000);
+      if (!sh) throw new Error('Tab not found (gid ' + SH[k].gid + ')');
+      var sheetName = sh.properties.title;
+      var data = await apiGet('https://sheets.googleapis.com/v4/spreadsheets/' + SH[k].id + '/values/' + encodeURIComponent(sheetName) + '!A:ZZ');
       D[k] = parseSheet(data.values || []);
-      steps[idx].s = 'done';
+      stateMap[k] = 'done';
     } catch(e) {
-      console.warn('[SKIP]', k, e.message);
+      console.error(k, e.message);
       D[k] = { h: [], rows: [] };
-      steps[idx].s = 'done';
+      stateMap[k] = 'err';
     }
     renderSteps();
   }
 
-  // Fire all sheet loads simultaneously
-  await Promise.all(keys.map(function(k, idx) { return loadOneSheet(k, idx); }));
+  // Group by spreadsheet ID to avoid hammering same spreadsheet
+  var bySheet = {};
+  keys.forEach(function(k){ var id=SH[k].id; if(!bySheet[id])bySheet[id]=[]; bySheet[id].push(k); });
+  var sheetIds = Object.keys(bySheet);
 
+  // Load each spreadsheet group with slight stagger between groups
+  var allPromises = sheetIds.map(function(id, idx) {
+    return new Promise(function(resolve) {
+      setTimeout(async function() {
+        for (var i = 0; i < bySheet[id].length; i++) {
+          await loadOne(bySheet[id][i]);
+        }
+        resolve();
+      }, idx * 150);
+    });
+  });
+
+  await Promise.all(allPromises);
+
+  document.getElementById('lmsg').textContent = 'Building dashboard…';
   buildAll();
   showScreen('dash');
   document.getElementById('lupd').textContent = 'Updated ' + new Date().toLocaleTimeString();
@@ -1721,10 +1746,7 @@ function buildSW(sw) {
 
 /* ── OPS ── */
 function buildOps() {
-  // Combine active Exchange & RTO + resolved Exchange & RTO for full picture
-  var activeExch   = D.streetwearExch  ? D.streetwearExch.rows  : [];
-  var resolvedExch = D.exchResolved    ? D.exchResolved.rows    : [];
-  var allExch = activeExch.concat(resolvedExch);
+  var allExch = D.streetwearExch ? D.streetwearExch.rows : [];
   var allCancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
   var cancelMonthSel = document.getElementById('cancel-month') ? document.getElementById('cancel-month').value : '';
 
@@ -1774,10 +1796,10 @@ function buildOps() {
   var cancelAmt = cancel.reduce(function(s,r){ return s+fmtAmt(g(r,'PRICE')); },0);
 
   document.getElementById('kops').innerHTML =
-    kpiCard('Total exchange/RTO', allExch.length, activeExch.length + ' active + ' + resolvedExch.length + ' resolved', C.pur) +
+    kpiCard('Total exchange/RTO', allExch.length, '', C.pur) +
     kpiCard('Exchanges', exchOnlyRows.length, 'size / product / wrong', C.blu) +
     kpiCard('RTOs', rtoOnlyRows.length, 'RTO / lost', C.red) +
-    kpiCard('Resolved/Delivered', deliveredRows.length + resolvedExch.length, 'incl. resolved sheet', C.grn) +
+    kpiCard('Resolved/Delivered', deliveredRows.length, '', C.grn) +
     kpiCard('Cancelled (filtered)', cancel.length, cancelMonthSel||'all time', C.red, cancel.length > 50) +
     kpiCard('Cancel value', '\u20B9'+Math.round(cancelAmt).toLocaleString(), 'filtered period', C.amb) +
     kpiCard('Brands affected', Object.keys(countBy(allCancel,'BRAND')).length, 'all time', C.amb);
