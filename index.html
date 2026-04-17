@@ -198,19 +198,43 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
 <div class="sc">
   <div class="logo">CDC<span> OPS</span></div>
   <p class="sub">Operations Intelligence Dashboard</p>
-  <div class="steps"><ol>
-    <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → CDC OPS project</li>
-    <li><strong>APIs &amp; Services</strong> → Enable <strong>Google Sheets API</strong></li>
-    <li><strong>Google Auth Platform → Clients → Create → Web app</strong></li>
-    <li>Authorised JS origins: <strong>http://localhost:8080</strong> (no trailing slash)</li>
-    <li>Copy the Client ID below, then run <strong>python -m http.server 8080</strong> in C:\Users\crm1\</li>
-  </ol></div>
-  <hr style="border:none;border-top:1px solid #1e1e1e;margin:1.2rem 0;">
-  <label class="lbl">Google OAuth Client ID</label>
-  <input type="text" id="cid" class="inp" placeholder="123456789-xxxx.apps.googleusercontent.com">
-  <p class="hint">Must be opened via <strong>http://localhost:8080/cdc-operations-dashboard.html</strong> — not by double-clicking the file.</p>
-  <button class="cbtn" id="cbtn" onclick="initAuth()">Connect &amp; Load Dashboard</button>
-  <div id="serr"></div>
+
+  <!-- PIN SCREEN (shown when client ID already saved) -->
+  <div id="pin-screen" style="display:none">
+    <p style="color:var(--mu);font-size:.83rem;margin-bottom:1.2rem">Enter your 4-digit PIN to access the dashboard</p>
+    <div style="display:flex;gap:.5rem;justify-content:center;margin-bottom:1rem">
+      <input type="password" maxlength="1" id="pin0" class="inp" style="width:52px;text-align:center;font-size:1.4rem;padding:.5rem" oninput="pinNext(this,1)" onkeydown="pinKey(event,this,null)">
+      <input type="password" maxlength="1" id="pin1" class="inp" style="width:52px;text-align:center;font-size:1.4rem;padding:.5rem" oninput="pinNext(this,2)" onkeydown="pinKey(event,this,0)">
+      <input type="password" maxlength="1" id="pin2" class="inp" style="width:52px;text-align:center;font-size:1.4rem;padding:.5rem" oninput="pinNext(this,3)" onkeydown="pinKey(event,this,1)">
+      <input type="password" maxlength="1" id="pin3" class="inp" style="width:52px;text-align:center;font-size:1.4rem;padding:.5rem" oninput="pinSubmit()" onkeydown="pinKey(event,this,2)">
+    </div>
+    <button class="cbtn" id="pinbtn" onclick="checkPin()">Unlock Dashboard</button>
+    <p style="margin-top:.65rem;font-size:.72rem;color:var(--mu2)"><span onclick="resetSetup()" style="cursor:pointer;color:var(--mu);text-decoration:underline">Change Client ID / PIN</span></p>
+    <div id="pinerr" style="color:var(--red);font-size:.75rem;margin-top:.4rem;display:none"></div>
+  </div>
+
+  <!-- FULL SETUP (first time / reset) -->
+  <div id="full-setup">
+    <div class="steps"><ol>
+      <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → CDC OPS project</li>
+      <li><strong>APIs &amp; Services</strong> → Enable <strong>Google Sheets API</strong></li>
+      <li><strong>Google Auth Platform → Clients → Create → Web app</strong></li>
+      <li>Authorised JS origins: <strong>http://localhost:8080</strong> or your Vercel URL</li>
+    </ol></div>
+    <hr style="border:none;border-top:1px solid #1e1e1e;margin:1.2rem 0;">
+    <label class="lbl">Google OAuth Client ID</label>
+    <input type="text" id="cid" class="inp" placeholder="123456789-xxxx.apps.googleusercontent.com">
+    <label class="lbl" style="margin-top:.85rem">Set a 4-digit PIN</label>
+    <div style="display:flex;gap:.5rem;margin-bottom:.4rem">
+      <input type="password" maxlength="1" id="np0" class="inp" style="width:52px;text-align:center;font-size:1.2rem;padding:.45rem" oninput="pinNext2(0)">
+      <input type="password" maxlength="1" id="np1" class="inp" style="width:52px;text-align:center;font-size:1.2rem;padding:.45rem" oninput="pinNext2(1)">
+      <input type="password" maxlength="1" id="np2" class="inp" style="width:52px;text-align:center;font-size:1.2rem;padding:.45rem" oninput="pinNext2(2)">
+      <input type="password" maxlength="1" id="np3" class="inp" style="width:52px;text-align:center;font-size:1.2rem;padding:.45rem">
+    </div>
+    <p class="hint">PIN will be saved locally. Client ID only entered once.</p>
+    <button class="cbtn" id="cbtn" onclick="initAuth()">Save &amp; Connect</button>
+    <div id="serr"></div>
+  </div>
 </div>
 </div>
 
@@ -267,6 +291,17 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
   </div>
 
   <div class="main">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.65rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.42rem .85rem;flex-wrap:wrap">
+      <span style="font-size:.68rem;color:var(--lime);font-weight:700">GLOBAL PERIOD:</span>
+      <select id="global-period" class="fi" onchange="buildAll()" style="min-width:130px">
+        <option value="">Current month</option>
+        <option value="7">Last 7 days</option>
+        <option value="15">Last 15 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="all">All time</option>
+      </select>
+      <span style="font-size:.68rem;color:var(--mu2)" id="global-period-label"></span>
+    </div>
     <div class="tabnav">
       <button class="tb on" onclick="showTab('ov')">Overview</button>
       <button class="tb" onclick="showTab('snk')">Sneakers &amp; Hype</button>
@@ -299,11 +334,32 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
         <div><div class="shd">Streetwear pending orders (blank / pickup pending) <span class="scnt" id="cswov">0</span></div><div class="tc"><div class="ts"><table id="tswov"></table></div></div></div>
         <div><div class="shd">Recent refunds this month <span class="scnt" id="crefov">0</span></div><div class="tc"><div class="ts"><table id="trefov"></table></div></div></div>
       </div>
+      <div id="ov-detail-panel" style="display:none;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.85rem 1rem;margin-top:.65rem"></div>
     </div>
 
 
     <!-- SNEAKERS -->
     <div id="tab-snk" class="tabp">
+      <div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.75rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.5rem .9rem;flex-wrap:wrap">
+        <span style="font-size:.7rem;color:var(--mu)">Period:</span>
+        <select id="snk-period" class="fi" onchange="buildSnk(applySnkFilter())">
+          <option value="current">Current month</option>
+          <option value="7">Last 7 days</option>
+          <option value="15">Last 15 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="0">All time</option>
+        </select>
+        <div class="fsep"></div>
+        <span style="font-size:.7rem;color:var(--mu)">Warehouse:</span>
+        <select id="snk-wh" class="fi" onchange="buildSnk(applySnkFilter())">
+          <option value="">All</option>
+          <option value="DELHI">Delhi WH</option>
+          <option value="MUMBAI">Mumbai WH</option>
+          <option value="HYD">Hyderabad WH</option>
+          <option value="STORE">Store</option>
+        </select>
+        <span style="font-size:.7rem;color:var(--mu2)" id="snk-period-note"></span>
+      </div>
       <div class="kg" id="ksnk"></div>
       <div class="two" style="margin-bottom:.55rem">
         <div class="cc"><div class="ct">Status breakdown (excl. cancelled)</div><div class="cw"><canvas id="csnkd" style="height:200px" role="img" aria-label="Snk dist"></canvas></div><div class="leg" id="lsnkd"></div></div>
@@ -318,6 +374,16 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
             <div style="font-size:.66rem;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">&#9660; Cancelled orders — <span id="snk-cancel-drill-month"></span></div>
             <div class="tc" style="margin:0"><div class="ts"><table id="tsnk-cancel-drill"></table></div></div>
           </div>
+        </div>
+      </div>
+      <div class="two" style="margin-bottom:.55rem">
+        <div class="cc">
+          <div class="ct">Warehouse shipments (this period)</div>
+          <div id="snk-wh-breakdown"></div>
+        </div>
+        <div class="cc">
+          <div class="ct">Shipping charges collected (this period)</div>
+          <div id="snk-shipping-stats"></div>
         </div>
       </div>
       <div class="shd">Orders <span class="scnt" id="csnka">0</span></div>
@@ -336,6 +402,10 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
       <div class="two" style="margin-bottom:1rem">
         <div class="cc"><div class="ct">Status breakdown</div><div class="cw"><canvas id="cswd" style="height:200px" role="img" aria-label="SW dist"></canvas></div><div class="leg" id="lswd"></div></div>
         <div class="cc"><div class="ct" id="sw-brand-chart-title">Top 10 delay brands — RTS unshipped &gt;2 days</div><div class="cw"><canvas id="cswb" style="height:200px" role="img" aria-label="SW brands"></canvas></div></div>
+      </div>
+      <div class="cc" style="margin-bottom:1rem">
+        <div class="ct">Warehouse dispatch — Del WH+CDC Saket vs Mumbai WH+Bandra WH vs HYD</div>
+        <div id="sw-wh-breakdown"></div>
       </div>
       <div class="shd">All streetwear orders <span class="scnt" id="cswa">0</span></div>
       <div class="tc"><div class="ts"><table id="tswa"></table></div><div class="pg" id="pgswa"></div></div>
@@ -395,6 +465,16 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
       <div class="two" style="margin-bottom:1rem">
         <div class="cc"><div class="ct">Refund value by category (Sneaker / Streetwear / Hype)</div><div class="cw"><canvas id="cref-cat-val" style="height:180px" role="img" aria-label="Refund by category"></canvas></div><div class="leg" id="lref-cat-val"></div></div>
         <div class="cc"><div class="ct">Refund count by category — monthly trend</div><div class="cw"><canvas id="cref-cat-trend" style="height:180px" role="img" aria-label="Refund category trend"></canvas></div></div>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div>
+          <div class="shd">Top 10 cancelled products (by refund count) <span class="scnt" id="cnt-top-cancel-prod">0</span></div>
+          <div class="tc"><div class="ts"><table id="t-top-cancel-prod"></table></div></div>
+        </div>
+        <div>
+          <div class="shd">Cancellation fees charged <span class="scnt" id="cnt-cancel-fees">0</span></div>
+          <div class="tc"><div class="ts"><table id="t-cancel-fees"></table></div></div>
+        </div>
       </div>
       <div class="shd">Refund ledger <span class="scnt" id="crefl">0</span></div>
       <div class="tc"><div class="ts"><table id="trefl"></table></div><div class="pg" id="pgrefl"></div></div>
@@ -464,6 +544,7 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
         <span style="font-size:.7rem;color:var(--mu)">Period:</span>
         <select id="tp-period" class="fi" onchange="buildTopProducts()">
+          <option value="current">Current month</option>
           <option value="30">Last 30 days</option>
           <option value="60">Last 60 days</option>
           <option value="90">Last 90 days</option>
@@ -604,46 +685,80 @@ var SH = {
   refundLedger:     { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1404887182, label: 'Refund Ledger' },
   sneakerRTO:       { id: '1C5agMGY0QlSLU4LrsqIvcLa8CXt7YaFOBUtKGSICxGo', gid: 0,          label: 'Sneaker RTO' },
   refundProcessed:  { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1057244868, label: 'Refund Processed' },
-  swDelivered2026:  { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1666284047, label: 'SW Delivered 2026' }
+  swDelivered2026:  { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1666284047, label: 'SW Delivered 2026' },
+  refundDone:       { id: '1nD37Qb8bcNj1siM1ltywUz67qeJz6gcPvVX0lozV05Q', gid: 1057244868, label: 'Refund Done (Apr25+)' },  /* This is your refundProcessed sheet - update gid if different */
+  exchResolved:     { id: '1Qz8375uKavJOkLSxPkZwHv_opVKHv_dtZ3KYOeulH_E', gid: 1234567890, label: 'Exch & RTO Resolved' }  /* UPDATE GID */
 };
 
 var PAGE = 50;
 var tokenClient, accessToken, D = {}, CH = {}, cdSec = 300, cdInt, pendingOnly = true;
 
 /* ── AUTH ── */
+/* ── PIN + AUTH ── */
+function pinNext(el, nextIdx) { if (el.value) document.getElementById('pin'+nextIdx).focus(); }
+function pinKey(event, el, prevIdx) { if (event.key==='Backspace'&&!el.value&&prevIdx!==null) document.getElementById('pin'+prevIdx).focus(); }
+function pinNext2(idx) { if (idx<3) document.getElementById('np'+(idx+1)).focus(); }
+function pinSubmit() { setTimeout(checkPin, 50); }
+function getPin() { return ['pin0','pin1','pin2','pin3'].map(function(id){ var e=document.getElementById(id); return e?e.value:''; }).join(''); }
+function getNewPin() { return ['np0','np1','np2','np3'].map(function(id){ var e=document.getElementById(id); return e?e.value:''; }).join(''); }
+
+function checkPin() {
+  var entered = getPin();
+  var stored = localStorage.getItem('cdc_pin') || '1234';
+  var errEl = document.getElementById('pinerr');
+  if (entered === stored) {
+    var savedCid = localStorage.getItem('cdc_cid');
+    if (!savedCid) { resetSetup(); return; }
+    errEl.style.display='none';
+    ['pin0','pin1','pin2','pin3'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+    startWithCid(savedCid);
+  } else {
+    ['pin0','pin1','pin2','pin3'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+    document.getElementById('pin0').focus();
+    errEl.textContent = 'Incorrect PIN. Try again.';
+    errEl.style.display = 'block';
+  }
+}
+
+function resetSetup() {
+  document.getElementById('pin-screen').style.display = 'none';
+  document.getElementById('full-setup').style.display = 'block';
+}
+
 function initAuth() {
   var cid = document.getElementById('cid').value.trim();
   if (!cid || !cid.includes('.apps.googleusercontent.com')) {
     showErr('Please enter a valid Google OAuth Client ID.');
     return;
   }
+  var pin = getNewPin();
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+    showErr('Please set a 4-digit PIN before connecting.');
+    return;
+  }
+  localStorage.setItem('cdc_cid', cid);
+  localStorage.setItem('cdc_pin', pin);
   var btn = document.getElementById('cbtn');
   btn.disabled = true;
   btn.textContent = 'Connecting...';
+  startWithCid(cid);
+}
+
+function startWithCid(cid) {
   try {
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: cid,
       scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
       callback: function(resp) {
-        if (resp.error) {
-          showErr('Auth failed: ' + resp.error);
-          resetBtn();
-          return;
-        }
+        if (resp.error) { showErr('Auth failed: ' + resp.error); resetBtn(); return; }
         accessToken = resp.access_token;
         showScreen('loading');
         loadAll();
       },
-      error_callback: function(e) {
-        showErr('Error: ' + e.message);
-        resetBtn();
-      }
+      error_callback: function(e) { showErr('Error: ' + e.message); resetBtn(); }
     });
     tokenClient.requestAccessToken();
-  } catch(e) {
-    showErr('Init failed: ' + e.message);
-    resetBtn();
-  }
+  } catch(e) { showErr('Init failed: ' + e.message); resetBtn(); }
 }
 
 function showErr(msg) {
@@ -1057,14 +1172,82 @@ function insCard(icon, label, value, color) {
 }
 
 /* ════ BUILD ALL ════ */
+/* ── GLOBAL PERIOD HELPER ── */
+function getGlobalPeriod() {
+  var sel = document.getElementById('global-period');
+  return sel ? sel.value : '';
+}
+function globalPeriodFilter(rows, dateCols) {
+  var period = getGlobalPeriod();
+  var today = new Date();
+  var lbl = document.getElementById('global-period-label');
+  if (period === '' || period === 'current') {
+    // current month
+    if (lbl) lbl.textContent = today.toLocaleString('default',{month:'long',year:'numeric'}) + ' (current month)';
+    return rows.filter(function(r) {
+      for (var i=0;i<dateCols.length;i++) {
+        var v=r[dateCols[i].toUpperCase()]; if(!v) continue;
+        var d=parseDate(v); if(!d) continue;
+        return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth();
+      }
+      return true;
+    });
+  }
+  if (period === 'all') { if(lbl) lbl.textContent='All time'; return rows; }
+  var days = parseInt(period);
+  var cutoff = new Date(today.getTime() - days * 864e5);
+  if (lbl) lbl.textContent = 'Last ' + days + ' days';
+  return rows.filter(function(r) {
+    for (var i=0;i<dateCols.length;i++) {
+      var v=r[dateCols[i].toUpperCase()]; if(!v) continue;
+      var d=parseDate(v); if(!d) continue;
+      return d >= cutoff && d <= today;
+    }
+    return true;
+  });
+}
+
+function applySnkFilter() {
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var period = document.getElementById('snk-period') ? document.getElementById('snk-period').value : 'current';
+  var wh = document.getElementById('snk-wh') ? document.getElementById('snk-wh').value.toUpperCase() : '';
+  var today = new Date();
+  var rows = allSnk;
+  if (period === 'current') {
+    rows = rows.filter(function(r){ var d=parseDate(g(r,'DATE','ORDER DATE')); return d&&d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth(); });
+  } else if (period !== '0') {
+    var days=parseInt(period), cutoff=new Date(today.getTime()-days*864e5);
+    rows = rows.filter(function(r){ var d=parseDate(g(r,'DATE','ORDER DATE')); return d&&d>=cutoff&&d<=today; });
+  }
+  if (wh) {
+    rows = rows.filter(function(r){
+      var loc=(g(r,'LOCATION')||'').toUpperCase();
+      if(wh==='DELHI') return loc.includes('DELHI')||loc.includes('DELHI WAREHOUSE')||loc.includes('DEL WH');
+      if(wh==='MUMBAI') return loc.includes('MUMBAI')||loc.includes('MUM')||loc.includes('BOMBAY');
+      if(wh==='HYD') return loc.includes('HYD')||loc.includes('HYDERABAD');
+      if(wh==='STORE') return loc.includes('STORE')||loc.includes('OUTLET');
+      return true;
+    });
+  }
+  var noteEl = document.getElementById('snk-period-note');
+  if(noteEl) noteEl.textContent = rows.length + ' orders in selected period/warehouse';
+  return rows;
+}
+
+/* ════ BUILD ALL ════ */
 function buildAll() {
   var f = getFilters();
-  var snk = filterByDate(D.sneakerOrders ? D.sneakerOrders.rows : [], ['DATE', 'ORDER DATE']);
-  var sw = filterByDate(D.streetwearOrders ? D.streetwearOrders.rows : [], ['ORDER DATE']);
+  var allSnkRows = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var allSWRows  = D.streetwearOrders ? D.streetwearOrders.rows : [];
 
+  // Global period filter (affects Overview and overview-driven charts)
+  var snk = globalPeriodFilter(allSnkRows, ['DATE','ORDER DATE']);
+  var sw  = globalPeriodFilter(allSWRows,  ['ORDER DATE']);
+
+  // Also apply status dropdowns from filter bar
   if (f.ss) {
     snk = snk.filter(function(r) {
-      var s = (g(r, 'STATUS') || '').toUpperCase();
+      var s = (g(r, 'STATUS') || '').trim().toUpperCase();
       if (f.ss === 'PENDING') return !s.includes('DELIVER') && !s.includes('RTO') && s !== '';
       if (f.ss === 'UNASSIGNED') return s === '';
       return s.includes(f.ss);
@@ -1073,7 +1256,6 @@ function buildAll() {
   if (f.sw) {
     sw = sw.filter(function(r) {
       var s = (g(r, 'ORDER STATUS', 'STATUS') || '').trim().toUpperCase();
-      // PENDING = blank status OR "PICKUP PENDING" or "PENDING"
       if (f.sw === 'PENDING') return s === '' || s.includes('PENDING') || s.includes('PICKUP');
       if (f.sw === 'TRANSIT') return s.includes('TRANSIT') || (g(r,'TRACKING STATUS')||'').toUpperCase().includes('TRANSIT');
       return s.includes(f.sw);
@@ -1081,12 +1263,12 @@ function buildAll() {
   }
 
   buildOV(snk, sw);
-  buildSnk(snk);
+  buildSnk(applySnkFilter());
   buildSW(sw);
   buildOps();
   buildRef();
-  buildFul(D.sneakerOrders ? D.sneakerOrders.rows : [], D.streetwearOrders ? D.streetwearOrders.rows : []);
-  buildScore(D.sneakerOrders ? D.sneakerOrders.rows : [], D.streetwearOrders ? D.streetwearOrders.rows : []);
+  buildFul(allSnkRows, allSWRows);
+  buildScore(allSnkRows, allSWRows);
   buildBrands();
   buildTopProducts();
   buildFollowups();
@@ -1095,125 +1277,132 @@ function buildAll() {
 /* ── OVERVIEW ── */
 function buildOV(snk, sw) {
   var today = new Date();
-  var thisMonth = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
   var monthLabel = today.toLocaleString('default',{month:'long'}) + ' ' + today.getFullYear();
   var ovEl = document.getElementById('ov-month-label');
   if (ovEl) ovEl.textContent = monthLabel;
 
   function isThisMonth(dateStr) {
     var d = parseDate(dateStr);
-    if (!d) return false;
-    return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth();
+    return !!(d && d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth());
   }
 
   var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
   var allSW  = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  var allSWDel = D.swDelivered2026 ? D.swDelivered2026.rows : [];
   var allRef = D.refundLedger ? D.refundLedger.rows : [];
+  var refDone = D.refundDone ? D.refundDone.rows : [];
   var allCancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
 
-  // ── This month slices ──
+  // Current month slices
   var snkThisMonth = allSnk.filter(function(r){ return isThisMonth(g(r,'DATE','ORDER DATE')); });
   var swThisMonth  = allSW.filter(function(r){ return isThisMonth(g(r,'ORDER DATE')); });
-  var refThisMonth = allRef.filter(function(r){ return isThisMonth(g(r,'DATE')); });
+  var swDelThisMonth = allSWDel.filter(function(r){ return isThisMonth(g(r,'ORDER DATE')); });
+  // TOTAL SW this month = active orders + delivered orders combined
+  var swTotalThisMonth = swThisMonth.concat(swDelThisMonth);
+
+  // Combine BOTH refund sheets
+  var allRefRows = allRef.concat(refDone);
+  var refThisMonth = allRefRows.filter(function(r){ return isThisMonth(g(r,'DATE')); });
   var cancelThisMonth = allCancel.filter(function(r){ return isThisMonth(g(r,'ORDER DATE')); });
 
-  // ── Sneaker pending: STATUS column = "All Pending" ──
+  // Sneaker pending: STATUS = "All Pending"
   var snkPending = allSnk.filter(function(r){ return (g(r,'STATUS','N')||'').toUpperCase().includes('ALL PENDING'); });
-
-  // ── SW pending: blank ORDER STATUS or PICKUP PENDING ──
-  var swPending = allSW.filter(function(r){
-    var s = (g(r,'ORDER STATUS')||'').trim().toUpperCase();
-    return s === '' || s.includes('PICKUP PENDING') || s === 'PENDING';
-  });
-
-  // ── Instant shipping >2 days, no tracking ──
+  // SW pending: blank or pickup pending
+  var swPending = allSW.filter(function(r){ var s=(g(r,'ORDER STATUS')||'').trim().toUpperCase(); return s===''||s.includes('PICKUP PENDING')||s==='PENDING'; });
+  // Instant shipping >2 days no tracking
   var instantNoTrack = allSnk.filter(function(r) {
-    var shipping = (g(r,'SHIPPING','SHIPPING METHOD') || '').toUpperCase();
-    if (!shipping.includes('INSTANT')) return false;
-    var status = (g(r,'STATUS') || '').toUpperCase();
-    if (status.includes('DELIVER') || status.includes('CANCEL')) return false;
-    var tracking = (g(r,'CDC TRACKING NUMBER','TRACKING NUMBER','TRACKING') || '').trim();
-    if (tracking.length > 3) return false;
-    var od = parseDate(g(r,'DATE','ORDER DATE'));
-    return od && daysBetween(od, today) >= 2;
+    var shipping=(g(r,'SHIPPING','SHIPPING METHOD')||'').toUpperCase();
+    if(!shipping.includes('INSTANT')) return false;
+    var status=(g(r,'STATUS')||'').toUpperCase();
+    if(status.includes('DELIVER')||status.includes('CANCEL')) return false;
+    var tracking=(g(r,'CDC TRACKING NUMBER','TRACKING NUMBER','TRACKING')||'').trim();
+    if(tracking.length>3) return false;
+    var od=parseDate(g(r,'DATE','ORDER DATE'));
+    return od && daysBetween(od,today)>=2;
   });
 
-  // ── Month KPIs ──
   var snkDelThisMonth = snkThisMonth.filter(function(r){ return (g(r,'STATUS')||'').toUpperCase().includes('DELIVER'); }).length;
-  var swDelThisMonth  = swThisMonth.filter(function(r){ return (g(r,'ORDER STATUS','TRACKING STATUS')||'').toUpperCase().includes('DELIVER'); }).length;
-  var refAmtMonth = refThisMonth.reduce(function(s,r){ return s + fmtAmt(g(r,'AMOUNT')); }, 0);
+  var swDelThisMonth2 = swDelThisMonth.length; // delivered sheet = delivered orders
+  var refAmtMonth = refThisMonth.reduce(function(s,r){ return s+fmtAmt(g(r,'AMOUNT')); },0);
+  var snkMaxVal=0; snkThisMonth.forEach(function(r){var v=fmtAmt(g(r,'VALUE','RATE','PRICE'));if(v>snkMaxVal)snkMaxVal=v;});
+  var swMaxVal=0; swTotalThisMonth.forEach(function(r){var v=fmtAmt(g(r,'PRICE'));if(v>swMaxVal)swMaxVal=v;});
+  var snkValMonth=snkThisMonth.reduce(function(s,r){return s+fmtAmt(g(r,'VALUE','RATE','PRICE'));},0);
+  var swValMonth=swTotalThisMonth.reduce(function(s,r){return s+fmtAmt(g(r,'PRICE'));},0);
 
-  // Highest single order value this month
-  var snkMaxVal = 0;
-  snkThisMonth.forEach(function(r){ var v=fmtAmt(g(r,'VALUE','RATE','PRICE')); if(v>snkMaxVal) snkMaxVal=v; });
-  var swMaxVal = 0;
-  swThisMonth.forEach(function(r){ var v=fmtAmt(g(r,'PRICE')); if(v>swMaxVal) swMaxVal=v; });
-
-  var snkValMonth = snkThisMonth.reduce(function(s,r){ return s+fmtAmt(g(r,'VALUE','RATE','PRICE')); },0);
-  var swValMonth  = swThisMonth.reduce(function(s,r){ return s+fmtAmt(g(r,'PRICE')); },0);
+  // Clickable KPI helper
+  function ckpi(label, value, sub, ac, isAlert, clickFn) {
+    var ac2 = ac || '#c8ff00';
+    var alertCls = isAlert ? ' alert-kpi' : '';
+    var clickStyle = clickFn ? 'cursor:pointer' : '';
+    var onclick = clickFn ? ' onclick="'+clickFn+'"' : '';
+    return '<div class="kc'+alertCls+'" style="--ac:'+ac2+';'+clickStyle+'"'+onclick+'>' +
+      '<div class="kl">'+label+'</div><div class="kv">'+value+'</div>'+(sub?'<div class="ks">'+sub+'</div>':'')+
+      '</div>';
+  }
 
   document.getElementById('kov').innerHTML =
-    kpiCard('Sneaker pending', snkPending.length, 'STATUS = All Pending', C.lime, snkPending.length > 30) +
-    kpiCard('SW pending', swPending.length, 'blank / pickup pending', C.amb, swPending.length > 20) +
-    kpiCard('Instant ship no track', instantNoTrack.length, '\u22652 days, no tracking', C.red, instantNoTrack.length > 0) +
-    kpiCard('Refunds '+monthLabel, refAmtMonth ? ('\u20B9'+Math.round(refAmtMonth).toLocaleString()) : '\u20B90', refThisMonth.length + ' refunds', C.pur) +
-    kpiCard('Cancelled '+monthLabel, cancelThisMonth.length, 'this month', C.red, cancelThisMonth.length > 20) +
-    kpiCard('SNK orders '+monthLabel, snkThisMonth.length, snkDelThisMonth + ' delivered', C.grn) +
-    kpiCard('SW orders '+monthLabel, swThisMonth.length, swDelThisMonth + ' delivered', C.blu) +
-    kpiCard('SNK value '+monthLabel, '\u20B9'+Math.round(snkValMonth/1000)+'K', 'max \u20B9'+Math.round(snkMaxVal).toLocaleString(), C.lime) +
-    kpiCard('SW value '+monthLabel, '\u20B9'+Math.round(swValMonth/1000)+'K', 'max \u20B9'+Math.round(swMaxVal).toLocaleString(), C.tel);
+    ckpi('Sneaker pending', snkPending.length, 'STATUS = All Pending', C.lime, snkPending.length>30, 'showOVDetail("snk-pending")') +
+    ckpi('SW pending', swPending.length, 'blank / pickup pending', C.amb, swPending.length>20, 'showOVDetail("sw-pending")') +
+    ckpi('Instant ship no track', instantNoTrack.length, '\u22652 days, no tracking', C.red, instantNoTrack.length>0, 'showOVDetail("instant-track")') +
+    ckpi('Refunds '+monthLabel, refAmtMonth?('\u20B9'+Math.round(refAmtMonth).toLocaleString()):'\u20B90', refThisMonth.length+' refunds', C.pur, false, 'showOVDetail("ref-month")') +
+    ckpi('Cancelled '+monthLabel, cancelThisMonth.length, 'this month', C.red, cancelThisMonth.length>20, 'showOVDetail("cancel-month")') +
+    ckpi('SNK orders '+monthLabel, snkThisMonth.length, snkDelThisMonth+' delivered', C.grn, false, 'showOVDetail("snk-month")') +
+    ckpi('SW orders '+monthLabel, swTotalThisMonth.length, swDelThisMonth2+' delivered', C.blu, false, 'showOVDetail("sw-month")') +
+    ckpi('SNK value '+monthLabel, '\u20B9'+Math.round(snkValMonth/1000)+'K', 'max \u20B9'+Math.round(snkMaxVal).toLocaleString(), C.lime, false, null) +
+    ckpi('SW value '+monthLabel, '\u20B9'+Math.round(swValMonth/1000)+'K', 'max \u20B9'+Math.round(swMaxVal).toLocaleString(), C.tel, false, null);
 
-  // Charts — use all snk/sw (from filters) for donut
-  mkDonut('csnks', 'lsnks', countBy(snkThisMonth, 'STATUS'));
-  mkDonut('csws', 'lsws', (function(){
-    var tm={};
-    swThisMonth.forEach(function(r){
-      var ts=(g(r,'TRACKING STATUS')||'').trim();
-      var os=(g(r,'ORDER STATUS')||'').trim();
-      var k=ts||os||'(pending)';
-      tm[k]=(tm[k]||0)+1;
-    });
-    return tm;
-  })());
+  // Store data for detail popup
+  window._ovData = {
+    'snk-pending': { rows: snkPending, headers: ['Order ID','Date','City','Item','Status'], mapper: function(r){ return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE')),esc(g(r,'SHIPPING CITY')),esc(g(r,'ITEM NAME').substring(0,30)),statusBadge(g(r,'STATUS'))]); } },
+    'sw-pending':  { rows: swPending, headers: ['Order #','Brand','Product','Status','Date'], mapper: function(r){ return row(['<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'PRODUCT NAME').substring(0,30)),statusBadge(g(r,'ORDER STATUS')),esc(g(r,'ORDER DATE'))]); } },
+    'instant-track': { rows: instantNoTrack, headers: ['Order ID','Date','Age','City','Item','Status'], mapper: function(r){ var od=parseDate(g(r,'DATE','ORDER DATE')),age=od?daysBetween(od,today):0; return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE','ORDER DATE')),'<span style="color:'+(age>=5?C.red:C.amb)+';font-weight:700">'+age+'d</span>',esc(g(r,'SHIPPING CITY')),esc(g(r,'ITEM NAME').substring(0,30)),statusBadge(g(r,'STATUS'))],age>=3); } },
+    'ref-month':   { rows: refThisMonth, headers: ['Date','Order #','Category','Remark','Amount','Status'], mapper: function(r){ return row([esc(g(r,'DATE')),'<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',esc(g(r,'CATEGORY')),esc((g(r,'REMARKS')||'').substring(0,24)),g(r,'AMOUNT')?'\u20B9'+esc(g(r,'AMOUNT')):'',statusBadge(g(r,'COMPLAINT STATUS'))]); } },
+    'cancel-month': { rows: cancelThisMonth, headers: ['Order ID','Brand','Date','Product','Price','Status'], mapper: function(r){ return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'ORDER DATE')),esc(g(r,'PRODUCT NAME').substring(0,30)),g(r,'PRICE')?'\u20B9'+esc(g(r,'PRICE')):'',statusBadge(g(r,'STATUS'))]); } },
+    'snk-month':   { rows: snkThisMonth, headers: ['Order ID','Date','City','Item','Status'], mapper: function(r){ return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE')),esc(g(r,'SHIPPING CITY')),esc(g(r,'ITEM NAME').substring(0,30)),statusBadge(g(r,'STATUS'))]); } },
+    'sw-month':    { rows: swTotalThisMonth, headers: ['Order #','Brand','Product','Status','Date'], mapper: function(r){ return row(['<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'PRODUCT NAME').substring(0,30)),statusBadge(g(r,'ORDER STATUS')||g(r,'STATUS')),esc(g(r,'ORDER DATE'))]); } }
+  };
 
-  var rc = topN(countBy(refThisMonth,'CATEGORY'),6);
-  mkBar('crefc', rc.map(function(x){return x[0];}), rc.map(function(x){return x[1];}), PAL);
+  // Charts use filtered data from global period
+  mkDonut('csnks','lsnks',countBy(snk,'STATUS'));
+  mkDonut('csws','lsws',(function(){var tm={};sw.forEach(function(r){var ts=(g(r,'TRACKING STATUS')||'').trim();var os=(g(r,'ORDER STATUS')||'').trim();var k=ts||os||'(pending)';tm[k]=(tm[k]||0)+1;});return tm;})());
+  var rc=topN(countBy(refThisMonth,'CATEGORY'),6);
+  mkBar('crefc',rc.map(function(x){return x[0];}),rc.map(function(x){return x[1];}),PAL);
 
-  // Sneaker pending table
+  // Pending tables
   document.getElementById('csnkov').textContent = snkPending.length;
   pTable('tsnkov','',['Order ID','Date','City','Item','Status'],
-    snkPending.slice(-30).reverse().map(function(r){
-      return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>', esc(g(r,'DATE')), esc(g(r,'SHIPPING CITY')), esc(g(r,'ITEM NAME').substring(0,32)), statusBadge(g(r,'STATUS'))]);
-    }));
+    snkPending.slice(-30).reverse().map(function(r){ return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE')),esc(g(r,'SHIPPING CITY')),esc(g(r,'ITEM NAME').substring(0,32)),statusBadge(g(r,'STATUS'))]); }));
 
-  // SW pending table
-  document.getElementById('cswov').textContent = swPending.length;
-  pTable('tswov','',['Order #','Brand','Product','Order Status','Date'],
-    swPending.slice(-30).reverse().map(function(r){
-      return row(['<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>', esc(g(r,'BRAND')), esc(g(r,'PRODUCT NAME').substring(0,32)), statusBadge(g(r,'ORDER STATUS')), esc(g(r,'ORDER DATE'))]);
-    }));
-
-  // Instant shipping table
   document.getElementById('cinstov').textContent = instantNoTrack.length;
   pTable('tinstov','',['Order ID','Date','Age','City','Item','Status'],
-    instantNoTrack.sort(function(a,b){
-      var da=parseDate(g(a,'DATE','ORDER DATE')),db=parseDate(g(b,'DATE','ORDER DATE'));
-      return (da&&db)?da-db:0;
-    }).map(function(r){
-      var od=parseDate(g(r,'DATE','ORDER DATE'));
-      var age=od?daysBetween(od,today):0;
-      return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>', esc(g(r,'DATE','ORDER DATE')),
-        '<span style="color:'+(age>=5?C.red:C.amb)+';font-weight:700">'+age+'d</span>',
-        esc(g(r,'SHIPPING CITY')), esc(g(r,'ITEM NAME').substring(0,30)), statusBadge(g(r,'STATUS'))], age>=3);
+    instantNoTrack.sort(function(a,b){var da=parseDate(g(a,'DATE','ORDER DATE')),db=parseDate(g(b,'DATE','ORDER DATE'));return (da&&db)?da-db:0;}).map(function(r){
+      var od=parseDate(g(r,'DATE','ORDER DATE'));var age=od?daysBetween(od,today):0;
+      return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE','ORDER DATE')),'<span style="color:'+(age>=5?C.red:C.amb)+';font-weight:700">'+age+'d</span>',esc(g(r,'SHIPPING CITY')),esc(g(r,'ITEM NAME').substring(0,30)),statusBadge(g(r,'STATUS'))],age>=3);
     }));
 
-  // Refund table this month
+  document.getElementById('cswov').textContent = swPending.length;
+  pTable('tswov','',['Order #','Brand','Product','Order Status','Date'],
+    swPending.slice(-30).reverse().map(function(r){ return row(['<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'PRODUCT NAME').substring(0,32)),statusBadge(g(r,'ORDER STATUS')),esc(g(r,'ORDER DATE'))]); }));
+
   document.getElementById('crefov').textContent = refThisMonth.length;
-  pTable('trefov','',['Date','Order #','Category','Amount','Status'],
-    refThisMonth.slice().reverse().map(function(r){
-      return row([esc(g(r,'DATE')), '<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',
-        esc(g(r,'CATEGORY')), g(r,'AMOUNT')?'\u20B9'+esc(g(r,'AMOUNT')):'', statusBadge(g(r,'COMPLAINT STATUS'))]);
-    }));
+  pTable('trefov','',['Date','Order #','Category','Remark/Issue','Amount','Status'],
+    refThisMonth.slice().reverse().map(function(r){ return row([esc(g(r,'DATE')),'<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',esc(g(r,'CATEGORY')),esc((g(r,'REMARKS')||'').substring(0,22)),g(r,'AMOUNT')?'\u20B9'+esc(g(r,'AMOUNT')):'',statusBadge(g(r,'COMPLAINT STATUS'))]); }));
+}
+
+function closeOVDetail() { var el=document.getElementById('ov-detail-panel'); if(el){el.style.display='none';el._key=null;} }
+function showOVDetail(key) {
+  var data = window._ovData && window._ovData[key];
+  if (!data) return;
+  var el = document.getElementById('ov-detail-panel');
+  if (!el) return;
+  if (el._key === key && el.style.display !== 'none') { el.style.display='none'; el._key=null; return; }
+  el._key = key;
+  el.style.display = 'block';
+  el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem"><span style="font-size:.7rem;font-weight:700;color:var(--lime);text-transform:uppercase">Detail view</span><span onclick="closeOVDetail()" style="cursor:pointer;color:var(--mu);font-size:.85rem">&#10005;</span></div>';
+  pTable('tov-detail','',data.headers,data.rows.map(data.mapper));
+  el.innerHTML += '<div class="tc" style="margin:0"><div class="ts"><table id="tov-detail"></table></div></div>';
+  // re-render since we changed innerHTML
+  pTable('tov-detail','',data.headers,data.rows.map(data.mapper));
 }
 
 /* ── SNEAKERS ── */
@@ -1312,6 +1501,37 @@ function buildSnk(snk) {
     rto.map(function(r) {
       return row(rh.map(function(h) { var v=(r[h]||'').substring(0,25); return h.includes('STATUS') ? statusBadge(v) : esc(v); }));
     }));
+
+  // ── Warehouse breakdown ──
+  var whBuckets = { 'Delhi WH': 0, 'Mumbai WH': 0, 'HYD WH': 0, 'Store': 0, 'Other': 0 };
+  snk.forEach(function(r) {
+    var loc = (g(r,'LOCATION') || '').toUpperCase();
+    if (loc.includes('DELHI') || loc.includes('DEL WH') || loc.includes('CDC DELHI')) whBuckets['Delhi WH']++;
+    else if (loc.includes('MUMBAI') || loc.includes('MUM') || loc.includes('BOMBAY') || loc.includes('MUMBAI STORE')) whBuckets['Mumbai WH']++;
+    else if (loc.includes('HYD') || loc.includes('HYDERABAD') || loc.includes('CDC HYD')) whBuckets['HYD WH']++;
+    else if (loc.includes('STORE') || loc.includes('OUTLET')) whBuckets['Store']++;
+    else if (loc) whBuckets['Other']++;
+  });
+  var whHTML = Object.keys(whBuckets).map(function(k) {
+    var pct = snk.length ? Math.round(whBuckets[k]/snk.length*100) : 0;
+    var col = k==='Delhi WH'?C.lime:k==='Mumbai WH'?C.blu:k==='HYD WH'?C.pur:k==='Store'?C.tel:C.amb;
+    return '<div class="frow"><span class="frl" style="color:'+col+'">'+k+'</span><span class="frv" style="color:'+col+'">'+whBuckets[k]+' <span style="font-size:.68rem;color:var(--mu2)">('+pct+'%)</span></span></div>';
+  }).join('');
+  var whEl = document.getElementById('snk-wh-breakdown');
+  if (whEl) whEl.innerHTML = whHTML || '<div class="empty">No location data</div>';
+
+  // ── Shipping charges ──
+  var shipCharges = snk.reduce(function(s,r){ return s+fmtAmt(g(r,'SHIPPING CHARGES','SHIPPING CHARGE','SHIPPING')); },0);
+  var shipFree = snk.filter(function(r){ return fmtAmt(g(r,'SHIPPING CHARGES','SHIPPING CHARGE'))==0; }).length;
+  var shipPaid = snk.filter(function(r){ return fmtAmt(g(r,'SHIPPING CHARGES','SHIPPING CHARGE'))>0; }).length;
+  var shipAvg = shipPaid>0 ? Math.round(shipCharges/shipPaid) : 0;
+  var shHTML = '<div class="frow"><span class="frl">Total collected</span><span class="frv" style="color:'+C.lime+'">\u20B9'+Math.round(shipCharges).toLocaleString()+'</span></div>' +
+    '<div class="frow"><span class="frl">Orders with shipping</span><span class="frv">'+shipPaid+'</span></div>' +
+    '<div class="frow"><span class="frl">Free shipping orders</span><span class="frv">'+shipFree+'</span></div>' +
+    '<div class="frow"><span class="frl">Avg charge (paid only)</span><span class="frv">\u20B9'+shipAvg+'</span></div>';
+  var shEl = document.getElementById('snk-shipping-stats');
+  if (shEl) shEl.innerHTML = shHTML;
+
 }
 
 function showSnkCancelDrill(month, cancelledRows) {
@@ -1460,6 +1680,33 @@ function buildSW(sw) {
     del26.map(function(r) {
       return row(dh.map(function(h) { var v=(r[h]||'').substring(0,25); return h.includes('STATUS') ? statusBadge(v) : esc(v); }));
     }));
+
+  // ── SW Warehouse breakdown (SHIPPED FROM column Q) ──
+  var swWH = {'Delhi WH + CDC Saket': 0, 'Mumbai WH + Bandra': 0, 'HYD WH': 0, 'Other': 0};
+  var allSWForWH = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  allSWForWH.forEach(function(r) {
+    var sf = (g(r,'SHIPPED FROM','FULFILL') || '').toUpperCase();
+    var remarks = (g(r,'CRM REMARKS','STREETWEAR REMARKS') || '').toUpperCase();
+    var combined = sf + ' ' + remarks;
+    if (combined.includes('DEL WH') || combined.includes('CDC SAKET') || combined.includes('DELHI WH') || combined.includes('DELHI WAREHOUSE')) swWH['Delhi WH + CDC Saket']++;
+    else if (combined.includes('MUM WH') || combined.includes('BANDRA') || combined.includes('MUMBAI WH') || combined.includes('MUMBAI WAREHOUSE')) swWH['Mumbai WH + Bandra']++;
+    else if (combined.includes('HYD WH') || combined.includes('HYD WAREHOUSE') || combined.includes('HYDERABAD')) swWH['HYD WH']++;
+    else if (sf || remarks) swWH['Other']++;
+  });
+  var totalSWWH = Object.values(swWH).reduce(function(a,b){return a+b;},0);
+  var swWhHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;">' +
+    Object.keys(swWH).map(function(k) {
+      var pct = totalSWWH ? Math.round(swWH[k]/totalSWWH*100) : 0;
+      var col = k.includes('Delhi')?C.lime:k.includes('Mumbai')?C.blu:k.includes('HYD')?C.pur:C.amb;
+      return '<div style="background:'+col+'11;border:1px solid '+col+'33;border-radius:6px;padding:.5rem .75rem">' +
+        '<div style="font-size:.68rem;color:'+col+';font-weight:700">'+k+'</div>' +
+        '<div style="font-size:1.35rem;font-weight:800;color:'+col+'">'+swWH[k]+'</div>' +
+        '<div style="font-size:.66rem;color:var(--mu2)">'+pct+'% of total</div>' +
+        '</div>';
+    }).join('') + '</div>';
+  var swWhEl = document.getElementById('sw-wh-breakdown');
+  if (swWhEl) swWhEl.innerHTML = swWhHTML;
+
 }
 
 /* ── OPS ── */
@@ -1568,186 +1815,137 @@ function buildRef() {
   var refFrom = document.getElementById('ref-from') ? document.getElementById('ref-from').value : '2026-04-01';
   var refTo   = document.getElementById('ref-to')   ? document.getElementById('ref-to').value   : '';
 
-  function refDateFilter(rows, cols) {
+  // Combine BOTH refund sheets: Refund Ledger + Refund Done (Apr25+)
+  var allRefRows = (D.refundLedger ? D.refundLedger.rows : []).concat(D.refundDone ? D.refundDone.rows : []);
+  var allRefP    = D.refundProcessed ? D.refundProcessed.rows : [];
+
+  function refFilter(rows, cols) {
     if (!refFrom && !refTo) return rows;
     return rows.filter(function(r) {
-      for (var i = 0; i < cols.length; i++) {
-        var v = r[cols[i].toUpperCase()]; if (!v) continue;
-        var d = parseDate(v); if (!d) continue;
+      for (var i=0;i<cols.length;i++) {
+        var v=r[cols[i].toUpperCase()]; if(!v) continue;
+        var d=parseDate(v); if(!d) continue;
         if (refFrom && d < new Date(refFrom)) return false;
-        if (refTo   && d > new Date(refTo + 'T23:59:59')) return false;
+        if (refTo   && d > new Date(refTo+'T23:59:59')) return false;
         return true;
       }
       return true;
     });
   }
 
-  var ref  = refDateFilter(D.refundLedger    ? D.refundLedger.rows    : [], ['DATE']);
-  var refP = refDateFilter(D.refundProcessed ? D.refundProcessed.rows : [], ['DATE']);
-  var allRef = D.refundLedger ? D.refundLedger.rows : [];
+  var ref  = refFilter(allRefRows, ['DATE']);
+  var refP = refFilter(allRefP, ['DATE']);
 
   var noteEl = document.getElementById('ref-note');
-  if (noteEl) noteEl.textContent = 'Showing ' + ref.length + ' of ' + allRef.length + ' total refunds';
+  if (noteEl) noteEl.textContent = 'Showing ' + ref.length + ' of ' + allRefRows.length + ' total refunds';
 
-  var tot  = ref.reduce(function(s,r)  { return s + fmtAmt(g(r,'AMOUNT')); }, 0);
-  var totP = refP.reduce(function(s,r) { return s + fmtAmt(g(r,'AMOUNT','REFUND AMOUNT')); }, 0);
-  var open   = ref.filter(function(r) { return (g(r,'COMPLAINT STATUS')||'').toUpperCase() !== 'CLOSED'; }).length;
-  var closed = ref.length - open;
-  var bank   = ref.filter(function(r) { return (g(r,'RETURN MODE')||'').toUpperCase().includes('BANK'); }).length;
-  var creditNote = ref.filter(function(r) { return (g(r,'RETURN MODE')||'').toUpperCase().includes('CREDIT') || (g(r,'RETURN MODE')||'').toUpperCase().includes('NOTE'); }).length;
+  var tot   = ref.reduce(function(s,r){ return s+fmtAmt(g(r,'AMOUNT')); },0);
+  var totP  = refP.reduce(function(s,r){ return s+fmtAmt(g(r,'AMOUNT','REFUND AMOUNT')); },0);
+  var open  = ref.filter(function(r){ return (g(r,'COMPLAINT STATUS')||'').toUpperCase()!=='CLOSED'; }).length;
+  var closed= ref.length-open;
+  var bank  = ref.filter(function(r){ return (g(r,'RETURN MODE')||'').toUpperCase().includes('BANK'); }).length;
+  var creditNote = ref.filter(function(r){ var m=(g(r,'RETURN MODE')||'').toUpperCase(); return m.includes('CREDIT')||m.includes('NOTE'); }).length;
 
   document.getElementById('kref').innerHTML =
-    kpiCard('Ledger total', '\u20B9' + Math.round(tot).toLocaleString(), '', C.red) +
-    kpiCard('Open complaints', open, 'awaiting resolution', C.amb, open > 10) +
-    kpiCard('Closed', closed, Math.round(closed / (ref.length || 1) * 100) + '% resolution rate', C.grn) +
-    kpiCard('Processed', refP.length, '\u20B9' + Math.round(totP).toLocaleString(), C.pur) +
+    kpiCard('Ledger total', '\u20B9'+Math.round(tot).toLocaleString(), '', C.red) +
+    kpiCard('Open complaints', open, 'awaiting resolution', C.amb, open>10) +
+    kpiCard('Closed', closed, Math.round(closed/(ref.length||1)*100)+'% resolution rate', C.grn) +
+    kpiCard('Processed', refP.length, '\u20B9'+Math.round(totP).toLocaleString(), C.pur) +
     kpiCard('Bank transfers', bank, '', C.blu) +
     kpiCard('Credit notes', creditNote, '', C.tel) +
-    kpiCard('Avg refund', ref.length ? '\u20B9' + Math.round(tot / ref.length).toLocaleString() : '-', '', C.amb);
+    kpiCard('Avg refund', ref.length?'\u20B9'+Math.round(tot/ref.length).toLocaleString():'-', '', C.amb);
 
-  // Complaint status donut
-  mkDonut('ccomp', 'lcomp', countBy(ref, 'COMPLAINT STATUS'));
+  mkDonut('ccomp','lcomp',countBy(ref,'COMPLAINT STATUS'));
 
-  // Issue bar — use REMARKS column (actual issues) not ISSUE column (refund type)
+  // ISSUE BAR: use REMARKS column (column G) not ISSUE column
   var remarksMap = {};
   ref.forEach(function(r) {
-    var rem = (g(r,'REMARKS') || '').trim();
-    if (!rem) rem = '(no remark)';
-    // normalize common patterns
-    rem = rem.charAt(0).toUpperCase() + rem.slice(1).toLowerCase();
-    rem = rem.substring(0, 30);
-    remarksMap[rem] = (remarksMap[rem] || 0) + 1;
+    var rem = (g(r,'REMARKS')||'').trim();
+    if (!rem || rem.length < 2) rem = '(no remark)';
+    else rem = rem.charAt(0).toUpperCase() + rem.slice(1).toLowerCase().substring(0,32);
+    remarksMap[rem] = (remarksMap[rem]||0)+1;
   });
   var topRemarks = topN(remarksMap, 8);
   mkHBar('ciss', topRemarks.map(function(x){return x[0];}), topRemarks.map(function(x){return x[1];}), PAL);
 
   // Category classification
   function classifyCategory(r) {
-    var cat = (g(r,'CATEGORY') || '').toUpperCase();
-    if (cat.includes('SNEAK') || cat.includes('SHOE') || cat.includes('JORDAN') || cat.includes('YEEZY') || cat.includes('DUNK')) return 'Sneaker';
-    if (cat.includes('HYPE') || cat.includes('WATCH') || cat.includes('ACCESSORY')) return 'Watch / Hype';
-    if (cat.includes('STREET') || cat.includes('APPAREL') || cat.includes('CLOTH') || cat.includes('TEE') || cat.includes('SHIRT') || cat.includes('HOODIE')) return 'Streetwear';
-    var catRaw = (g(r,'CATEGORY') || '').trim();
-    if (catRaw) return catRaw.charAt(0).toUpperCase() + catRaw.slice(1).toLowerCase();
-    return 'Other';
+    var cat = (g(r,'CATEGORY')||'').toUpperCase();
+    if (cat.includes('SNEAK')||cat.includes('SHOE')||cat.includes('JORDAN')||cat.includes('YEEZY')||cat.includes('DUNK')) return 'Sneaker';
+    if (cat.includes('HYPE')||cat.includes('WATCH')||cat.includes('ACCESSORY')) return 'Watch/Hype';
+    if (cat.includes('STREET')||cat.includes('APPAREL')||cat.includes('TEE')||cat.includes('SHIRT')) return 'Streetwear';
+    var catRaw=(g(r,'CATEGORY')||'').trim();
+    return catRaw ? catRaw.charAt(0).toUpperCase()+catRaw.slice(1).toLowerCase() : 'Other';
   }
-  var catColors = { 'Sneaker': C.lime, 'Streetwear': C.blu, 'Watch / Hype': C.pur, 'Other': C.amb };
-  function getCatColor(cat) { return catColors[cat] || C.org; }
+  var catColors={'Sneaker':C.lime,'Streetwear':C.blu,'Watch/Hype':C.pur,'Other':C.amb};
+  function getCatColor(cat){return catColors[cat]||C.org;}
 
-  var catValMap = {}, catCntMap = {};
-  ref.forEach(function(r) {
-    var cat = classifyCategory(r);
-    catValMap[cat] = (catValMap[cat] || 0) + fmtAmt(g(r,'AMOUNT'));
-    catCntMap[cat] = (catCntMap[cat] || 0) + 1;
+  var catValMap={}, catCntMap={};
+  ref.forEach(function(r){ var cat=classifyCategory(r); catValMap[cat]=(catValMap[cat]||0)+fmtAmt(g(r,'AMOUNT')); catCntMap[cat]=(catCntMap[cat]||0)+1; });
+  var catKeys=Object.keys(catValMap).sort(function(a,b){return catValMap[b]-catValMap[a];});
+  var catVals=catKeys.map(function(k){return Math.round(catValMap[k]);});
+  var catClrs=catKeys.map(getCatColor);
+
+  if(CH['cref-cat-val'])CH['cref-cat-val'].destroy();
+  var ctxCat=document.getElementById('cref-cat-val');
+  if(ctxCat&&catKeys.length){
+    CH['cref-cat-val']=new Chart(ctxCat,{type:'doughnut',data:{labels:catKeys,datasets:[{data:catVals,backgroundColor:catClrs,borderWidth:2,borderColor:'#111'}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:250},cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.label+': \u20B9'+ctx.raw.toLocaleString();}}}}}});
+    var legEl=document.getElementById('lref-cat-val');
+    if(legEl) legEl.innerHTML=catKeys.map(function(k,i){return '<div class="li"><div class="ld" style="background:'+catClrs[i]+'"></div>'+esc(k)+' <strong style="color:'+catClrs[i]+'">\u20B9'+Math.round(catValMap[k]).toLocaleString()+'</strong> <span style="color:var(--mu2)">('+catCntMap[k]+')</span></div>';}).join('');
+  }
+
+  // Trend — use filtered data
+  var trendData={};
+  ref.forEach(function(r){ var d=parseDate(g(r,'DATE')); if(!d) return; var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); var cat=classifyCategory(r); if(!trendData[mk])trendData[mk]={}; trendData[mk][cat]=(trendData[mk][cat]||0)+1; });
+  var tMonths=Object.keys(trendData).sort().slice(-10);
+  var tCats=Object.keys(catCntMap).sort();
+  if(CH['cref-cat-trend'])CH['cref-cat-trend'].destroy();
+  var ctxTrend=document.getElementById('cref-cat-trend');
+  if(ctxTrend){
+    CH['cref-cat-trend']=new Chart(ctxTrend,{type:'bar',data:{labels:tMonths.length?tMonths:['No data'],datasets:tCats.map(function(cat){return{label:cat,data:tMonths.map(function(m){return(trendData[m]&&trendData[m][cat])||0;}),backgroundColor:getCatColor(cat)+'bb',borderRadius:3};})},options:Object.assign({},baseOpts,{plugins:{legend:{display:true,labels:{color:'#666',font:{size:10},boxWidth:12}}},scales:{x:{stacked:true,grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{stacked:true,grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}}}})});
+  }
+
+  // Payment chart
+  var pmSel=document.getElementById('ref-payment-month');
+  if(pmSel&&pmSel.options.length<=1){ var pmSet={}; allRefRows.forEach(function(r){var d=parseDate(g(r,'DATE'));if(!d)return;var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');pmSet[mk]=true;}); Object.keys(pmSet).sort().reverse().forEach(function(m){var opt=document.createElement('option');opt.value=m;opt.textContent=m;pmSel.appendChild(opt);}); }
+  var pmSel2=document.getElementById('ref-payment-month');
+  var refMonthSel=pmSel2?pmSel2.value:'';
+  var pmRows=refMonthSel?allRefRows.filter(function(r){var d=parseDate(g(r,'DATE'));if(!d)return false;return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===refMonthSel;}):allRefRows;
+  var pmMonths={};
+  pmRows.forEach(function(r){var d=parseDate(g(r,'DATE'));if(!d)return;var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');var mode=(g(r,'RETURN MODE')||'').toUpperCase();if(!pmMonths[mk])pmMonths[mk]={bank:0,credit:0,other:0};var amt=fmtAmt(g(r,'AMOUNT'));if(mode.includes('BANK'))pmMonths[mk].bank+=amt;else if(mode.includes('CREDIT')||mode.includes('NOTE'))pmMonths[mk].credit+=amt;else pmMonths[mk].other+=amt;});
+  var pmLabels=Object.keys(pmMonths).sort();
+  if(CH['cref-payment'])CH['cref-payment'].destroy();
+  var ctxPm=document.getElementById('cref-payment');
+  if(ctxPm){CH['cref-payment']=new Chart(ctxPm,{type:'bar',data:{labels:pmLabels.length?pmLabels:['No data'],datasets:[{label:'Bank Transfer',data:pmLabels.map(function(m){return Math.round((pmMonths[m]||{bank:0}).bank);}),backgroundColor:C.blu+'bb',borderRadius:3},{label:'Credit Note',data:pmLabels.map(function(m){return Math.round((pmMonths[m]||{credit:0}).credit);}),backgroundColor:C.grn+'bb',borderRadius:3},{label:'Other',data:pmLabels.map(function(m){return Math.round((pmMonths[m]||{other:0}).other);}),backgroundColor:C.amb+'bb',borderRadius:3}]},options:Object.assign({},baseOpts,{plugins:{legend:{display:true,labels:{color:'#666',font:{size:10},boxWidth:12}}}})});}
+
+  // TOP 10 CANCELLED PRODUCTS
+  var cancelProdMap={};
+  ref.forEach(function(r){
+    var iss=(g(r,'ISSUE')||'').toUpperCase();
+    if(!iss.includes('CANCEL')&&!(g(r,'REMARKS')||'').toUpperCase().includes('OUT OF STOCK')) return;
+    var prod=(g(r,'PRODUCT DESC','PRODUCT DETAILS','PRODUCT NAME')||'').trim().substring(0,40)||'(unknown)';
+    cancelProdMap[prod]=(cancelProdMap[prod]||0)+1;
   });
+  var topCancelProd=topN(cancelProdMap,10);
+  document.getElementById('cnt-top-cancel-prod').textContent=topCancelProd.length;
+  pTable('t-top-cancel-prod','',['#','Product','Count'],
+    topCancelProd.map(function(x,i){return row(['<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>','<span style="color:var(--red);font-weight:600">'+esc(x[0])+'</span>',x[1]]);}));
 
-  var catKeys = Object.keys(catValMap).sort(function(a,b){ return catValMap[b]-catValMap[a]; });
-  var catVals = catKeys.map(function(k){ return Math.round(catValMap[k]); });
-  var catClrs = catKeys.map(getCatColor);
-  if (CH['cref-cat-val']) CH['cref-cat-val'].destroy();
-  var ctxCat = document.getElementById('cref-cat-val');
-  if (ctxCat && catKeys.length) {
-    CH['cref-cat-val'] = new Chart(ctxCat, {
-      type: 'doughnut',
-      data: { labels: catKeys, datasets: [{ data: catVals, backgroundColor: catClrs, borderWidth: 2, borderColor: '#111' }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: { duration: 250 }, cutout: '62%',
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': \u20B9' + ctx.raw.toLocaleString(); } } } } }
-    });
-    var legEl = document.getElementById('lref-cat-val');
-    if (legEl) legEl.innerHTML = catKeys.map(function(k,i) {
-      return '<div class="li"><div class="ld" style="background:' + catClrs[i] + '"></div>' + esc(k) +
-        ' <strong style="color:' + catClrs[i] + '">\u20B9' + Math.round(catValMap[k]).toLocaleString() + '</strong>' +
-        ' <span style="color:var(--mu2)">(' + catCntMap[k] + ')</span></div>';
-    }).join('');
-  }
+  // CANCELLATION FEES
+  var cancelFees=ref.filter(function(r){return fmtAmt(g(r,'CANCELLATION FEE','CANCELLATION FEES','CANCELLATION FEE/ EXCHANGE CHARGES'))>0;});
+  var totalFees=cancelFees.reduce(function(s,r){return s+fmtAmt(g(r,'CANCELLATION FEE','CANCELLATION FEES','CANCELLATION FEE/ EXCHANGE CHARGES'));},0);
+  document.getElementById('cnt-cancel-fees').textContent=cancelFees.length+' (\u20B9'+Math.round(totalFees).toLocaleString()+' total)';
+  pTable('t-cancel-fees','',['Date','Order #','Amount','Fee Charged'],
+    cancelFees.map(function(r){return row([esc(g(r,'DATE')),'<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',g(r,'AMOUNT')?'\u20B9'+esc(g(r,'AMOUNT')):'','<span style="color:'+C.red+';font-weight:700">\u20B9'+Math.round(fmtAmt(g(r,'CANCELLATION FEE','CANCELLATION FEES','CANCELLATION FEE/ EXCHANGE CHARGES'))).toLocaleString()+'</span>']);}));
 
-  // Monthly trend — USE ref (filtered) data, fix the bug where it always used allRef
-  var trendData = {};
-  ref.forEach(function(r) {
-    var d = parseDate(g(r,'DATE')); if (!d) return;
-    var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    var cat = classifyCategory(r);
-    if (!trendData[mk]) trendData[mk] = {};
-    trendData[mk][cat] = (trendData[mk][cat] || 0) + 1;
-  });
-  var tMonths = Object.keys(trendData).sort().slice(-10);
-  var tCats = Object.keys(catCntMap).sort();
-  if (CH['cref-cat-trend']) CH['cref-cat-trend'].destroy();
-  var ctxTrend = document.getElementById('cref-cat-trend');
-  if (ctxTrend) {
-    CH['cref-cat-trend'] = new Chart(ctxTrend, {
-      type: 'bar',
-      data: {
-        labels: tMonths.length ? tMonths : ['No data'],
-        datasets: tCats.map(function(cat) {
-          return { label: cat, data: tMonths.map(function(m){ return (trendData[m] && trendData[m][cat]) || 0; }), backgroundColor: getCatColor(cat) + 'bb', borderRadius: 3 };
-        })
-      },
-      options: Object.assign({}, baseOpts, {
-        plugins: { legend: { display: true, labels: { color: '#666', font: { size: 10 }, boxWidth: 12 } } },
-        scales: { x: { stacked: true, grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } }, y: { stacked: true, grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } } }
-      })
-    });
-  }
+  document.getElementById('crefl').textContent=ref.length;
+  pTable('trefl','pgrefl',['Date','Order #','Category','Refund Type','Remark/Issue','Amount','Mode','Status'],
+    ref.map(function(r){return row([esc(g(r,'DATE')),'<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',esc(g(r,'CATEGORY')),esc((g(r,'ISSUE')||'').substring(0,18)),esc((g(r,'REMARKS')||'').substring(0,24)),g(r,'AMOUNT')?'\u20B9'+esc(g(r,'AMOUNT')):'',esc(g(r,'RETURN MODE')),statusBadge(g(r,'COMPLAINT STATUS'))]);}));
 
-  // ── Credit note vs bank transfer monthly bar chart ──
-  var refMonthSel = document.getElementById('ref-payment-month') ? document.getElementById('ref-payment-month').value : '';
-  var pmSel = document.getElementById('ref-payment-month');
-  if (pmSel && pmSel.options.length <= 1) {
-    var pmSet = {};
-    allRef.forEach(function(r){ var d=parseDate(g(r,'DATE')); if(!d) return; var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); pmSet[mk]=true; });
-    Object.keys(pmSet).sort().reverse().forEach(function(m){ var opt=document.createElement('option'); opt.value=m; opt.textContent=m; pmSel.appendChild(opt); });
-  }
-  var pmRows = refMonthSel ? allRef.filter(function(r){ var d=parseDate(g(r,'DATE')); if(!d) return false; var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); return mk===refMonthSel; }) : allRef;
-  var pmMonths = {};
-  pmRows.forEach(function(r) {
-    var d=parseDate(g(r,'DATE')); if(!d) return;
-    var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    var mode=(g(r,'RETURN MODE')||'').toUpperCase();
-    if (!pmMonths[mk]) pmMonths[mk]={bank:0,credit:0,other:0};
-    var amt=fmtAmt(g(r,'AMOUNT'));
-    if (mode.includes('BANK')) pmMonths[mk].bank+=amt;
-    else if (mode.includes('CREDIT')||mode.includes('NOTE')) pmMonths[mk].credit+=amt;
-    else pmMonths[mk].other+=amt;
-  });
-  var pmLabels = Object.keys(pmMonths).sort();
-  if (CH['cref-payment']) CH['cref-payment'].destroy();
-  var ctxPm = document.getElementById('cref-payment');
-  if (ctxPm) {
-    CH['cref-payment'] = new Chart(ctxPm, {
-      type: 'bar',
-      data: {
-        labels: pmLabels.length ? pmLabels : ['No data'],
-        datasets: [
-          { label: 'Bank Transfer', data: pmLabels.map(function(m){ return Math.round((pmMonths[m]||{bank:0}).bank); }), backgroundColor: C.blu+'bb', borderRadius: 3 },
-          { label: 'Credit Note',   data: pmLabels.map(function(m){ return Math.round((pmMonths[m]||{credit:0}).credit); }), backgroundColor: C.grn+'bb', borderRadius: 3 },
-          { label: 'Other',         data: pmLabels.map(function(m){ return Math.round((pmMonths[m]||{other:0}).other); }), backgroundColor: C.amb+'bb', borderRadius: 3 }
-        ]
-      },
-      options: Object.assign({}, baseOpts, {
-        plugins: { legend: { display: true, labels: { color: '#666', font: { size: 10 }, boxWidth: 12 } } },
-        scales: { x: { grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } }, y: { grid: { color: '#1e1e1e' }, ticks: { color: '#555', font: { size: 10 } } } }
-      })
-    });
-  }
-
-  document.getElementById('crefl').textContent = ref.length;
-  pTable('trefl', 'pgrefl', ['Date','Order #','Category','Refund Type (Issue)','Remark / Issue','Amount','Mode','Status'],
-    ref.map(function(r) {
-      return row([esc(g(r,'DATE')), '<span class="oid">' + esc(g(r,'ORDER NUMBER')) + '</span>',
-        esc(g(r,'CATEGORY')),
-        esc((g(r,'ISSUE')||'').substring(0,18)),
-        esc((g(r,'REMARKS')||'').substring(0,24)),
-        g(r,'AMOUNT') ? '\u20B9'+esc(g(r,'AMOUNT')) : '',
-        esc(g(r,'RETURN MODE')), statusBadge(g(r,'COMPLAINT STATUS'))]);
-    }));
-
-  document.getElementById('crefp').textContent = refP.length;
-  var rph = (D.refundProcessed ? D.refundProcessed.h : []).slice(0, 8);
-  pTable('trefp', 'pgrefp', rph.map(function(h){return h.substring(0,15);}),
-    refP.map(function(r) {
-      return row(rph.map(function(h) { var v=(r[h]||'').substring(0,25); return h.includes('STATUS') ? statusBadge(v) : esc(v); }));
-    }));
+  document.getElementById('crefp').textContent=refP.length;
+  var rph=(D.refundProcessed?D.refundProcessed.h:[]).slice(0,8);
+  pTable('trefp','pgrefp',rph.map(function(h){return h.substring(0,15);}),
+    refP.map(function(r){return row(rph.map(function(h){var v=(r[h]||'').substring(0,25);return h.includes('STATUS')?statusBadge(v):esc(v);}));}));
 }
 
 /* ── FULFILMENT ── */
@@ -1836,15 +2034,22 @@ function buildFul(snkRaw, swRaw) {
 
 /* ── TOP PRODUCTS ── */
 function buildTopProducts() {
-  var periodDays = parseInt(document.getElementById('tp-period') ? document.getElementById('tp-period').value : '30');
+  var tpSel = document.getElementById('tp-period') ? document.getElementById('tp-period').value : '30';
   var today = new Date();
-  var cutoff = periodDays > 0 ? new Date(today.getTime() - periodDays * 864e5) : null;
+  var cutoff = null;
+  var isCurrent = tpSel === 'current';
+  if (!isCurrent && tpSel !== '0' && tpSel !== '') {
+    var days = parseInt(tpSel);
+    if (!isNaN(days) && days > 0) cutoff = new Date(today.getTime() - days * 864e5);
+  }
   var infoEl = document.getElementById('tp-info');
 
   function inPeriod(dateStr) {
-    if (!cutoff) return true;
     var d = parseDate(dateStr);
-    return !!(d && d >= cutoff && d <= today);
+    if (!d) return false;
+    if (isCurrent) return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth();
+    if (!cutoff) return true;
+    return d >= cutoff && d <= today;
   }
 
   var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
@@ -1858,7 +2063,7 @@ function buildTopProducts() {
   // Combine active + delivered SW
   var swAll = swRows.concat(swDelRows);
 
-  if (infoEl) infoEl.textContent = (cutoff ? 'Last '+periodDays+' days' : 'All time') + ' — '+snkRows.length+' sneaker, '+swAll.length+' SW orders';
+  if (infoEl) infoEl.textContent = (isCurrent?'Current month':cutoff?'Last '+tpSel+' days':'All time')+' — '+snkRows.length+' sneaker, '+swAll.length+' SW orders';
 
   // ── Sneaker top products ──
   var snkProductCount = {};
@@ -1942,173 +2147,164 @@ function buildTopProducts() {
 
 /* ── BRAND PERFORMANCE ── */
 function buildBrands() {
-  var swAll      = D.streetwearOrders  ? D.streetwearOrders.rows  : [];
-  var del26All   = D.swDelivered2026   ? D.swDelivered2026.rows   : [];
-  var cancelAll  = D.cancelledOrders   ? D.cancelledOrders.rows   : [];
-  var source     = document.getElementById('bp-source') ? document.getElementById('bp-source').value : 'sw';
-  var selMonth   = document.getElementById('bp-month')  ? document.getElementById('bp-month').value  : '';
+  var swAll     = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  var del26All  = D.swDelivered2026  ? D.swDelivered2026.rows  : [];
+  var exchResAll = D.exchResolved    ? D.exchResolved.rows     : [];
+  var cancelAll = D.cancelledOrders  ? D.cancelledOrders.rows  : [];
+  var source    = document.getElementById('bp-source') ? document.getElementById('bp-source').value : 'sw';
+  var selMonth  = document.getElementById('bp-month')  ? document.getElementById('bp-month').value  : '';
 
-  // Populate month dropdown once — combine swOrders + swDelivered2026 dates
+  // Populate month dropdown
   var monthSel = document.getElementById('bp-month');
   if (monthSel && monthSel.options.length <= 1) {
-    var mSet = {};
-    function addToMSet(rows, col) {
-      rows.forEach(function(r) {
-        var d = parseDate(g(r, col)); if (!d) return;
-        var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-        mSet[mk] = true;
-      });
-    }
-    addToMSet(swAll, 'ORDER DATE');
-    addToMSet(del26All, 'ORDER DATE');
-    addToMSet(cancelAll, 'ORDER DATE');
-    Object.keys(mSet).sort().reverse().forEach(function(m) {
-      var opt = document.createElement('option'); opt.value = m; opt.textContent = m; monthSel.appendChild(opt);
-    });
+    var mSet={};
+    function addM(rows,col){ rows.forEach(function(r){var d=parseDate(g(r,col));if(!d)return;mSet[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')]=true;}); }
+    addM(swAll,'ORDER DATE'); addM(del26All,'ORDER DATE'); addM(cancelAll,'ORDER DATE'); addM(exchResAll,'ORDER DATE');
+    Object.keys(mSet).sort().reverse().forEach(function(m){var opt=document.createElement('option');opt.value=m;opt.textContent=m;monthSel.appendChild(opt);});
   }
 
-  function filterMonth(rows, dateCols) {
-    if (!selMonth) return rows;
-    return rows.filter(function(r) {
-      for (var i = 0; i < dateCols.length; i++) {
-        var v = r[dateCols[i].toUpperCase()]; if (!v) continue;
-        var d = parseDate(v); if (!d) continue;
-        var mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-        return mk === selMonth;
-      }
-      return false;
-    });
+  function filterMo(rows,cols){
+    if(!selMonth) return rows;
+    return rows.filter(function(r){for(var i=0;i<cols.length;i++){var v=r[cols[i].toUpperCase()];if(!v)continue;var d=parseDate(v);if(!d)continue;return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===selMonth;}return false;});
   }
 
-  var swRows      = filterMonth(swAll,    ['ORDER DATE']);
-  var del26Rows   = filterMonth(del26All, ['ORDER DATE']);
-  var cancelRows  = filterMonth(cancelAll,['ORDER DATE']);
+  var swRows     = filterMo(swAll,['ORDER DATE']);
+  var del26Rows  = filterMo(del26All,['ORDER DATE']);
+  var exchResRows= filterMo(exchResAll,['ORDER DATE']);
+  var cancelRows = filterMo(cancelAll,['ORDER DATE']);
 
-  // Combine pending (streetwear) + delivered (new delivered 2026) for the selected month
-  // This gives true "total orders placed that month" picture
-  var combinedOrderRows = swRows.slice(); // start with pending/active
-  // Add delivered rows that aren't already in swRows (they've moved to delivered sheet)
-  del26Rows.forEach(function(r) {
-    combinedOrderRows.push(r);
+  // Combined = active orders + delivered + resolved exchanges (for true totals)
+  var combinedRows = swRows.concat(del26Rows).concat(exchResRows);
+
+  var brandOrders={}, brandRevenue={}, brandCancel={}, brandCancelAmt={};
+  combinedRows.forEach(function(r){
+    var b=g(r,'BRAND')||'(blank)';
+    brandOrders[b]=(brandOrders[b]||0)+1;
+    // Revenue from PRICE column
+    brandRevenue[b]=(brandRevenue[b]||0)+fmtAmt(g(r,'PRICE'));
+  });
+  cancelRows.forEach(function(r){
+    var b=g(r,'BRAND')||'(blank)';
+    brandCancel[b]=(brandCancel[b]||0)+1;
+    brandCancelAmt[b]=(brandCancelAmt[b]||0)+fmtAmt(g(r,'PRICE'));
   });
 
-  // Brand order counts — use combined source
-  var brandOrders = {};
-  if (source === 'sw' || source === 'both') {
-    combinedOrderRows.forEach(function(r) { var b=g(r,'BRAND')||'(blank)'; brandOrders[b]=(brandOrders[b]||0)+1; });
-  }
-  if (source === 'cancel' || source === 'both') {
-    cancelRows.forEach(function(r) { var b=g(r,'BRAND')||'(blank)'; brandOrders[b]=(brandOrders[b]||0)+1; });
-  }
-
-  // Cancellation rate: cancelled ÷ (combined orders + cancelled)
-  var brandCancel = {};
-  cancelRows.forEach(function(r) { var b=g(r,'BRAND')||'(blank)'; brandCancel[b]=(brandCancel[b]||0)+1; });
-  var brandTotal = {};
-  combinedOrderRows.forEach(function(r) { var b=g(r,'BRAND')||'(blank)'; brandTotal[b]=(brandTotal[b]||0)+1; });
-
-  // Brand delay: use combined rows — check shipped/delivered status or tracking update date
-  var brandDelay = {};
-  combinedOrderRows.forEach(function(r) {
-    var os = (g(r,'ORDER STATUS')||'').toUpperCase();
-    if (!os.includes('SHIP') && !os.includes('DELIVER') && !os.includes('TRANSIT')) return;
-    var od = parseDate(g(r,'ORDER DATE'));
-    var sd = parseDate(g(r,'TRACKING UPDATE DATE','SHIPPED DATE'));
-    if (!od || !sd) return;
-    var days = daysBetween(od, sd);
-    if (days === null || days < 0 || days > 120) return;
-    var b = g(r,'BRAND') || '(blank)';
-    if (!brandDelay[b]) brandDelay[b] = [];
+  var brandDelay={};
+  combinedRows.forEach(function(r){
+    var os=(g(r,'ORDER STATUS')||'').toUpperCase();
+    if(!os.includes('SHIP')&&!os.includes('DELIVER')&&!os.includes('TRANSIT')) return;
+    var od=parseDate(g(r,'ORDER DATE'));
+    var sd=parseDate(g(r,'TRACKING UPDATE DATE','SHIPPED DATE'));
+    if(!od||!sd) return;
+    var days=daysBetween(od,sd);
+    if(days===null||days<0||days>120) return;
+    var b=g(r,'BRAND')||'(blank)';
+    if(!brandDelay[b])brandDelay[b]=[];
     brandDelay[b].push(days);
   });
 
-  var top10 = topN(brandOrders, 10);
-  var top10Cancel = topN(brandCancel, 10);
+  var top10=topN(brandOrders,10);
+  var top10Cancel=topN(brandCancel,10);
+  var totalRev=Object.values(brandRevenue).reduce(function(a,b){return a+b;},0);
+  var totalBrands=Object.keys(brandOrders).length;
+  var totalOrders=Object.values(brandOrders).reduce(function(a,b){return a+b;},0);
+  var overallCancelRate=(combinedRows.length+cancelRows.length)>0?Math.round(cancelRows.length/(combinedRows.length+cancelRows.length)*100):0;
 
-  // Delay chart — only brands with 3+ orders
-  var delayBrands = Object.keys(brandDelay).filter(function(b){ return brandDelay[b].length >= 3; });
-  delayBrands.sort(function(a,b) {
-    var aA = brandDelay[a].reduce(function(x,y){return x+y;},0)/brandDelay[a].length;
-    var bA = brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length;
-    return bA - aA;
-  });
-  var delayTop = delayBrands.slice(0, 12);
-  var delayAvgs = delayTop.map(function(b) {
-    return Math.round((brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length)*10)/10;
-  });
-  var delayColors = delayAvgs.map(function(d) {
-    return d > 14 ? C.red : d > 7 ? C.amb : d > 3 ? C.lime : C.grn;
-  });
+  var delayBrands=Object.keys(brandDelay).filter(function(b){return brandDelay[b].length>=3;});
+  delayBrands.sort(function(a,b){var aA=brandDelay[a].reduce(function(x,y){return x+y;},0)/brandDelay[a].length,bA=brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length;return bA-aA;});
+  var delayTop=delayBrands.slice(0,12);
+  var delayAvgs=delayTop.map(function(b){return Math.round((brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length)*10)/10;});
+  var delayColors=delayAvgs.map(function(d){return d>14?C.red:d>7?C.amb:d>3?C.lime:C.grn;});
+  var slowBrands=delayBrands.filter(function(b){return brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length>10;}).length;
+  var bestBrand=top10.length?top10[0][0]:'—';
 
-  var totalBrands = Object.keys(brandOrders).length;
-  var totalOrders = Object.values(brandOrders).reduce(function(a,b){return a+b;},0);
-  var totalForRate = combinedOrderRows.length + cancelRows.length;
-  var overallCancelRate = totalForRate > 0 ? Math.round(cancelRows.length / totalForRate * 100) : 0;
-  var slowBrands = delayBrands.filter(function(b){ var a=brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length; return a > 10; }).length;
+  // Clickable KPI cards for brand performance
+  function bpKpi(label,value,sub,ac,alertFlag,clickFn){
+    var onclick=clickFn?' onclick="'+clickFn+'"':'';
+    var cursor=clickFn?'cursor:pointer;':'';
+    return '<div class="kc'+(alertFlag?' alert-kpi':'')+'" style="--ac:'+(ac||C.lime)+';'+cursor+'"'+onclick+'>' +
+      '<div class="kl">'+label+'</div><div class="kv">'+value+'</div>'+(sub?'<div class="ks">'+sub+'</div>':'')+
+      '</div>';
+  }
 
   document.getElementById('kbp').innerHTML =
-    '<div class="kc" style="--ac:'+C.lime+';cursor:pointer" onclick="showActiveBrands()"><div class="kl">Brands active <span style="font-size:.6rem;color:var(--mu2)">(click to list)</span></div><div class="kv">'+totalBrands+'</div><div class="ks">'+((selMonth||'all time'))+'</div></div>' +
-    kpiCard('Total orders', totalOrders, 'compiled + delivered', C.blu) +
-    kpiCard('Delivered (period)', del26Rows.length, 'from new delivered sheet', C.grn) +
-    kpiCard('Cancellations', cancelRows.length, overallCancelRate + '% cancel rate', C.red, overallCancelRate > 15) +
-    kpiCard('Slow brands (>10d)', slowBrands, 'avg dispatch >10 days', C.amb, slowBrands > 3) +
-    kpiCard('Best brand', top10.length ? top10[0][0].substring(0,12) : '—', top10.length ? top10[0][1] + ' orders' : '', C.grn);
+    bpKpi('Brands active (click)',totalBrands,selMonth||'all time',C.lime,false,'showBPDetail("brands-active")') +
+    bpKpi('Total orders',totalOrders,'compiled + delivered',C.blu,false,'showBPDetail("orders-list")') +
+    bpKpi('Delivered (period)',del26Rows.length,'from delivered sheet',C.grn,false,'showBPDetail("delivered-list")') +
+    bpKpi('Cancellations',cancelRows.length,overallCancelRate+'% cancel rate',C.red,overallCancelRate>15,'showBPDetail("cancel-list")') +
+    bpKpi('Slow brands (>10d)',slowBrands,'avg dispatch >10 days',C.amb,slowBrands>3,'showBPDetail("slow-brands")') +
+    bpKpi('Best brand',bestBrand.substring(0,14),top10.length?top10[0][1]+' orders':'',C.grn,false,null);
 
-  var srcLabel = selMonth ? selMonth : 'All time';
-  document.getElementById('bp-summary').textContent = srcLabel + ' — ' + swRows.length + ' pending + ' + del26Rows.length + ' delivered = ' + (swRows.length + del26Rows.length) + ' orders';
+  // Store data for click popups
+  window._bpData = {
+    'brands-active': { rows: top10.map(function(x){return {brand:x[0],count:x[1]};}), headers:['Brand','Orders'], mapper:function(r){return row([esc(r.brand),'<span style="font-weight:700;color:var(--lime)">'+r.count+'</span>']);} },
+    'orders-list':   { rows: combinedRows, headers:['Order #','Brand','Product','Price','Status'], mapper:function(r){return row(['<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'PRODUCT NAME','PRODUCT DETAILS').substring(0,28)),g(r,'PRICE')?'\u20B9'+esc(g(r,'PRICE')):'',statusBadge(g(r,'ORDER STATUS','STATUS'))]);} },
+    'delivered-list':{ rows: del26Rows, headers:['Order #','Brand','Product','Price','Date'], mapper:function(r){return row(['<span class="oid">'+esc(g(r,'ORDER NUMBER'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'PRODUCT NAME').substring(0,28)),g(r,'PRICE')?'\u20B9'+esc(g(r,'PRICE')):'',esc(g(r,'ORDER DATE'))]);} },
+    'cancel-list':   { rows: cancelRows, headers:['Order ID','Brand','Product','Price','Status'], mapper:function(r){return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'PRODUCT NAME').substring(0,28)),g(r,'PRICE')?'\u20B9'+esc(g(r,'PRICE')):'',statusBadge(g(r,'STATUS'))]);} },
+    'slow-brands':   { rows: delayBrands.filter(function(b){return brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length>10;}).map(function(b){var a=(brandDelay[b].reduce(function(x,y){return x+y;},0)/brandDelay[b].length).toFixed(1);return{brand:b,avg:a};}), headers:['Brand','Avg Dispatch Days'], mapper:function(r){return row([esc(r.brand),'<span style="color:var(--red);font-weight:700">'+r.avg+'d</span>']);} }
+  };
 
-  mkHBar('cbp-orders', top10.map(function(x){return x[0];}), top10.map(function(x){return x[1];}), C.blu);
+  document.getElementById('bp-summary').textContent = (selMonth||'All time')+' — '+swRows.length+' pending + '+del26Rows.length+' delivered + '+exchResRows.length+' exch/resolved = '+combinedRows.length+' orders';
 
-  var crLabels = top10Cancel.map(function(x){return x[0];});
-  var crRates  = crLabels.map(function(b) {
-    var tot = (brandTotal[b]||0) + (brandCancel[b]||0);
-    return tot ? Math.round((brandCancel[b]||0)/tot*100) : 0;
-  });
-  var crColors = crRates.map(function(r) { return r > 30 ? C.red : r > 15 ? C.amb : C.grn; });
-  mkHBar('cbp-cancel', crLabels, crRates, crColors);
-  mkHBar('cbp-delay', delayTop, delayAvgs, delayColors);
+  mkHBar('cbp-orders',top10.map(function(x){return x[0];}),top10.map(function(x){return x[1];}),C.blu);
 
-  var allBrands = Object.keys(brandOrders);
-  allBrands.sort(function(a,b) { return (brandOrders[b]||0) - (brandOrders[a]||0); });
-  document.getElementById('cbp-cnt').textContent = allBrands.length;
-  var tableRows = allBrands.map(function(b) {
-    var pendOrd  = swRows.filter(function(r){return (g(r,'BRAND')||'(blank)')=== b;}).length;
-    var delOrd   = del26Rows.filter(function(r){return (g(r,'BRAND')||'(blank)')=== b;}).length;
-    var cancels  = brandCancel[b] || 0;
-    var totalB   = (brandTotal[b]||0) + cancels;
-    var cr = totalB > 0 ? Math.round(cancels / totalB * 100) : 0;
-    var dArr = brandDelay[b];
-    var avgD = dArr && dArr.length ? (dArr.reduce(function(x,y){return x+y;},0)/dArr.length).toFixed(1) : '—';
-    var delayColor = dArr ? (parseFloat(avgD) > 14 ? C.red : parseFloat(avgD) > 7 ? C.amb : C.grn) : '#555';
-    var crColor = cr > 30 ? C.red : cr > 15 ? C.amb : C.grn;
+  var crLabels=top10Cancel.map(function(x){return x[0];});
+  var crRates=crLabels.map(function(b){var tot=(brandOrders[b]||0)+(brandCancel[b]||0);return tot?Math.round((brandCancel[b]||0)/tot*100):0;});
+  var crColors=crRates.map(function(r){return r>30?C.red:r>15?C.amb:C.grn;});
+  mkHBar('cbp-cancel',crLabels,crRates,crColors);
+  mkHBar('cbp-delay',delayTop,delayAvgs,delayColors);
+
+  // Revenue chart — from PRICE column
+  var top10Val=topN(brandRevenue,10);
+  if(CH['cbp-value'])CH['cbp-value'].destroy();
+  var ctxV=document.getElementById('cbp-value');
+  if(ctxV){
+    ctxV.parentElement.style.height=Math.max(160,top10Val.length*28+40)+'px';
+    CH['cbp-value']=new Chart(ctxV,{type:'bar',data:{labels:top10Val.map(function(x){return x[0];}),datasets:[{data:top10Val.map(function(x){return Math.round(x[1]/1000);}),backgroundColor:C.grn,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return '\u20B9'+v+'K';}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
+  }
+
+  var allBrands=Object.keys(brandOrders).sort(function(a,b){return (brandOrders[b]||0)-(brandOrders[a]||0);});
+  document.getElementById('cbp-cnt').textContent=allBrands.length;
+  var tableRows=allBrands.map(function(b){
+    var pendOrd=swRows.filter(function(r){return (g(r,'BRAND')||'(blank)')===b;}).length;
+    var delOrd=del26Rows.filter(function(r){return (g(r,'BRAND')||'(blank)')===b;}).length;
+    var cancels=brandCancel[b]||0;
+    var totalB=(brandOrders[b]||0)+cancels;
+    var cr=totalB>0?Math.round(cancels/totalB*100):0;
+    var dArr=brandDelay[b];
+    var avgD=dArr&&dArr.length?(dArr.reduce(function(x,y){return x+y;},0)/dArr.length).toFixed(1):'\u2014';
+    var rev=brandRevenue[b]||0;
+    var revShare=totalRev>0?Math.round(rev/totalRev*100):0;
+    var cancelAmt=brandCancelAmt[b]||0;
+    var delayColor=dArr?(parseFloat(avgD)>14?C.red:parseFloat(avgD)>7?C.amb:C.grn):'#555';
+    var crColor=cr>30?C.red:cr>15?C.amb:C.grn;
     return row([
-      '<strong style="color:var(--tx)">' + esc(b) + '</strong>',
-      '<span style="color:var(--amb)">' + pendOrd + '</span>',
-      '<span style="color:var(--grn)">' + delOrd + '</span>',
-      cancels,
-      '<span style="color:' + crColor + ';font-weight:700">' + cr + '%</span>',
-      '<span style="color:' + delayColor + ';font-weight:700">' + avgD + (avgD !== '—' ? 'd' : '') + '</span>',
-      dArr ? dArr.length + ' tracked' : '<span style="color:#555">no data</span>'
+      '<strong style="color:var(--tx)">'+esc(b)+'</strong>',
+      '<span style="color:var(--amb)">'+pendOrd+'</span>',
+      '<span style="color:var(--grn)">'+delOrd+'</span>',
+      cancels+' (\u20B9'+Math.round(cancelAmt/1000)+'K)',
+      '<span style="color:'+crColor+';font-weight:700">'+cr+'%</span>',
+      '\u20B9'+Math.round(rev/1000)+'K <span style="color:var(--mu2);font-size:.65rem">('+revShare+'%)</span>',
+      '<span style="color:'+delayColor+';font-weight:700">'+avgD+(avgD!=='\u2014'?'d':'')+'</span>'
     ]);
   });
-  pTable('tbp', '', ['Brand', 'Pending Orders', 'Delivered', 'Cancelled', 'Cancel Rate', 'Avg Dispatch Days', 'Delay Data'], tableRows);
+  pTable('tbp','',['Brand','Pending','Delivered','Cancelled (value)','Cancel %','Revenue (share)','Avg Dispatch'],tableRows);
 }
 
-function showActiveBrands() {
-  var swAll  = D.streetwearOrders  ? D.streetwearOrders.rows  : [];
-  var del26  = D.swDelivered2026   ? D.swDelivered2026.rows   : [];
-  var selMonth = document.getElementById('bp-month') ? document.getElementById('bp-month').value : '';
-  function filterMo(rows,cols){ if(!selMonth) return rows; return rows.filter(function(r){for(var i=0;i<cols.length;i++){var v=r[cols[i].toUpperCase()];if(!v)continue;var d=parseDate(v);if(!d)continue;return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===selMonth;}return false;}); }
-  var combined = filterMo(swAll,['ORDER DATE']).concat(filterMo(del26,['ORDER DATE']));
-  var brandMap = {};
-  combined.forEach(function(r){ var b=g(r,'BRAND')||'(blank)'; brandMap[b]=(brandMap[b]||0)+1; });
-  var brandList = topN(brandMap,100);
-  var html = '<div style="max-height:300px;overflow-y:auto">';
-  brandList.forEach(function(x){ html+='<div style="display:flex;justify-content:space-between;padding:.28rem .6rem;border-bottom:1px solid var(--b1)"><span>'+esc(x[0])+'</span><span style="color:var(--lime);font-weight:700">'+x[1]+'</span></div>'; });
-  html += '</div>';
+function closeBPDetail(){var el=document.getElementById('active-brands-list');if(el){el.style.display='none';el._key=null;}}
+function showBPDetail(key) {
+  var data = window._bpData && window._bpData[key];
+  if (!data) return;
   var el = document.getElementById('active-brands-list');
-  if (el) { el.innerHTML = html; el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+  if (!el) return;
+  if (el._key===key && el.style.display!=='none') { el.style.display='none'; el._key=null; return; }
+  el._key=key; el.style.display='block';
+  el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--b1)"><span style="font-size:.7rem;font-weight:700;color:var(--lime);text-transform:uppercase">'+esc(key.replace(/-/g,' '))+'</span><span onclick="closeBPDetail()" style="cursor:pointer;color:var(--mu)">&#10005;</span></div>';
+  var tbl=document.createElement('div'); tbl.className='ts'; tbl.style.maxHeight='280px'; tbl.style.overflowY='auto';
+  var inner=document.createElement('table'); inner.id='t-bp-detail'; tbl.appendChild(inner); el.appendChild(tbl);
+  pTable('t-bp-detail','',data.headers,data.rows.map(data.mapper));
 }
+
 
 /* ── SCORECARD ── */
 function buildScore(snkRaw, swRaw) {
@@ -2345,17 +2541,6 @@ function buildFollowups() {
     var d = daysBetween(od, barcodeDate);
     if (d !== null && d >= 0 && d <= 90) anuTrackingDays.push(d);
   });
-  var anuAvgTrack = anuTrackingDays.length
-    ? (anuTrackingDays.reduce(function(a,b){return a+b;},0) / anuTrackingDays.length).toFixed(1)
-    : null;
-  var anuMedianTrack = null;
-  if (anuTrackingDays.length) {
-    var sorted = anuTrackingDays.slice().sort(function(a,b){return a-b;});
-    anuMedianTrack = sorted.length % 2 === 0
-      ? ((sorted[sorted.length/2-1] + sorted[sorted.length/2]) / 2).toFixed(1)
-      : sorted[Math.floor(sorted.length/2)].toFixed(1);
-  }
-  window._anuTrackStats = { avg: anuAvgTrack, median: anuMedianTrack, count: anuTrackingDays.length, days: anuTrackingDays };
 
   ['ANUBHAV', 'BHARAT', 'SHAURYA', 'SUNNY', 'ABHISHEK'].forEach(function(key) {
     var ow = OWNERS[key];
@@ -2399,8 +2584,7 @@ function buildFollowups() {
         '<div class="fu-stat"><span class="fu-stat-l">Unassigned status</span><span class="fu-stat-v" style="color:#555">' + unassCount + '</span></div>' +
         Object.entries(vendorSet).slice(0,5).map(function(e){ return '<div class="fu-stat"><span class="fu-stat-l" style="font-size:.68rem">&#8627; ' + esc(e[0]) + '</span><span class="fu-stat-v" style="color:' + ow.color + '">' + e[1] + '</span></div>'; }).join('') +
       '</div>' +
-      extraStat +
-      '<div style="padding:.5rem 1rem .75rem;margin-top:.35rem">' +
+      '<div style="padding:.5rem 1rem .75rem">' +
         '<button onclick="fuFilter(\'' + key + '\')" style="width:100%;padding:.35rem;background:' + ow.color + '22;border:1px solid ' + ow.color + '44;border-radius:6px;color:' + ow.color + ';font-size:.72rem;font-weight:700;cursor:pointer;">View ' + ow.name.split(' ')[0] + '\'s orders &#8594;</button>' +
       '</div>' +
       '</div>';
@@ -2673,7 +2857,18 @@ function showTab(name) {
   });
 }
 
-window.onload = function() { showScreen('setup'); };
+window.onload = function() {
+  var savedCid = localStorage.getItem('cdc_cid');
+  if (savedCid) {
+    document.getElementById('pin-screen').style.display = 'block';
+    document.getElementById('full-setup').style.display = 'none';
+    setTimeout(function(){ var e=document.getElementById('pin0'); if(e)e.focus(); }, 200);
+  } else {
+    document.getElementById('pin-screen').style.display = 'none';
+    document.getElementById('full-setup').style.display = 'block';
+  }
+  showScreen('setup');
+};
 </script>
 </body>
 </html>
