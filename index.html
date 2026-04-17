@@ -1297,16 +1297,23 @@ function buildAll() {
     });
   }
 
-  buildOV(snk, sw);
-  buildSnk(applySnkFilter());
-  buildSW(sw);
-  buildOps();
-  buildRef();
-  buildFul(allSnkRows, allSWRows);
-  buildScore(allSnkRows, allSWRows);
-  buildBrands();
-  buildTopProducts();
-  buildFollowups();
+  var buildFns = [
+    function(){ buildOV(snk, sw); },
+    function(){ buildSnk(applySnkFilter()); },
+    function(){ buildSW(sw); },
+    function(){ buildOps(); },
+    function(){ buildRef(); },
+    function(){ buildFul(allSnkRows, allSWRows); },
+    function(){ buildScore(allSnkRows, allSWRows); },
+    function(){ buildBrands(); },
+    function(){ buildTopProducts(); },
+    function(){ buildFollowups(); }
+  ];
+  var buildNames = ['buildOV','buildSnk','buildSW','buildOps','buildRef','buildFul','buildScore','buildBrands','buildTopProducts','buildFollowups'];
+  buildFns.forEach(function(fn, i) {
+    try { fn(); }
+    catch(e) { console.error('Error in ' + buildNames[i] + ':', e.message, e.stack); }
+  });
 }
 
 /* ── OVERVIEW ── */
@@ -2586,24 +2593,7 @@ function buildFollowups() {
     var vendorSet = {};
     orders.forEach(function(o){ var v=extractVendorName(o.location); if(v) vendorSet[v]=(vendorSet[v]||0)+1; });
 
-    // Extra stat for Anubhav — avg tracking days
-    var extraStat = '';
-    if (key === 'ANUBHAV') {
-      var avgDisp = anuAvgTrack !== null ? anuAvgTrack + ' days' : 'No data';
-      var medDisp = anuMedianTrack !== null ? anuMedianTrack + ' days' : '-';
-      var trackColor = anuAvgTrack !== null ? (parseFloat(anuAvgTrack) <= 3 ? C.grn : parseFloat(anuAvgTrack) <= 7 ? C.amb : C.red) : '#555';
-      extraStat =
-        '<div style="margin:.35rem 1rem 0;padding:.5rem .75rem;background:#ff6b9511;border:1px solid #ff6b9530;border-radius:6px">' +
-          '<div style="font-size:.63rem;color:#ff6b95;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.3rem">&#9201; Avg days: order &#8594; barcode allocated</div>' +
-          '<div style="display:flex;gap:.75rem;align-items:center">' +
-            '<div><div style="font-size:.62rem;color:#888">Average</div><div style="font-size:1.2rem;font-weight:900;color:' + trackColor + '">' + avgDisp + '</div></div>' +
-            '<div style="width:1px;height:28px;background:#333"></div>' +
-            '<div><div style="font-size:.62rem;color:#888">Median</div><div style="font-size:1.2rem;font-weight:900;color:' + trackColor + '">' + medDisp + '</div></div>' +
-            '<div style="width:1px;height:28px;background:#333"></div>' +
-            '<div><div style="font-size:.62rem;color:#888">Sample</div><div style="font-size:1.2rem;font-weight:900;color:#888">' + anuTrackingDays.length + '</div></div>' +
-          '</div>' +
-        '</div>';
-    }
+    var extraStat = ''; // removed - data unavailable
 
     cardHTML += '<div class="fu-card" style="border-top:3px solid ' + ow.color + '">' +
       '<div class="fu-header">' +
@@ -2637,84 +2627,7 @@ function buildFollowups() {
   buildInstantShipping();
 }
 
-function buildAnubhavTrackAnalytics() {
-  var allSnkRows = D.sneakerOrders ? D.sneakerOrders.rows : [];
-
-  // Per-vendor breakdown using BUYING DATE as barcode allocation date
-  var vendorStats = {};
-  allSnkRows.forEach(function(r) {
-    var loc = g(r, 'LOCATION') || '';
-    var locU = loc.toUpperCase();
-    var isAnubhav = false;
-    for (var vi = 0; vi < VENDOR_MAP.length; vi++) {
-      if (VENDOR_MAP[vi].owner !== 'ANUBHAV') continue;
-      for (var vj = 0; vj < VENDOR_MAP[vi].keys.length; vj++) {
-        if (locU.includes(VENDOR_MAP[vi].keys[vj])) { isAnubhav = true; break; }
-      }
-      if (isAnubhav) break;
-    }
-    if (!isAnubhav) return;
-    var vendorName = extractVendorName(loc) || 'Unknown';
-    var cleanV = vendorName.split(/\s+/).slice(0, 2).join(' ').substring(0, 18);
-    var od = parseDate(g(r, 'DATE', 'ORDER DATE'));
-    var buyDate = parseDate(g(r, 'BUYING DATE'));
-    if (!vendorStats[cleanV]) vendorStats[cleanV] = { days: [], total: 0 };
-    vendorStats[cleanV].total++;
-    if (od && buyDate) {
-      var d = daysBetween(od, buyDate);
-      if (d !== null && d >= 0 && d <= 90) vendorStats[cleanV].days.push(d);
-    }
-  });
-
-  var stats = window._anuTrackStats || { avg: null, median: null, count: 0, days: [] };
-  var allDays = stats.days;
-  var fastCount = allDays.filter(function(d) { return d <= 3; }).length;
-  var slowCount = allDays.filter(function(d) { return d > 10; }).length;
-  var avgColor = stats.avg !== null ? (parseFloat(stats.avg) <= 5 ? C.grn : parseFloat(stats.avg) <= 10 ? C.amb : C.red) : '#555';
-
-  var kpiHTML =
-    '<div class="kc" style="--ac:#ff6b95"><div class="kl">Avg: order → barcode</div><div class="kv">' + (stats.avg !== null ? stats.avg + 'd' : '—') + '</div><div class="ks">' + stats.count + ' orders with buying date</div></div>' +
-    '<div class="kc" style="--ac:' + avgColor + '"><div class="kl">Median days</div><div class="kv">' + (stats.median !== null ? stats.median + 'd' : '—') + '</div><div class="ks">50th percentile</div></div>' +
-    '<div class="kc" style="--ac:' + C.grn + '"><div class="kl">Fast (≤3 days)</div><div class="kv">' + fastCount + '</div><div class="ks">' + (stats.count ? Math.round(fastCount / stats.count * 100) : 0) + '% of orders</div></div>' +
-    '<div class="kc" style="--ac:' + C.red + '"><div class="kl">Slow (&gt;10 days)</div><div class="kv">' + slowCount + '</div><div class="ks">' + (stats.count ? Math.round(slowCount / stats.count * 100) : 0) + '% of orders</div></div>';
-  var kpiEl = document.getElementById('anu-track-kpis');
-  if (kpiEl) kpiEl.innerHTML = kpiHTML;
-
-  var vbHTML = '<table style="width:100%;border-collapse:collapse;font-size:.74rem"><thead><tr>' +
-    '<th style="text-align:left;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Vendor</th>' +
-    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Orders</th>' +
-    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Avg Days (order→barcode)</th>' +
-    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Fastest</th>' +
-    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">Slowest</th>' +
-    '<th style="text-align:center;padding:.3rem .5rem;color:var(--mu);font-size:.63rem;border-bottom:1px solid var(--b1)">No Date</th>' +
-    '</tr></thead><tbody>';
-  Object.keys(vendorStats).sort().forEach(function(v) {
-    var vs = vendorStats[v];
-    var nDate = vs.total - vs.days.length;
-    var vAvg = vs.days.length ? (vs.days.reduce(function(a, b) { return a + b; }, 0) / vs.days.length).toFixed(1) : '—';
-    var vMin = vs.days.length ? Math.min.apply(null, vs.days) : '—';
-    var vMax = vs.days.length ? Math.max.apply(null, vs.days) : '—';
-    var vc = vs.days.length ? (parseFloat(vAvg) > 10 ? C.red : parseFloat(vAvg) > 5 ? C.amb : C.grn) : '#555';
-    vbHTML += '<tr>' +
-      '<td style="padding:.32rem .5rem;color:#ff6b95;font-weight:600">' + esc(v) + '</td>' +
-      '<td style="text-align:center;padding:.32rem .5rem">' + vs.total + '</td>' +
-      '<td style="text-align:center;padding:.32rem .5rem;color:' + vc + ';font-weight:700">' + vAvg + (vAvg !== '—' ? 'd' : '') + '</td>' +
-      '<td style="text-align:center;padding:.32rem .5rem;color:var(--mu)">' + vMin + (vMin !== '—' ? 'd' : '') + '</td>' +
-      '<td style="text-align:center;padding:.32rem .5rem;color:var(--mu)">' + vMax + (vMax !== '—' ? 'd' : '') + '</td>' +
-      '<td style="text-align:center;padding:.32rem .5rem;color:#555;font-size:.7rem">' + nDate + '</td></tr>';
-  });
-  vbHTML += '</tbody></table>';
-  var vbEl = document.getElementById('anu-vendor-breakdown');
-  if (vbEl) vbEl.innerHTML = vbHTML;
-
-  var bkL = ['0d', '1d', '2-3d', '4-5d', '6-7d', '8-10d', '11-15d', '16-30d', '30d+'];
-  var bkR = [[0,0],[1,1],[2,3],[4,5],[6,7],[8,10],[11,15],[16,30],[31,999]];
-  var bkColors = [C.grn, C.grn, C.grn, C.lime, C.lime, C.amb, C.amb, C.red, C.red];
-  var bkData = bkR.map(function(ab) {
-    return allDays.filter(function(d) { return d >= ab[0] && d <= ab[1]; }).length;
-  });
-  mkBar('c-anu-track', bkL, bkData, bkColors);
-}
+// buildAnubhavTrackAnalytics removed
 
 function extractVendorName(loc) {
   if (!loc) return null;
