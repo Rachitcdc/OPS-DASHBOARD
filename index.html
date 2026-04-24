@@ -187,6 +187,34 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
 .slider-lbl{font-size:.7rem;color:var(--mu);white-space:nowrap;}
 .slider-ticks{display:flex;justify-content:space-between;width:140px;font-size:.6rem;color:var(--mu2);}
 
+
+body.light-theme {
+  --bg:#f5f5f5;--s1:#fff;--s2:#f0f0f0;--s3:#e8e8e8;
+  --b1:#ddd;--b2:#ccc;
+  --tx:#111;--mu:#666;--mu2:#aaa;
+  --lime:#7db000;--lime2:#5a8500;--limd:rgba(125,176,0,.1);--limb:rgba(125,176,0,.25);
+}
+body.light-theme .tbr .btn.lime { background:var(--lime); color:#fff; }
+body.light-theme .ts table th { background:#e8e8e8; }
+body.light-theme .kc { border-color:var(--b1); }
+
+/* Search overlay */
+#search-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:flex-start;justify-content:center;padding-top:80px;}
+body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
+#search-box{background:var(--s1);border:1px solid var(--b2);border-radius:12px;width:min(700px,92vw);max-height:75vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+#search-input{width:100%;padding:.9rem 1.1rem;background:transparent;border:none;border-bottom:1px solid var(--b1);color:var(--tx);font-size:1rem;outline:none;}
+#search-input::placeholder{color:var(--mu);}
+#search-results{overflow-y:auto;padding:.5rem;}
+.sr-section{margin-bottom:.75rem;}
+.sr-title{font-size:.65rem;color:var(--lime);font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:.4rem .75rem;border-bottom:1px solid var(--b1);margin-bottom:.3rem;}
+.sr-item{padding:.5rem .75rem;border-radius:6px;cursor:pointer;display:grid;grid-template-columns:130px 1fr auto;gap:.5rem;align-items:center;}
+.sr-item:hover{background:var(--s2);}
+.sr-oid{font-family:var(--mono);font-size:.72rem;color:var(--lime);}
+.sr-desc{font-size:.75rem;color:var(--tx);}
+.sr-meta{font-size:.68rem;color:var(--mu);text-align:right;}
+.sr-empty{padding:1.2rem;text-align:center;color:var(--mu);font-size:.82rem;}
+.sr-hint{padding:.5rem .75rem;font-size:.66rem;color:var(--mu2);border-top:1px solid var(--b1);margin-top:.3rem;}
+
 @media(max-width:1100px){.crow{grid-template-columns:1fr 1fr;}.score-grid{grid-template-columns:1fr 1fr;}}
 @media(max-width:700px){.crow,.two,.fgrid{grid-template-columns:1fr;}.kg{grid-template-columns:repeat(2,1fr);}}
 </style>
@@ -248,6 +276,14 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
 
 <!-- DASHBOARD -->
 <div id="dash">
+  <!-- SEARCH OVERLAY -->
+  <div id="search-overlay" onclick="if(event.target===this)closeSearch()">
+    <div id="search-box">
+      <input id="search-input" type="text" placeholder="Search by order ID, product, brand, customer, date..." oninput="runSearch(this.value)" onkeydown="searchKey(event)">
+      <div id="search-results"><div class="sr-empty">Type to search across all loaded data</div></div>
+      <div class="sr-hint">&#8593;&#8595; navigate &nbsp;&#8629; open &nbsp;Esc close &nbsp;&mdash;&nbsp; searches orders, brands, products, customers</div>
+    </div>
+  </div>
   <div class="topbar">
     <div class="brand">CDC<span> OPS</span></div>
     <div class="tbc">
@@ -256,6 +292,8 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
     </div>
     <div class="tbr">
       <span class="rinfo" id="lupd"></span>
+      <button class="btn" onclick="toggleSearch()" title="Search (Ctrl+K)" style="font-size:.8rem">&#128269; Search</button>
+      <button class="btn" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">&#9788;</button>
       <button class="btn lime" onclick="manualRefresh()" id="rbtn">&#8635; Refresh</button>
     </div>
   </div>
@@ -302,6 +340,7 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
       <button class="tb" onclick="showTab('score')">&#128202; Scorecard</button>
       <button class="tb" onclick="showTab('brands')">&#127942; Brand Performance</button>
       <button class="tb" onclick="showTab('topsell')">&#128293; Top Products</button>
+      <button class="tb" onclick="showTab('snkbrands')">&#128247; SNK Brands</button>
       <button class="tb" onclick="showTab('fu')" style="border:1px solid rgba(200,255,0,.3)">&#128222; Follow-ups</button>
     </div>
 
@@ -390,6 +429,8 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
       </div>
       <div class="shd">Orders <span class="scnt" id="csnka">0</span></div>
       <div class="tc"><div class="ts"><table id="tsnka"></table></div><div class="pg" id="pgsnka"></div></div>
+      <div class="shd" style="margin-top:1rem">&#128717; Multi-item orders (same order ID, 2+ products) <span class="scnt" id="cnt-multi-orders">0</span></div>
+      <div class="tc"><div class="ts"><table id="t-multi-orders"></table></div><div class="pg" id="pg-multi-orders"></div></div>
       <div class="shd" style="margin-top:1rem">Sneaker RTO / Returns <span class="scnt" id="csnkr">0</span></div>
       <div class="tc"><div class="ts"><table id="tsnkr"></table></div><div class="pg" id="pgsnkr"></div></div>
     </div>
@@ -479,6 +520,17 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
 
     <!-- REFUNDS -->
     <div id="tab-ref" class="tabp">
+      <div class="tab-period-bar" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.42rem .85rem;flex-wrap:wrap">
+        <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
+        <select id="period-ref" class="fi" onchange="buildRef()" style="min-width:130px">
+          <option value="">Current month</option>
+          <option value="7">Last 7 days</option>
+          <option value="15">Last 15 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="all">All time</option>
+        </select>
+        <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-ref"></span>
+      </div>
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;flex-wrap:wrap;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.6rem .9rem">
         <span style="font-size:.7rem;color:var(--mu)">Refund date from:</span>
         <input type="date" id="ref-from" class="fi" value="2026-04-01" onchange="buildRef()">
@@ -551,6 +603,17 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
 
     <!-- BRAND PERFORMANCE -->
     <div id="tab-brands" class="tabp">
+      <div class="tab-period-bar" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.42rem .85rem;flex-wrap:wrap">
+        <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
+        <select id="period-brands" class="fi" onchange="buildBrands()" style="min-width:130px">
+          <option value="">Current month</option>
+          <option value="7">Last 7 days</option>
+          <option value="15">Last 15 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="all">All time</option>
+        </select>
+        <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-brands"></span>
+      </div>
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
         <span style="font-size:.7rem;color:var(--mu)">Month:</span>
         <select id="bp-month" class="fi" onchange="buildBrands()" style="min-width:120px">
@@ -592,7 +655,21 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
 
     <!-- TOP PRODUCTS -->
     <div id="tab-topsell" class="tabp">
-      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
+      <div class="tab-period-bar" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.42rem .85rem;flex-wrap:wrap">
+        <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
+        <select id="period-topsell" class="fi" onchange="buildTopProducts()" style="min-width:130px">
+          <option value="">Current month</option>
+          <option value="7">Last 7 days</option>
+          <option value="15">Last 15 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="all">All time</option>
+        </select>
+        <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-topsell"></span>
+        <div class="fsep"></div>
+        <span style="font-size:.68rem;color:var(--lime);font-weight:700">TOP:</span>
+        <select id="tp-topn" class="fi" onchange="buildTopProducts()" style="min-width:60px"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap" style="display:none">
         <span style="font-size:.7rem;color:var(--mu)">Period:</span>
         <select id="tp-period" class="fi" onchange="buildTopProducts()">
           <option value="current">Current month</option>
@@ -660,6 +737,37 @@ tr.ar:hover td{background:rgba(255,68,68,.08);}
       <div class="insight-bar" id="bizinsights"></div>
     </div>
     <!-- FOLLOW-UPS -->
+    <!-- SNK BRANDS TAB -->
+    <div id="tab-snkbrands" class="tabp">
+      <div class="tab-period-bar" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.42rem .85rem;flex-wrap:wrap">
+        <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
+        <select id="period-snkbrands" class="fi" onchange="buildSnkBrands()" style="min-width:130px">
+          <option value="">Current month</option>
+          <option value="7">Last 7 days</option>
+          <option value="15">Last 15 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="all">All time</option>
+        </select>
+        <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-snkbrands"></span>
+      </div>
+      <div class="kg" id="k-snkbrands"></div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">Top brands — orders</div><div class="cw"><canvas id="c-snkbr-orders" style="height:260px" role="img" aria-label="SNK brand orders"></canvas></div></div>
+        <div class="cc"><div class="ct">Top brands — revenue (₹K from VALUE column)</div><div class="cw"><canvas id="c-snkbr-rev" style="height:260px" role="img" aria-label="SNK brand revenue"></canvas></div></div>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">Brand cancellation / RTO count</div><div class="cw"><canvas id="c-snkbr-rto" style="height:200px" role="img" aria-label="SNK brand RTO"></canvas></div></div>
+        <div class="cc"><div class="ct">Top products by brand — select brand</div>
+          <select id="snkbr-sel" class="fi" style="margin-bottom:.5rem;width:100%" onchange="buildSnkBrandProducts()">
+            <option value="">— select brand —</option>
+          </select>
+          <div class="tc" style="margin:0"><div class="ts"><table id="t-snkbr-prods"></table></div></div>
+        </div>
+      </div>
+      <div class="shd">Brand performance table <span class="scnt" id="cnt-snkbr">0</span></div>
+      <div class="tc"><div class="ts"><table id="t-snkbr"></table></div></div>
+    </div>
+
     <div id="tab-fu" class="tabp">
 
       <!-- INSTANT SHIPPING ALERT -->
@@ -1378,9 +1486,10 @@ function buildAll() {
     function(){ buildScore(allSnkRows, allSWRows); },
     function(){ buildBrands(); },
     function(){ buildTopProducts(); },
-    function(){ buildFollowups(); }
+    function(){ buildFollowups(); },
+    function(){ buildSnkBrands(); }
   ];
-  var buildNames = ['buildOV','buildSnk','buildSW','buildOps','buildRef','buildFul','buildScore','buildBrands','buildTopProducts','buildFollowups'];
+  var buildNames = ['buildOV','buildSnk','buildSW','buildOps','buildRef','buildFul','buildScore','buildBrands','buildTopProducts','buildFollowups','buildSnkBrands'];
   buildFns.forEach(function(fn, i) {
     try { fn(); }
     catch(e) { console.error('Error in ' + buildNames[i] + ':', e.message, e.stack); }
@@ -1675,6 +1784,47 @@ function buildSnk(snk) {
     '<div class="frow"><span class="frl">Avg charge (paid only)</span><span class="frv">\u20B9'+shipAvg+'</span></div>';
   var shEl = document.getElementById('snk-shipping-stats');
   if (shEl) shEl.innerHTML = shHTML;
+
+
+  // ── Multi-item orders (same ORDER ID, 2+ products) ──
+  var allSnkRaw = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var orderGroups = {};
+  allSnkRaw.forEach(function(r) {
+    var oid = (g(r,'ORDER ID') || '').trim();
+    if (!oid) return;
+    if (!orderGroups[oid]) orderGroups[oid] = [];
+    orderGroups[oid].push(r);
+  });
+  // Propagate city: if one row has city and others don't, fill in
+  Object.keys(orderGroups).forEach(function(oid) {
+    var grp = orderGroups[oid];
+    var city = '';
+    for (var ii=0; ii<grp.length; ii++) { if (g(grp[ii],'SHIPPING CITY')) { city=g(grp[ii],'SHIPPING CITY'); break; } }
+    if (city) grp.forEach(function(r){ if (!r['SHIPPING CITY'] && city) r['SHIPPING CITY'] = city; });
+  });
+  var multiOrders = Object.keys(orderGroups).filter(function(oid){ return orderGroups[oid].length > 1; });
+  multiOrders.sort(function(a,b){ return orderGroups[b].length - orderGroups[a].length; });
+  var cntEl = document.getElementById('cnt-multi-orders');
+  if (cntEl) cntEl.textContent = multiOrders.length;
+  var multiRows = [];
+  multiOrders.forEach(function(oid) {
+    var grp = orderGroups[oid];
+    var date = g(grp[0],'DATE','ORDER DATE');
+    var city = g(grp[0],'SHIPPING CITY') || '—';
+    var totalVal = grp.reduce(function(s,r){return s+fmtAmt(g(r,'VALUE','VALU','RATE'));},0);
+    grp.forEach(function(r,ii) {
+      multiRows.push(row([
+        ii===0 ? '<span class="oid">'+esc(oid)+'</span>' : '',
+        ii===0 ? esc(date) : '',
+        ii===0 ? esc(city) : '',
+        esc(g(r,'ITEM NAME').substring(0,32)),
+        esc(g(r,'STATUS')||''),
+        g(r,'VALUE','VALU','RATE') ? '\u20B9'+esc(g(r,'VALUE','VALU','RATE')) : '',
+        ii===0 ? '<span style="font-weight:700;color:var(--lime)">'+grp.length+' items</span>' : ''
+      ], ii===0));
+    });
+  });
+  pTable('t-multi-orders','pg-multi-orders',['Order ID','Date','City','Item','Status','Value','Items'],multiRows);
 
 }
 
@@ -2246,7 +2396,7 @@ function buildFul(snkRaw, swRaw) {
 
 /* ── TOP PRODUCTS ── */
 function buildTopProducts() {
-  var tpSel = document.getElementById('tp-period') ? document.getElementById('tp-period').value : '30';
+  var tpSel = document.getElementById('period-topsell') ? document.getElementById('period-topsell').value : '';
   var today = new Date();
   var cutoff = null;
   var isCurrent = tpSel === 'current';
@@ -2275,7 +2425,8 @@ function buildTopProducts() {
   // Combine active + delivered SW
   var swAll = swRows.concat(swDelRows);
 
-  if (infoEl) infoEl.textContent = (isCurrent?'Current month':cutoff?'Last '+tpSel+' days':'All time')+' — '+snkRows.length+' sneaker, '+swAll.length+' SW orders';
+  var topN_count = parseInt(document.getElementById('tp-topn') ? document.getElementById('tp-topn').value : '10') || 10;
+  if (infoEl) infoEl.textContent = (isCurrent?'Current month':cutoff?'Last '+tpSel+' days':'All time')+' — '+snkRows.length+' sneaker, '+swAll.length+' SW — top '+topN_count;
 
   // ── Sneaker top products ──
   var snkProductCount = {};
@@ -2291,8 +2442,8 @@ function buildTopProducts() {
     snkProductSizes[baseName][size] = (snkProductSizes[baseName][size] || 0) + 1;
   });
 
-  var snkTop10 = topN(snkProductCount, 10);
-  document.getElementById('cnt-tp-snk').textContent = snkTop10.length;
+  var snkTop10 = topN(snkProductCount, topN_count);
+  document.getElementById('cnt-tp-snk').textContent = snkTop10.length + ' (top '+topN_count+')';
   pTable('t-tp-snk', '', ['#','Product','Orders','Top size'],
     snkTop10.map(function(x, i) {
       var sm = snkProductSizes[x[0]] || {};
@@ -2331,8 +2482,8 @@ function buildTopProducts() {
     swProductSizes[baseName][size] = (swProductSizes[baseName][size] || 0) + 1;
   });
 
-  var swTop10 = topN(swProductCount, 10);
-  document.getElementById('cnt-tp-sw').textContent = swTop10.length;
+  var swTop10 = topN(swProductCount, topN_count);
+  document.getElementById('cnt-tp-sw').textContent = swTop10.length + ' (top '+topN_count+')';
   pTable('t-tp-sw', '', ['#','Product','Orders','Top size'],
     swTop10.map(function(x, i) {
       var sm = swProductSizes[x[0]] || {};
@@ -3022,6 +3173,256 @@ window.onload = function() {
   }
   showScreen('setup');
 };
+
+/* ═══════════════════════════════════
+   THEME TOGGLE
+═══════════════════════════════════ */
+function toggleTheme() {
+  document.body.classList.toggle('light-theme');
+  var btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = document.body.classList.contains('light-theme') ? '☾' : '☀';
+  localStorage.setItem('cdc_theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+}
+// Apply saved theme on load
+(function(){
+  if (localStorage.getItem('cdc_theme') === 'light') {
+    document.body.classList.add('light-theme');
+    var btn = document.getElementById('theme-btn'); if(btn) btn.textContent = '☾';
+  }
+})();
+
+/* ═══════════════════════════════════
+   SEARCH
+═══════════════════════════════════ */
+var _srIdx = -1;
+
+function toggleSearch() {
+  var ov = document.getElementById('search-overlay');
+  if (!ov) return;
+  if (ov.style.display === 'flex') { closeSearch(); return; }
+  ov.style.display = 'flex';
+  var inp = document.getElementById('search-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+  document.getElementById('search-results').innerHTML = '<div class="sr-empty">Type to search orders, products, brands, customers…</div>';
+}
+
+function closeSearch() {
+  var ov = document.getElementById('search-overlay');
+  if (ov) ov.style.display = 'none';
+}
+
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); toggleSearch(); }
+  if (e.key === 'Escape') closeSearch();
+});
+
+function searchKey(e) {
+  var items = document.querySelectorAll('.sr-item');
+  if (e.key === 'ArrowDown') { _srIdx = Math.min(_srIdx+1, items.length-1); items[_srIdx] && items[_srIdx].focus(); }
+  if (e.key === 'ArrowUp')   { _srIdx = Math.max(_srIdx-1, 0); items[_srIdx] && items[_srIdx].focus(); }
+  if (e.key === 'Escape') closeSearch();
+}
+
+function runSearch(q) {
+  var res = document.getElementById('search-results');
+  q = q.trim().toUpperCase();
+  if (q.length < 2) { res.innerHTML = '<div class="sr-empty">Type at least 2 characters…</div>'; return; }
+
+  var found = { orders: [], brands: [], products: [] };
+  var MAX = 20;
+
+  // Search sneaker orders
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  allSnk.forEach(function(r) {
+    if (found.orders.length >= MAX) return;
+    var match = [g(r,'ORDER ID'),g(r,'ITEM NAME'),g(r,'SHIPPING CITY'),g(r,'STATUS'),g(r,'DATE')].some(function(v){ return (v||'').toUpperCase().includes(q); });
+    if (match) found.orders.push({ type:'snk', r:r });
+  });
+
+  // Search streetwear orders
+  var allSW = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  allSW.forEach(function(r) {
+    if (found.orders.length >= MAX) return;
+    var match = [g(r,'ORDER NUMBER'),g(r,'PRODUCT NAME'),g(r,'BRAND'),g(r,'CUSTOMER NAME'),g(r,'ORDER DATE')].some(function(v){ return (v||'').toUpperCase().includes(q); });
+    if (match) found.orders.push({ type:'sw', r:r });
+  });
+
+  // Search refunds
+  var allRef = (D.refundLedger ? D.refundLedger.rows : []).concat(D.refundDone ? D.refundDone.rows : []);
+  allRef.forEach(function(r) {
+    if (found.orders.length >= MAX) return;
+    var match = [g(r,'ORDER NUMBER'),g(r,'CATEGORY'),g(r,'REMARKS')].some(function(v){ return (v||'').toUpperCase().includes(q); });
+    if (match) found.orders.push({ type:'ref', r:r });
+  });
+
+  // Brand search (aggregate)
+  var brandTotals = {};
+  allSW.forEach(function(r){ var b=g(r,'BRAND')||''; if(b.toUpperCase().includes(q)) brandTotals[b]=(brandTotals[b]||0)+1; });
+  allSnk.forEach(function(r){ var item=g(r,'ITEM NAME')||''; var b=item.split(/\s/)[0]; if(b.toUpperCase().includes(q)) brandTotals[b]=(brandTotals[b]||0)+1; });
+  found.brands = Object.keys(brandTotals).sort(function(a,b2){return brandTotals[b2]-brandTotals[a];}).slice(0,5);
+
+  // Render
+  var html = '';
+  if (found.orders.length) {
+    html += '<div class="sr-section"><div class="sr-title">Orders (' + found.orders.length + ')</div>';
+    found.orders.forEach(function(item,idx) {
+      var r = item.r;
+      var oid  = item.type==='snk' ? g(r,'ORDER ID') : item.type==='ref' ? g(r,'ORDER NUMBER') : g(r,'ORDER NUMBER');
+      var desc = item.type==='snk' ? (g(r,'ITEM NAME')||'').substring(0,45) : item.type==='ref' ? 'Refund: '+(g(r,'CATEGORY')||'')+(g(r,'REMARKS')?' — '+g(r,'REMARKS').substring(0,20):'') : (g(r,'PRODUCT NAME')||'').substring(0,45);
+      var meta = item.type==='snk' ? (g(r,'STATUS')||'')+' · '+(g(r,'DATE')||'') : item.type==='ref' ? '₹'+(g(r,'AMOUNT')||'')+' · '+(g(r,'DATE')||'') : (g(r,'BRAND')||'')+' · '+(g(r,'ORDER DATE')||'');
+      html += '<div class="sr-item" tabindex="0" onclick="searchOpenOrder(\'' + esc(oid) + '\',\'' + item.type + '\')" onkeydown="if(event.key===\'Enter\')searchOpenOrder(\'' + esc(oid) + '\',\'' + item.type + '\')"><span class="sr-oid">' + esc(oid) + '</span><span class="sr-desc">' + esc(desc) + '</span><span class="sr-meta">' + esc(meta) + '</span></div>';
+    });
+    html += '</div>';
+  }
+  if (found.brands.length) {
+    html += '<div class="sr-section"><div class="sr-title">Brands</div>';
+    found.brands.forEach(function(b) {
+      html += '<div class="sr-item" tabindex="0" onclick="searchOpenBrand(\'' + esc(b) + '\')"><span class="sr-oid" style="color:var(--blu)">' + esc(b) + '</span><span class="sr-desc">' + brandTotals[b] + ' orders found</span><span class="sr-meta">→ Brand Performance</span></div>';
+    });
+    html += '</div>';
+  }
+  if (!html) html = '<div class="sr-empty">No results for "' + esc(q) + '"</div>';
+  res.innerHTML = html;
+  _srIdx = -1;
+}
+
+function searchOpenOrder(oid, type) {
+  closeSearch();
+  if (type === 'sw') showTab('sw');
+  else if (type === 'ref') showTab('ref');
+  else showTab('snk');
+  // Highlight the order
+  setTimeout(function() {
+    var cells = document.querySelectorAll('.oid');
+    for (var i=0; i<cells.length; i++) {
+      if (cells[i].textContent.trim() === oid) {
+        cells[i].scrollIntoView({behavior:'smooth',block:'center'});
+        cells[i].style.background = 'var(--limb)';
+        setTimeout(function(el){ el.style.background=''; }.bind(null, cells[i]), 2500);
+        break;
+      }
+    }
+  }, 300);
+}
+
+function searchOpenBrand(brand) {
+  closeSearch();
+  showTab('brands');
+  // Select the brand month to all time
+  var m = document.getElementById('bp-month'); if(m) { m.value=''; buildBrands(); }
+}
+
+/* ═══════════════════════════════════
+   SNK BRAND PERFORMANCE
+═══════════════════════════════════ */
+window._snkBrandData = {};
+
+function extractSnkBrand(itemName) {
+  // Take first word as brand — Jordan, adidas, Nike, On, New, etc.
+  var name = (itemName || '').trim();
+  var word = name.split(/\s/)[0] || name;
+  // Clean up common prefixes
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
+
+function buildSnkBrands() {
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var period = getTabPeriod('snkbrands');
+  var today = new Date();
+  var isCurrent = period==='' || period==='current';
+  
+  function inPeriod(ds) {
+    var d = parseDate(ds); if(!d) return false;
+    if(isCurrent) return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
+    if(period==='all') return true;
+    var cutoff=new Date(today.getTime()-parseInt(period)*864e5);
+    return d>=cutoff&&d<=today;
+  }
+  
+  var lbl = document.getElementById('period-lbl-snkbrands');
+  if(lbl) lbl.textContent = isCurrent?today.toLocaleString('default',{month:'long',year:'numeric'}):period==='all'?'All time':'Last '+period+' days';
+
+  var rows = allSnk.filter(function(r){ return inPeriod(g(r,'DATE','ORDER DATE')); });
+
+  // Group by brand (first word of item name)
+  var brandOrders={}, brandRevenue={}, brandRTO={}, brandDel={}, brandItems={};
+  rows.forEach(function(r) {
+    var brand = extractSnkBrand(g(r,'ITEM NAME'));
+    if(!brand||brand.length<2) return;
+    var status=(g(r,'STATUS')||'').toUpperCase();
+    brandOrders[brand]=(brandOrders[brand]||0)+1;
+    brandRevenue[brand]=(brandRevenue[brand]||0)+fmtAmt(g(r,'VALUE','VALU','RATE'));
+    if(status.includes('RTO')) brandRTO[brand]=(brandRTO[brand]||0)+1;
+    if(status.includes('DELIVER')) brandDel[brand]=(brandDel[brand]||0)+1;
+    if(!brandItems[brand]) brandItems[brand]={};
+    // Extract product (remove brand prefix)
+    var item=(g(r,'ITEM NAME')||'').trim();
+    var prod=item.substring(brand.length).trim().replace(/^-?\s*/,'').substring(0,40)||item.substring(0,40);
+    brandItems[brand][prod]=(brandItems[brand][prod]||0)+1;
+  });
+
+  window._snkBrandData = {brandOrders,brandRevenue,brandRTO,brandDel,brandItems};
+  
+  var allBrands=Object.keys(brandOrders).sort(function(a,b){return brandOrders[b]-brandOrders[a];});
+  var top15=allBrands.slice(0,15);
+  var totalRev=Object.values(brandRevenue).reduce(function(a,b){return a+b;},0);
+  var totalOrders=Object.values(brandOrders).reduce(function(a,b){return a+b;},0);
+
+  document.getElementById('k-snkbrands').innerHTML =
+    kpiCard('Brands', allBrands.length, rows.length+' orders', C.lime) +
+    kpiCard('Total revenue', '\u20B9'+Math.round(totalRev/100000).toFixed(1)+'L', 'from VALUE col', C.grn) +
+    kpiCard('Best brand', top15.length?top15[0].substring(0,12):'—', top15.length?brandOrders[top15[0]]+' orders':'', C.blu) +
+    kpiCard('Total RTO', Object.values(brandRTO).reduce(function(a,b){return a+b;},0), 'across all brands', C.red);
+
+  mkHBar('c-snkbr-orders', top15, top15.map(function(b){return brandOrders[b];}), C.lime);
+  
+  var top15rev=allBrands.slice().sort(function(a,b){return brandRevenue[b]-brandRevenue[a];}).slice(0,15);
+  mkHBar('c-snkbr-rev', top15rev, top15rev.map(function(b){return Math.round(brandRevenue[b]/1000);}), C.grn);
+  
+  var rtoArr=allBrands.filter(function(b){return brandRTO[b];}).sort(function(a,b){return brandRTO[b]-brandRTO[a];}).slice(0,12);
+  mkHBar('c-snkbr-rto', rtoArr, rtoArr.map(function(b){return brandRTO[b];}), C.red);
+
+  // Populate brand select
+  var sel=document.getElementById('snkbr-sel');
+  if(sel){
+    var curVal=sel.value;
+    sel.innerHTML='<option value="">— select brand —</option>';
+    top15.forEach(function(b){var opt=document.createElement('option');opt.value=b;opt.textContent=b+' ('+brandOrders[b]+' orders)';sel.appendChild(opt);});
+    if(curVal) sel.value=curVal;
+  }
+
+  // Brand performance table
+  document.getElementById('cnt-snkbr').textContent=allBrands.length;
+  pTable('t-snkbr','',['Brand','Orders','Revenue','Avg Value','Delivered','RTO','Revenue Share'],
+    allBrands.map(function(b){
+      var rev=brandRevenue[b]||0;
+      var orders=brandOrders[b]||0;
+      var avgVal=orders?Math.round(rev/orders):0;
+      var delRate=orders?Math.round((brandDel[b]||0)/orders*100):0;
+      var rtoRate=orders?Math.round((brandRTO[b]||0)/orders*100):0;
+      var revShare=totalRev>0?Math.round(rev/totalRev*100):0;
+      return row([
+        '<strong>'+esc(b)+'</strong>',
+        orders,
+        '\u20B9'+Math.round(rev/1000)+'K',
+        '\u20B9'+avgVal.toLocaleString(),
+        '<span style="color:'+C.grn+'">'+( brandDel[b]||0)+'</span> <span style="color:var(--mu2);font-size:.65rem">('+delRate+'%)</span>',
+        (brandRTO[b]||0)>0?'<span style="color:'+C.red+'">'+( brandRTO[b]||0)+'</span> <span style="color:var(--mu2);font-size:.65rem">('+rtoRate+'%)</span>':'<span style="color:var(--mu2)">0</span>',
+        '<span style="color:var(--lime)">'+revShare+'%</span>'
+      ]);
+    })
+  );
+}
+
+function buildSnkBrandProducts() {
+  var brand = document.getElementById('snkbr-sel') ? document.getElementById('snkbr-sel').value : '';
+  if (!brand || !window._snkBrandData.brandItems) return;
+  var items = window._snkBrandData.brandItems[brand] || {};
+  var sorted = Object.keys(items).sort(function(a,b){return items[b]-items[a];}).slice(0,20);
+  pTable('t-snkbr-prods','',['Product','Orders'],
+    sorted.map(function(k,i){return row(['<span style="color:var(--tx)">'+esc(k.substring(0,40))+'</span>','<span style="font-weight:700">'+items[k]+'</span>']);})
+  );
+}
 </script>
 </body>
 </html>
