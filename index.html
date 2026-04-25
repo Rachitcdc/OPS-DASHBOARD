@@ -340,7 +340,8 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
       <button class="tb" onclick="showTab('score')">&#128202; Scorecard</button>
       <button class="tb" onclick="showTab('brands')">&#127942; Brand Performance</button>
       <button class="tb" onclick="showTab('topsell')">&#128293; Top Products</button>
-      <button class="tb" onclick="showTab('snkbrands')">&#128247; SNK Brands</button>
+      <button class="tb" onclick="showTab('snkbrands')">&#128247; Sneaker & Hype Brands</button>
+      <button class="tb" onclick="showTab('india')" style="border:1px solid rgba(61,155,233,.4)">&#127757; India Map</button>
       <button class="tb" onclick="showTab('fu')" style="border:1px solid rgba(200,255,0,.3)">&#128222; Follow-ups</button>
     </div>
 
@@ -735,8 +736,86 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
           <div class="tc" style="margin:0"><div class="ts"><table id="t-snkbr-prods"></table></div></div>
         </div>
       </div>
+      <div class="cc" style="margin-bottom:1rem">
+        <div class="ct">Size distribution by brand (top 6 brands, stacked)</div>
+        <div class="cw"><canvas id="c-snkbr-size" style="height:260px" role="img" aria-label="Brand size distribution"></canvas></div>
+      </div>
       <div class="shd">Brand performance table <span class="scnt" id="cnt-snkbr">0</span></div>
       <div class="tc"><div class="ts"><table id="t-snkbr"></table></div></div>
+    </div>
+
+    <!-- INDIA MAP TAB -->
+    <div id="tab-india" class="tabp">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;flex-wrap:wrap;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.5rem .9rem">
+        <span style="font-size:.68rem;color:var(--lime);font-weight:700">VIEW:</span>
+        <select id="map-metric" class="fi" onchange="buildIndiaMap()" style="min-width:150px">
+          <option value="orders">Order Count</option>
+          <option value="revenue">Purchase Power (&#8377;)</option>
+        </select>
+        <div class="fsep"></div>
+        <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
+        <select id="period-india" class="fi" onchange="buildIndiaMap()" style="min-width:130px">
+          <option value="">Current month</option>
+          <option value="all">All time</option>
+        </select>
+        <div class="fsep"></div>
+        <span style="font-size:.68rem;color:var(--lime);font-weight:700">SOURCE:</span>
+        <select id="map-source" class="fi" onchange="buildIndiaMap()">
+          <option value="snk">Sneakers</option>
+          <option value="sw">Streetwear</option>
+          <option value="both">Both</option>
+        </select>
+        <span style="font-size:.68rem;color:var(--mu2)" id="map-info"></span>
+      </div>
+      <div class="two" style="gap:1rem;margin-bottom:1rem">
+        <!-- Left: SVG Map -->
+        <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.75rem;position:relative;min-height:520px">
+          <div style="font-size:.68rem;color:var(--lime);font-weight:700;margin-bottom:.5rem" id="map-title">INDIA — STATE HEATMAP</div>
+          <div id="india-map-wrap" style="position:relative;width:100%;height:500px;overflow:hidden">
+            <svg id="india-svg" viewBox="0 0 600 680" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg"></svg>
+            <!-- Tooltip -->
+            <div id="map-tooltip" style="display:none;position:absolute;background:rgba(0,0,0,.92);border:1px solid var(--b2);border-radius:6px;padding:.5rem .75rem;font-size:.72rem;pointer-events:none;z-index:10;min-width:140px"></div>
+          </div>
+          <div id="map-legend" style="display:flex;align-items:center;gap:.3rem;margin-top:.5rem;font-size:.65rem;color:var(--mu)">
+            <span>Low</span>
+            <div id="map-legend-grad" style="flex:1;height:8px;border-radius:4px;background:linear-gradient(to right,#1a2a1a,#c8ff00)"></div>
+            <span>High</span>
+          </div>
+        </div>
+        <!-- Right: Stats panel -->
+        <div style="display:flex;flex-direction:column;gap:.65rem">
+          <div class="kg" id="k-india" style="grid-template-columns:1fr 1fr"></div>
+          <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.75rem">
+            <div style="font-size:.65rem;color:var(--lime);font-weight:700;margin-bottom:.5rem">&#127942; TOP 10 CITIES — ORDERS</div>
+            <div id="top-cities-bars"></div>
+          </div>
+          <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.75rem">
+            <div style="font-size:.65rem;color:var(--grn);font-weight:700;margin-bottom:.5rem">&#128176; TOP 10 CITIES — REVENUE</div>
+            <div id="top-cities-rev-bars"></div>
+          </div>
+        </div>
+      </div>
+      <!-- State detail + city table -->
+      <div id="state-detail-panel" style="display:none;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.85rem 1rem;margin-bottom:.75rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem">
+          <span id="state-detail-title" style="font-weight:700;color:var(--lime)"></span>
+          <span onclick="document.getElementById('state-detail-panel').style.display='none'" style="cursor:pointer;color:var(--mu)">&#10005;</span>
+        </div>
+        <div class="kg" id="k-state-detail" style="grid-template-columns:repeat(4,1fr)"></div>
+        <div class="tc" style="margin-top:.65rem"><div class="ts"><table id="t-state-cities"></table></div></div>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc">
+          <div class="ct">Orders by state (top 15)</div>
+          <div class="cw"><canvas id="c-state-orders" style="height:300px" role="img"></canvas></div>
+        </div>
+        <div class="cc">
+          <div class="ct">Revenue by state — &#8377; (top 15)</div>
+          <div class="cw"><canvas id="c-state-rev" style="height:300px" role="img"></canvas></div>
+        </div>
+      </div>
+      <div class="shd">All cities — order data <span class="scnt" id="cnt-cities">0</span></div>
+      <div class="tc"><div class="ts"><table id="t-all-cities"></table></div></div>
     </div>
 
     <div id="tab-fu" class="tabp">
@@ -999,6 +1078,7 @@ async function loadAll() {
   await Promise.all(allPromises);
 
   document.getElementById('lmsg').textContent = 'Building dashboard…';
+  propagateCities();
   populateAllPeriodSelects();
   buildAll();
   showScreen('dash');
@@ -1381,6 +1461,17 @@ function getTabPeriod(tabId) {
 function getGlobalPeriod() { return getTabPeriod('ov'); }
 
 /* Populate all period selects with months derived from all loaded data */
+
+/* ═══ Global city propagation — call after data loads ═══ */
+function propagateCities() {
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var cityByOid = {};
+  // First pass: collect known cities
+  allSnk.forEach(function(r){ var oid=g(r,'ORDER ID'),c=g(r,'SHIPPING CITY'); if(oid&&c) cityByOid[oid]=c; });
+  // Second pass: fill blanks
+  allSnk.forEach(function(r){ var oid=g(r,'ORDER ID'); if(oid&&!r['SHIPPING CITY']&&cityByOid[oid]) r['SHIPPING CITY']=cityByOid[oid]; });
+}
+
 function populateAllPeriodSelects() {
   var monthSet = {};
   function addMonths(rows, cols) {
@@ -1412,13 +1503,19 @@ function populateAllPeriodSelects() {
   }
 
   // Populate every period-xxx select
-  var selIds = ['ov','snk','sw','ops','ref','ful','score','brands','topsell','fu','snkbrands'];
+  var selIds = ['ov','snk','sw','ops','ref','ful','score','brands','topsell','fu','snkbrands','india'];
   selIds.forEach(function(id) {
     var sel = document.getElementById('period-'+id);
     if (!sel) return;
     var cur = sel.value;
+    var today2 = new Date();
+    var curMk = today2.getFullYear()+'-'+String(today2.getMonth()+1).padStart(2,'0');
+    var today2 = new Date();
+    var curMk = today2.getFullYear()+'-'+String(today2.getMonth()+1).padStart(2,'0');
     sel.innerHTML = '<option value="">Current month</option>';
     months.forEach(function(mk) {
+      if (mk === curMk) return; // skip current month - already shown
+      if (mk === curMk) return; // skip — already shown as "Current month"
       var opt = document.createElement('option');
       opt.value = mk;
       opt.textContent = monthLabel(mk);
@@ -1590,9 +1687,10 @@ function buildAll() {
     function(){ buildBrands(); },
     function(){ buildTopProducts(); },
     function(){ buildFollowups(); },
-    function(){ buildSnkBrands(); }
+    function(){ buildSnkBrands(); },
+    function(){ buildIndiaMap(); }
   ];
-  var buildNames = ['buildOV','buildSnk','buildSW','buildOps','buildRef','buildFul','buildScore','buildBrands','buildTopProducts','buildFollowups','buildSnkBrands'];
+  var buildNames = ['buildOV','buildSnk','buildSW','buildOps','buildRef','buildFul','buildScore','buildBrands','buildTopProducts','buildFollowups','buildSnkBrands','buildIndiaMap'];
   buildFns.forEach(function(fn, i) {
     try { fn(); }
     catch(e) { console.error('Error in ' + buildNames[i] + ':', e.message, e.stack); }
@@ -3328,40 +3426,75 @@ function searchKey(e) {
 
 function runSearch(q) {
   var res = document.getElementById('search-results');
-  q = q.trim().toUpperCase();
-  if (q.length < 2) { res.innerHTML = '<div class="sr-empty">Type at least 2 characters…</div>'; return; }
+  var raw = q.trim();
+  if (raw.length < 2) { res.innerHTML = '<div class="sr-empty">Type at least 2 characters…</div>'; return; }
+
+  // Parse action queries: "samba cancel", "jordan rto", "nike delivered"
+  var ACTION_KEYWORDS = ['CANCEL','CANCELLED','RTO','DELIVERED','DELIVER','PENDING','REFUND','RETURN'];
+  var tokens = raw.toUpperCase().split(/\s+/);
+  var actionFilter = null;
+  var searchTokens = tokens.filter(function(t){
+    if(ACTION_KEYWORDS.some(function(a){return t.includes(a)})){actionFilter=t;return false;}
+    return true;
+  });
+  var qMain = searchTokens.join(' ');
+  var qFull = raw.toUpperCase();
 
   var found = { orders: [], brands: [], products: [] };
-  var MAX = 20;
+  var MAX = 30;
+
+  function matchesAction(statusVal) {
+    if (!actionFilter) return true;
+    var s = (statusVal||'').toUpperCase();
+    if (actionFilter.includes('CANCEL')) return s.includes('CANCEL');
+    if (actionFilter.includes('RTO')) return s.includes('RTO');
+    if (actionFilter.includes('DELIVER')) return s.includes('DELIVER');
+    if (actionFilter.includes('PENDING')) return s.includes('PENDING')||s==='';
+    return true;
+  }
 
   // Search sneaker orders
   var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
   allSnk.forEach(function(r) {
     if (found.orders.length >= MAX) return;
-    var match = [g(r,'ORDER ID'),g(r,'ITEM NAME'),g(r,'SHIPPING CITY'),g(r,'STATUS'),g(r,'DATE')].some(function(v){ return (v||'').toUpperCase().includes(q); });
-    if (match) found.orders.push({ type:'snk', r:r });
+    var search = qMain || qFull;
+    var match = [g(r,'ORDER ID'),g(r,'ITEM NAME'),g(r,'SHIPPING CITY'),g(r,'DATE')].some(function(v){ return (v||'').toUpperCase().includes(search); });
+    if (match && matchesAction(g(r,'STATUS'))) found.orders.push({ type:'snk', r:r });
   });
 
   // Search streetwear orders
   var allSW = D.streetwearOrders ? D.streetwearOrders.rows : [];
   allSW.forEach(function(r) {
     if (found.orders.length >= MAX) return;
-    var match = [g(r,'ORDER NUMBER'),g(r,'PRODUCT NAME'),g(r,'BRAND'),g(r,'CUSTOMER NAME'),g(r,'ORDER DATE')].some(function(v){ return (v||'').toUpperCase().includes(q); });
-    if (match) found.orders.push({ type:'sw', r:r });
+    var search = qMain || qFull;
+    var match = [g(r,'ORDER NUMBER'),g(r,'PRODUCT NAME'),g(r,'BRAND'),g(r,'CUSTOMER NAME'),g(r,'ORDER DATE')].some(function(v){ return (v||'').toUpperCase().includes(search); });
+    if (match && matchesAction(g(r,'ORDER STATUS')||g(r,'TRACKING STATUS'))) found.orders.push({ type:'sw', r:r });
   });
+
+  // Also search cancelled orders sheet for cancellation queries
+  if (actionFilter && actionFilter.includes('CANCEL')) {
+    var cancelAll = D.cancelledOrders ? D.cancelledOrders.rows : [];
+    cancelAll.forEach(function(r) {
+      if (found.orders.length >= MAX) return;
+      var search = qMain || qFull;
+      var match = [g(r,'ORDER ID'),g(r,'PRODUCT NAME'),g(r,'BRAND')].some(function(v){ return !search||(v||'').toUpperCase().includes(search); });
+      if (match) found.orders.push({ type:'cancel', r:r });
+    });
+  }
 
   // Search refunds
   var allRef = (D.refundLedger ? D.refundLedger.rows : []).concat(D.refundDone ? D.refundDone.rows : []);
   allRef.forEach(function(r) {
     if (found.orders.length >= MAX) return;
-    var match = [g(r,'ORDER NUMBER'),g(r,'CATEGORY'),g(r,'REMARKS')].some(function(v){ return (v||'').toUpperCase().includes(q); });
+    var search = qMain || qFull;
+    var match = [g(r,'ORDER NUMBER'),g(r,'CATEGORY'),g(r,'REMARKS')].some(function(v){ return (v||'').toUpperCase().includes(search); });
     if (match) found.orders.push({ type:'ref', r:r });
   });
 
   // Brand search (aggregate)
   var brandTotals = {};
-  allSW.forEach(function(r){ var b=g(r,'BRAND')||''; if(b.toUpperCase().includes(q)) brandTotals[b]=(brandTotals[b]||0)+1; });
-  allSnk.forEach(function(r){ var item=g(r,'ITEM NAME')||''; var b=item.split(/\s/)[0]; if(b.toUpperCase().includes(q)) brandTotals[b]=(brandTotals[b]||0)+1; });
+  allSW.forEach(function(r){ var b=g(r,'BRAND')||''; if(b.toUpperCase().includes(qFull)) brandTotals[b]=(brandTotals[b]||0)+1; });
+  allSnk.forEach(function(r){ var item=g(r,'ITEM NAME')||''; var b=item.split(/\s/)[0]; if(b.toUpperCase().includes(qFull)) brandTotals[b]=(brandTotals[b]||0)+1; });
   found.brands = Object.keys(brandTotals).sort(function(a,b2){return brandTotals[b2]-brandTotals[a];}).slice(0,5);
 
   // Render
@@ -3370,9 +3503,9 @@ function runSearch(q) {
     html += '<div class="sr-section"><div class="sr-title">Orders (' + found.orders.length + ')</div>';
     found.orders.forEach(function(item,idx) {
       var r = item.r;
-      var oid  = item.type==='snk' ? g(r,'ORDER ID') : item.type==='ref' ? g(r,'ORDER NUMBER') : g(r,'ORDER NUMBER');
-      var desc = item.type==='snk' ? (g(r,'ITEM NAME')||'').substring(0,45) : item.type==='ref' ? 'Refund: '+(g(r,'CATEGORY')||'')+(g(r,'REMARKS')?' — '+g(r,'REMARKS').substring(0,20):'') : (g(r,'PRODUCT NAME')||'').substring(0,45);
-      var meta = item.type==='snk' ? (g(r,'STATUS')||'')+' · '+(g(r,'DATE')||'') : item.type==='ref' ? '₹'+(g(r,'AMOUNT')||'')+' · '+(g(r,'DATE')||'') : (g(r,'BRAND')||'')+' · '+(g(r,'ORDER DATE')||'');
+      var oid  = item.type==='snk' ? g(r,'ORDER ID') : item.type==='cancel' ? g(r,'ORDER ID') : item.type==='ref' ? g(r,'ORDER NUMBER') : g(r,'ORDER NUMBER');
+      var desc = item.type==='snk' ? (g(r,'ITEM NAME')||'').substring(0,45) : item.type==='cancel' ? 'CANCELLED: '+(g(r,'PRODUCT NAME')||'').substring(0,35) : item.type==='ref' ? 'Refund: '+(g(r,'CATEGORY')||'')+(g(r,'REMARKS')?' — '+g(r,'REMARKS').substring(0,20):'') : (g(r,'PRODUCT NAME')||'').substring(0,45);
+      var meta = item.type==='snk' ? (g(r,'STATUS')||'')+' · '+(g(r,'DATE')||'') : item.type==='cancel' ? (g(r,'BRAND')||'')+' · '+(g(r,'ORDER DATE')||'') : item.type==='ref' ? '\u20B9'+(g(r,'AMOUNT')||'')+' · '+(g(r,'DATE')||'') : (g(r,'BRAND')||'')+' · '+(g(r,'ORDER DATE')||'');
       html += '<div class="sr-item" tabindex="0" onclick="searchOpenOrder(\'' + esc(oid) + '\',\'' + item.type + '\')" onkeydown="if(event.key===\'Enter\')searchOpenOrder(\'' + esc(oid) + '\',\'' + item.type + '\')"><span class="sr-oid">' + esc(oid) + '</span><span class="sr-desc">' + esc(desc) + '</span><span class="sr-meta">' + esc(meta) + '</span></div>';
     });
     html += '</div>';
@@ -3393,6 +3526,7 @@ function searchOpenOrder(oid, type) {
   closeSearch();
   if (type === 'sw') showTab('sw');
   else if (type === 'ref') showTab('ref');
+  else if (type === 'cancel') showTab('ops');
   else showTab('snk');
   // Highlight the order
   setTimeout(function() {
@@ -3422,57 +3556,77 @@ window._snkBrandData = {};
 
 /* ═══ SNK BRAND EXTRACTION ═══ */
 var BRAND_ALIASES = {
-  'JORDAN':    'Nike',  'AIR':     'Nike',  'NIKE':    'Nike',
-  'ADIDAS':    'Adidas','YEEZY':   'Adidas','STAN':    'Adidas',
-  'SAMBA':     'Adidas','ULTRABOOST':'Adidas',
-  'NEW':       'New Balance', // multi-word brands handled below
-  'BALANCE':   'New Balance',
-  'ON':        'On Running',
-  'SALEHE':    'New Balance', // Salehe Bembury collab
-  'PUMA':      'Puma',
-  'CONVERSE':  'Converse',
-  'VANS':      'Vans',
-  'ASICS':     'Asics',
-  'SAUCONY':   'Saucony',
-  'REEBOK':    'Reebok',
-  'HOKA':      'Hoka',
-  'BROOKS':    'Brooks',
-  'MIZUNO':    'Mizuno',
-  'CASIO':     'Casio', 'G-SHOCK': 'Casio',
-  'SWATCH':    'Swatch',
-  'UGG':       'Ugg',
+  // Nike family
+  'NIKE':      'Nike', 'JORDAN':  'Nike', 'AIR':     'Nike',
+  // Adidas family
+  'ADIDAS':    'Adidas','YEEZY':  'Adidas','STAN':    'Adidas',
+  'SAMBA':     'Adidas','ULTRABOOST':'Adidas','GAZELLE':'Adidas',
+  // On Running
+  'ON':        'On Running','ROGER':'On Running','CLOUDMONSTER':'On Running',
+  // New Balance — handled via MULTI_WORD_BRANDS
+  'NEW':       'New Balance',
+  'SALEHE':    'New Balance',
+  // Other sneaker brands
+  'PUMA':      'Puma',   'CONVERSE':'Converse', 'VANS':    'Vans',
+  'ASICS':     'Asics',  'ONITSUKA':'Onitsuka', 'SAUCONY':'Saucony',
+  'REEBOK':    'Reebok', 'HOKA':    'Hoka',     'BROOKS': 'Brooks',
+  'MIZUNO':    'Mizuno', 'SALOMON': 'Salomon',  'TIMBERLAND':'Timberland',
+  'MERRELL':   'Merrell','CROCS':   'Crocs',    'BIRKENSTOCK':'Birkenstock',
+  'POLENE':    'Polene', 'COACH':   'Coach',    'ROTORISS':'Rotor',
+  // Accessories / watches
+  'CASIO':     'Casio',  'SWATCH':  'Swatch',   'UGG':     'Ugg',
+  'STANLEY':   'Stanley','ANTA':    'Anta',     'KODAK':   'Kodak',
+  'STARBUCKS': 'Starbucks', 'BEARISTA':'Starbucks',
+  // CDC branded
+  'CDC':       'CDC Merch',
 };
 
-var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','CLEANING KIT','QUICK SHOE','SHOE CARE'];
+var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','QUICK SHOE','SHOE CARE','SHOE WIPE','SNEAKER WIPE','LEATHER CONDITIONER','SOLE GUARD','SOLE SAVER','STACK\'EM','STACKEM','SNEAKER CRATE','SHOE SHIELD','FOAM CLEANER'];
 
 var MULTI_WORD_BRANDS = [
-  { words: ['NEW','BALANCE'], brand: 'New Balance' },
-  { words: ['AIR','JORDAN'],  brand: 'Nike' },
-  { words: ['NEW','ROCK'],    brand: 'New Rock' },
-  { words: ['CASA','BACARDI'],brand: 'Casa Bacardi' },
+  { words: ['NEW','BALANCE'],   brand: 'New Balance' },
+  { words: ['AIR','JORDAN'],    brand: 'Nike' },
+  { words: ['THE','ROGER'],     brand: 'On Running' },
+  { words: ['NEW','ROCK'],      brand: 'New Rock' },
+  { words: ['CASA','BACARDI'],  brand: 'Casa Bacardi' },
+  { words: ['BEAR','BEARISTA'], brand: 'Starbucks' },
+  { words: ['CDC','ICE','POP'], brand: 'CDC Ice Pop Socks' },
+  { words: ['CDC','ICE'],       brand: 'CDC Ice Pop Socks' },
+  { words: ['SNEAKER','WIPES'], brand: 'CDC Sneaker Wipes' },
+  { words: ['THE','HOMERUN'],   brand: 'CDC Merch' },
+  { words: ['LOVE','CONQUERS'], brand: 'CDC Merch' },
+  { words: ['BANANA','TRUFFLE'],brand: 'CDC Merch' },
+  { words: ['JAMESON','SHIRT'], brand: 'CDC Merch' },
+  { words: ['CDC','PROTECTION'],brand: 'CDC Merch' },
+  { words: ['SEAM','PANTS'],    brand: '__IGNORE__' },
 ];
 
 function extractSnkBrand(itemName) {
   var raw = (itemName || '').trim().toUpperCase();
   if (!raw) return 'Other';
 
-  // Check Sneakare keywords first
+  // Check multi-word brands first (most specific)
+  for (var i=0; i<MULTI_WORD_BRANDS.length; i++) {
+    var mwb = MULTI_WORD_BRANDS[i];
+    if (mwb.words.every(function(w){ return raw.includes(w); })) {
+      return mwb.brand; // '__IGNORE__' marks items to skip
+    }
+  }
+
+  // Check Sneakare keywords
   for (var i=0; i<SNEAKARE_KEYWORDS.length; i++) {
     if (raw.includes(SNEAKARE_KEYWORDS[i])) return 'Sneakare';
   }
 
-  // Check multi-word brands
-  for (var i=0; i<MULTI_WORD_BRANDS.length; i++) {
-    var mwb = MULTI_WORD_BRANDS[i];
-    if (mwb.words.every(function(w){ return raw.includes(w); })) return mwb.brand;
-  }
+  // Starbucks products
+  if (raw.includes('STARBUCKS') || raw.includes('BEARISTA')) return 'Starbucks';
 
-  // First word
-  var first = raw.split(/\s/)[0].replace(/[^A-Z]/g,'');
+  // First word alias lookup
+  var first = raw.split(/[\s\-]/)[0].replace(/[^A-Z]/g,'');
   if (BRAND_ALIASES[first]) return BRAND_ALIASES[first];
 
-  // Capitalize first letter properly
-  var word = (itemName||'').trim().split(/\s/)[0];
+  // Properly capitalise
+  var word = (itemName||'').trim().split(/[\s\-]/)[0];
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 }
 
@@ -3487,149 +3641,169 @@ function buildSnkBrands() {
   var today = new Date();
   var isCurrent = period==='' || period==='current';
 
-  function inPeriod(ds) {
+  function inPeriodSB(ds) {
     var d = parseDate(ds); if(!d) return false;
     if(isCurrent) return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
     if(period==='all') return true;
-    if(/^\d{4}-\d{2}$/.test(period)) {
-      var p=period.split('-');
-      return d.getFullYear()===parseInt(p[0])&&d.getMonth()===parseInt(p[1])-1;
-    }
-    var days=parseInt(period);
-    if(!isNaN(days)){var cutoff=new Date(today.getTime()-days*864e5);return d>=cutoff&&d<=today;}
+    if(/^\d{4}-\d{2}$/.test(period)){var p=period.split('-');return d.getFullYear()===parseInt(p[0])&&d.getMonth()===parseInt(p[1])-1;}
+    var days=parseInt(period);if(!isNaN(days)){var co=new Date(today.getTime()-days*864e5);return d>=co&&d<=today;}
     return true;
   }
 
   var lbl = document.getElementById('period-lbl-snkbrands');
-  if(lbl) {
+  var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if(lbl){
     if(isCurrent) lbl.textContent=today.toLocaleString('default',{month:'long',year:'numeric'});
     else if(period==='all') lbl.textContent='All time';
-    else if(/^\d{4}-\d{2}$/.test(period)){var p=period.split('-');var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];lbl.textContent=mn[parseInt(p[1])-1]+' '+p[0];}
+    else if(/^\d{4}-\d{2}$/.test(period)){var p=period.split('-');lbl.textContent=mn[parseInt(p[1])-1]+' '+p[0];}
     else lbl.textContent='';
   }
 
-  var rows = allSnk.filter(function(r){ return inPeriod(g(r,'DATE','ORDER DATE')); });
-  var cancelRows = allCancel.filter(function(r){ return inPeriod(g(r,'ORDER DATE')); });
+  var rows = allSnk.filter(function(r){ return inPeriodSB(g(r,'DATE','ORDER DATE')); });
+  // Exclude ignore-flagged items
+  rows = rows.filter(function(r){ return extractSnkBrand(g(r,'ITEM NAME')) !== '__IGNORE__'; });
 
-  var brandOrders={}, brandRevenue={}, brandRTO={}, brandDel={}, brandItems={}, brandCancel={}, brandCancelAmt={}, brandCredit={};
-  var brandRowsMap={};
+  var cancelRows = allCancel.filter(function(r){ return inPeriodSB(g(r,'ORDER DATE')); });
+  // Only sneaker/hype cancellations (exclude streetwear by checking category)
+  cancelRows = cancelRows.filter(function(r){
+    var cat = (g(r,'CATEGORY')||'').toUpperCase();
+    return !cat.includes('STREET') && !cat.includes('SW');
+  });
+
+  var brandOrders={},brandRevenue={},brandRTO={},brandDel={},brandItems={},brandSizes={};
+  var brandCancel={},brandCancelAmt={},brandCredit={},brandRowsMap={};
+
+  // Build city map for propagation
+  var cityByOrderId = {};
+  allSnk.forEach(function(r){
+    var oid=g(r,'ORDER ID'); var c=g(r,'SHIPPING CITY');
+    if(oid&&c) cityByOrderId[oid]=c;
+  });
 
   rows.forEach(function(r) {
     var brand = extractSnkBrand(g(r,'ITEM NAME'));
+    if(brand==='__IGNORE__') return;
     var status=(g(r,'STATUS')||'').toUpperCase();
+    var val = fmtAmt(g(r,'VALUE','VALU','RATE'));
+    // Size extraction from item name
+    var itemRaw = g(r,'ITEM NAME')||'';
+    var sizeMatch = itemRaw.match(/UK\s*([\d.]+)/i) || itemRaw.match(/US\s*([\d.]+)/i);
+    var size = sizeMatch ? (sizeMatch[0].toUpperCase().trim()) : '—';
+
     brandOrders[brand]=(brandOrders[brand]||0)+1;
-    brandRevenue[brand]=(brandRevenue[brand]||0)+fmtAmt(g(r,'VALUE','VALU','RATE'));
+    brandRevenue[brand]=(brandRevenue[brand]||0)+val;
     if(status.includes('RTO')) brandRTO[brand]=(brandRTO[brand]||0)+1;
     if(status.includes('DELIVER')) brandDel[brand]=(brandDel[brand]||0)+1;
     if(!brandItems[brand]) brandItems[brand]={};
     if(!brandRowsMap[brand]) brandRowsMap[brand]=[];
+    if(!brandSizes[brand]) brandSizes[brand]={};
     brandRowsMap[brand].push(r);
-    // Full product name with brand prefix
-    var item=(g(r,'ITEM NAME')||'').trim();
-    brandItems[brand][item]=(brandItems[brand][item]||0)+1;
+    // Store full product name (keep brand prefix)
+    var fullItem = itemRaw.trim();
+    brandItems[brand][fullItem]=(brandItems[brand][fullItem]||0)+1;
+    brandSizes[brand][size]=(brandSizes[brand][size]||0)+1;
   });
 
-  // Cancellations from cancelled orders sheet
   cancelRows.forEach(function(r){
     var item = g(r,'PRODUCT NAME')||'';
-    var brand = extractSnkBrand(item) || g(r,'BRAND') || 'Other';
+    var brand = extractSnkBrand(item) || 'Other';
+    if(brand==='__IGNORE__') return;
     brandCancel[brand]=(brandCancel[brand]||0)+1;
     brandCancelAmt[brand]=(brandCancelAmt[brand]||0)+fmtAmt(g(r,'PRICE'));
+    if(!brandRowsMap[brand]) brandRowsMap[brand]=[];
   });
 
-  // Store credit detection from refund sheets
-  var allRefRows = (D.refundLedger?D.refundLedger.rows:[]).concat(D.refundDone?D.refundDone.rows:[]);
+  var allRefRows=(D.refundLedger?D.refundLedger.rows:[]).concat(D.refundDone?D.refundDone.rows:[]);
   allRefRows.forEach(function(r){
-    if(!inPeriod(g(r,'DATE'))) return;
+    if(!inPeriodSB(g(r,'DATE'))) return;
     var mode=(g(r,'RETURN MODE')||'').toUpperCase();
     if(!mode.includes('CREDIT')&&!mode.includes('NOTE')&&!mode.includes('STORE')) return;
     var cat=(g(r,'CATEGORY')||'').toUpperCase();
-    var brand = cat.includes('STREET')?null:cat.includes('HYPE')?'Hype/Watch':null;
-    // Try to extract brand from product desc
-    var prodDesc = g(r,'PRODUCT DETAILS','PRODUCT DESC','PRODUCT NAME')||'';
-    if(!brand&&prodDesc) brand=extractSnkBrand(prodDesc);
-    if(!brand) brand='Sneaker (unspecified)';
+    if(cat.includes('STREET')) return; // skip SW
+    var prodDesc=g(r,'PRODUCT DETAILS','PRODUCT DESC','PRODUCT NAME')||'';
+    var brand=extractSnkBrand(prodDesc)||'Sneaker';
+    if(brand==='__IGNORE__') return;
     brandCredit[brand]=(brandCredit[brand]||0)+fmtAmt(g(r,'AMOUNT'));
   });
 
-  window._snkBrandData = {brandOrders,brandRevenue,brandRTO,brandDel,brandItems,brandCancel,brandCancelAmt,brandCredit};
+  window._snkBrandData = {brandOrders,brandRevenue,brandRTO,brandDel,brandItems,brandSizes,brandCancel,brandCancelAmt,brandCredit};
   window._snkBrandRows = brandRowsMap;
 
   var allBrands=Object.keys(brandOrders).sort(function(a,b){return brandOrders[b]-brandOrders[a];});
   var top15=allBrands.slice(0,15);
   var totalRev=allBrands.reduce(function(s,b){return s+(brandRevenue[b]||0);},0);
   var totalOrders=allBrands.reduce(function(s,b){return s+(brandOrders[b]||0);},0);
+  var totalRTOAll=allBrands.reduce(function(s,b){return s+(brandRTO[b]||0);},0);
+  var totalCancelAll=Object.values(brandCancel).reduce(function(a,b){return a+b;},0);
 
   document.getElementById('k-snkbrands').innerHTML =
-    kpiCard('Brands', allBrands.length, totalOrders.toLocaleString()+' orders', C.lime) +
+    kpiCard('Brands', allBrands.length, totalOrders.toLocaleString('en-IN')+' orders', C.lime) +
     kpiCard('Total revenue', inr(totalRev), 'from VALUE column', C.grn) +
-    kpiCard('Best brand', top15.length?top15[0]:'—', top15.length?brandOrders[top15[0]].toLocaleString()+' orders':'', C.blu) +
-    kpiCard('Total RTO', allBrands.reduce(function(s,b){return s+(brandRTO[b]||0);},0), 'across all brands', C.red) +
-    kpiCard('Cancellations', Object.values(brandCancel).reduce(function(a,b){return a+b;},0), 'in period', C.amb);
+    kpiCard('Best brand', top15.length?top15[0]:'—', top15.length?brandOrders[top15[0]].toLocaleString('en-IN')+' orders':'', C.blu) +
+    kpiCard('Total RTO', totalRTOAll, 'across all brands', C.red) +
+    kpiCard('Cancellations', totalCancelAll, inr(Object.values(brandCancelAmt).reduce(function(a,b){return a+b;},0))+' value', C.amb);
 
-  // ── Clickable bar chart helper ──
-  function mkClickableHBar(cid, labels, vals, color, clickFn) {
-    if (CH[cid]) CH[cid].destroy();
-    var ctx = document.getElementById(cid);
-    if (!ctx) return;
-    ctx.parentElement.style.height = Math.max(160, labels.length*32+50)+'px';
-    CH[cid] = new Chart(ctx, {
-      type:'bar',
-      data:{ labels:labels, datasets:[{ data:vals, backgroundColor:Array.isArray(color)?color:color, borderRadius:3, hoverBackgroundColor:Array.isArray(color)?color.map(function(c){return c+'cc';}):color+'cc' }] },
-      options:{
-        indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},
-        plugins:{
-          legend:{display:false},
-          tooltip:{callbacks:{label:function(ctx){
-            var b=labels[ctx.dataIndex];
-            var rev=brandRevenue[b]?(' · Rev: '+inr(brandRevenue[b])):'';
-            return ctx.raw.toLocaleString()+' orders'+rev;
-          }}}
-        },
-        scales:{
-          x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},
-          y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}
-        },
-        onClick:function(e,els){
-          if(els.length&&clickFn) clickFn(labels[els[0].index]);
-        }
-      }
-    });
-    // Make canvas pointer cursor
-    ctx.style.cursor='pointer';
+  // ── Orders bar (clickable, vertical for top 10) ──
+  if(CH['c-snkbr-orders'])CH['c-snkbr-orders'].destroy();
+  var ctxO=document.getElementById('c-snkbr-orders');
+  if(ctxO){
+    ctxO.style.cursor='pointer';
+    ctxO.parentElement.style.height='280px';
+    var top10O=top15.slice(0,10);
+    var clickPluginO={id:'cpO',afterEvent:function(chart,args){if(args.event.type!=='click')return;var els=chart.getElementsAtEventForMode(args.event.native,'nearest',{intersect:true},true);if(els.length)showSnkBrandDrill(top10O[els[0].index],'orders');}};
+    CH['c-snkbr-orders']=new Chart(ctxO,{type:'bar',data:{labels:top10O,datasets:[{data:top10O.map(function(b){return brandOrders[b];}),backgroundColor:C.lime,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){var b=top10O[ci.dataIndex];return ci.raw.toLocaleString('en-IN')+' orders · '+inr(brandRevenue[b]||0);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#666',font:{size:10}}},y:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}}}},plugins:[clickPluginO]});
   }
 
-  mkClickableHBar('c-snkbr-orders', top15, top15.map(function(b){return brandOrders[b];}), C.lime, function(brand){
-    showSnkBrandDrill(brand,'orders');
-  });
+  // ── Revenue bar (horizontal) ──
+  var top15rev=allBrands.slice().sort(function(a,b){return brandRevenue[b]-brandRevenue[a];}).slice(0,12);
+  if(CH['c-snkbr-rev'])CH['c-snkbr-rev'].destroy();
+  var ctxR=document.getElementById('c-snkbr-rev');
+  if(ctxR){
+    ctxR.style.cursor='pointer';
+    ctxR.parentElement.style.height=Math.max(200,top15rev.length*34+50)+'px';
+    var clickPluginR={id:'cpR',afterEvent:function(chart,args){if(args.event.type!=='click')return;var els=chart.getElementsAtEventForMode(args.event.native,'nearest',{intersect:true},true);if(els.length)showSnkBrandDrill(top15rev[els[0].index],'orders');}};
+    CH['c-snkbr-rev']=new Chart(ctxR,{type:'bar',data:{labels:top15rev,datasets:[{data:top15rev.map(function(b){return Math.round(brandRevenue[b]||0);}),backgroundColor:C.grn,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return inr(ci.raw)+' revenue · '+brandOrders[top15rev[ci.dataIndex]]+' orders';}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return inr(v);}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}},plugins:[clickPluginR]});
+  }
 
-  var top15rev=allBrands.slice().sort(function(a,b){return brandRevenue[b]-brandRevenue[a];}).slice(0,15);
-  mkClickableHBar('c-snkbr-rev', top15rev, top15rev.map(function(b){return Math.round(brandRevenue[b]||0);}), C.grn, function(brand){
-    showSnkBrandDrill(brand,'orders');
-  });
+  // ── RTO donut chart ──
+  if(CH['c-snkbr-rto'])CH['c-snkbr-rto'].destroy();
+  var ctxRTO=document.getElementById('c-snkbr-rto');
+  if(ctxRTO){
+    var rtoArr=allBrands.filter(function(b){return brandRTO[b];}).sort(function(a,b){return brandRTO[b]-brandRTO[a];}).slice(0,8);
+    ctxRTO.parentElement.style.height='240px';
+    CH['c-snkbr-rto']=new Chart(ctxRTO,{type:'doughnut',data:{labels:rtoArr,datasets:[{data:rtoArr.map(function(b){return brandRTO[b];}),backgroundColor:PAL,borderWidth:2,borderColor:'#111'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{color:'#666',font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:function(ci){return ci.label+': '+ci.raw+' RTO';}}}}}});
+  }
 
-  var rtoArr=allBrands.filter(function(b){return brandRTO[b];}).sort(function(a,b){return brandRTO[b]-brandRTO[a];}).slice(0,12);
-  mkClickableHBar('c-snkbr-rto', rtoArr, rtoArr.map(function(b){return brandRTO[b];}), C.red, function(brand){
-    showSnkBrandDrill(brand,'rto');
-  });
-
-  // Cancellations chart
-  var cancelArr=Object.keys(brandCancel).sort(function(a,b){return brandCancel[b]-brandCancel[a];}).slice(0,12);
+  // ── Cancellations bar (clickable, horizontal) ──
+  var cancelArr=Object.keys(brandCancel).sort(function(a,b){return brandCancel[b]-brandCancel[a];}).slice(0,10);
   if(CH['c-snkbr-cancel'])CH['c-snkbr-cancel'].destroy();
   var ctxC=document.getElementById('c-snkbr-cancel');
   if(ctxC&&cancelArr.length){
-    ctxC.parentElement.style.height=Math.max(160,cancelArr.length*32+50)+'px';
     ctxC.style.cursor='pointer';
-    CH['c-snkbr-cancel']=new Chart(ctxC,{type:'bar',data:{labels:cancelArr,datasets:[{data:cancelArr.map(function(b){return brandCancel[b];}),backgroundColor:C.red,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var b=cancelArr[ctx.dataIndex];return ctx.raw+' cancels · ₹'+inr(brandCancelAmt[b]||0);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}},onClick:function(e,els){if(els.length)showSnkBrandDrill(cancelArr[els[0].index],'cancel');}}}); 
+    ctxC.parentElement.style.height=Math.max(180,cancelArr.length*32+50)+'px';
+    var clickPluginC={id:'cpC',afterEvent:function(chart,args){if(args.event.type!=='click')return;var els=chart.getElementsAtEventForMode(args.event.native,'nearest',{intersect:true},true);if(els.length)showSnkBrandDrill(cancelArr[els[0].index],'cancel');}};
+    CH['c-snkbr-cancel']=new Chart(ctxC,{type:'bar',data:{labels:cancelArr,datasets:[{data:cancelArr.map(function(b){return brandCancel[b];}),backgroundColor:C.red,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){var b=cancelArr[ci.dataIndex];return ci.raw+' cancels · '+inr(brandCancelAmt[b]||0);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}},plugins:[clickPluginC]});
   }
 
-  // Store credit chart
-  var creditArr=Object.keys(brandCredit).sort(function(a,b){return brandCredit[b]-brandCredit[a];}).slice(0,10);
+  // ── Store credit donut ──
   if(CH['c-snkbr-credit'])CH['c-snkbr-credit'].destroy();
   var ctxCr=document.getElementById('c-snkbr-credit');
-  if(ctxCr&&creditArr.length){
-    ctxCr.parentElement.style.height=Math.max(160,creditArr.length*32+50)+'px';
-    CH['c-snkbr-credit']=new Chart(ctxCr,{type:'bar',data:{labels:creditArr,datasets:[{data:creditArr.map(function(b){return Math.round(brandCredit[b]||0);}),backgroundColor:C.pur,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return inr(ctx.raw);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return inr(v);}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}}}});
+  if(ctxCr){
+    var creditArr=Object.keys(brandCredit).sort(function(a,b){return brandCredit[b]-brandCredit[a];}).slice(0,8);
+    ctxCr.parentElement.style.height='240px';
+    if(creditArr.length)CH['c-snkbr-credit']=new Chart(ctxCr,{type:'doughnut',data:{labels:creditArr,datasets:[{data:creditArr.map(function(b){return Math.round(brandCredit[b]||0);}),backgroundColor:PAL.slice().reverse(),borderWidth:2,borderColor:'#111'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{color:'#666',font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:function(ci){return ci.label+': '+inr(ci.raw);}}}}}});
+  }
+
+  // ── Brand size distribution chart ──
+  if(CH['c-snkbr-size'])CH['c-snkbr-size'].destroy();
+  var ctxSz=document.getElementById('c-snkbr-size');
+  if(ctxSz){
+    // Build size data for top 6 brands
+    var top6=top15.slice(0,6);
+    var allSizes=[]; top6.forEach(function(b){Object.keys(brandSizes[b]||{}).forEach(function(s){if(s!=='—'&&!allSizes.includes(s))allSizes.push(s);});});
+    allSizes.sort(function(a,b){var an=parseFloat(a.replace(/[^\d.]/g,'')),bn=parseFloat(b.replace(/[^\d.]/g,''));return an-bn;}).splice(15);
+    ctxSz.parentElement.style.height='260px';
+    CH['c-snkbr-size']=new Chart(ctxSz,{type:'bar',data:{labels:top6,datasets:allSizes.map(function(sz,i){return{label:sz,data:top6.map(function(b){return (brandSizes[b]&&brandSizes[b][sz])||0;}),backgroundColor:PAL[i%PAL.length],borderRadius:2};}),},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#666',font:{size:9},boxWidth:10}}},scales:{x:{stacked:true,grid:{color:'#1e1e1e'},ticks:{color:'#666',font:{size:10}}},y:{stacked:true,grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}}}}});
   }
 
   // Populate brand select
@@ -3637,29 +3811,27 @@ function buildSnkBrands() {
   if(sel){
     var curVal=sel.value;
     sel.innerHTML='<option value="">— select brand to see products —</option>';
-    allBrands.forEach(function(b){var opt=document.createElement('option');opt.value=b;opt.textContent=b+' ('+brandOrders[b]+' orders · '+inr(brandRevenue[b]||0)+')';sel.appendChild(opt);});
-    if(curVal) sel.value=curVal;
+    allBrands.forEach(function(b){var opt=document.createElement('option');opt.value=b;opt.textContent=b+' ('+brandOrders[b].toLocaleString('en-IN')+' orders · '+inr(brandRevenue[b]||0)+')';sel.appendChild(opt);});
+    if(curVal&&Array.from(sel.options).some(function(o){return o.value===curVal;})) sel.value=curVal;
   }
 
-  // Brand performance table with full Indian number format
+  // ── Brand table with full Indian numbers ──
   document.getElementById('cnt-snkbr').textContent=allBrands.length;
   pTable('t-snkbr','',['Brand','Orders','Revenue','Avg Value','Delivered','RTO','Cancelled','Rev Share'],
     allBrands.map(function(b){
-      var rev=brandRevenue[b]||0;
-      var orders=brandOrders[b]||0;
+      var rev=brandRevenue[b]||0, orders=brandOrders[b]||0;
       var avgVal=orders?Math.round(rev/orders):0;
       var delRate=orders?Math.round((brandDel[b]||0)/orders*100):0;
       var rtoRate=orders?Math.round((brandRTO[b]||0)/orders*100):0;
       var cancelCount=brandCancel[b]||0;
-      var totalRev2=totalRev||1;
-      var revShare=Math.round(rev/totalRev2*100);
+      var revShare=totalRev>0?Math.round(rev/totalRev*100):0;
       return row([
-        '<strong style="cursor:pointer;color:var(--lime)" onclick="showSnkBrandDrill(\'' + esc(b) + '\',\'orders\')">'+esc(b)+'</strong>',
+        '<strong style="cursor:pointer;color:var(--lime)" onclick="showSnkBrandDrill(this.dataset.b,\'orders\')" data-b="'+esc(b)+'">'+esc(b)+'</strong>',
         orders.toLocaleString('en-IN'),
         inr(rev),
         inr(avgVal),
-        '<span style="color:'+C.grn+'">'+(brandDel[b]||0)+'</span> <span style="color:var(--mu2);font-size:.65rem">('+delRate+'%)</span>',
-        (brandRTO[b]||0)>0?'<span style="color:'+C.red+'">'+( brandRTO[b]||0)+'</span> <span style="color:var(--mu2);font-size:.65rem">('+rtoRate+'%)</span>':'<span style="color:var(--mu2)">0</span>',
+        '<span style="color:'+C.grn+'">'+(brandDel[b]||0)+'</span><span style="color:var(--mu2);font-size:.65rem"> ('+delRate+'%)</span>',
+        (brandRTO[b]||0)>0?'<span style="color:'+C.red+'">'+( brandRTO[b]||0)+'</span><span style="color:var(--mu2);font-size:.65rem"> ('+rtoRate+'%)</span>':'<span style="color:var(--mu2)">0</span>',
         cancelCount>0?'<span style="color:'+C.amb+'">'+cancelCount+'</span>':'0',
         '<span style="color:var(--lime)">'+revShare+'%</span>'
       ]);
@@ -3668,6 +3840,7 @@ function buildSnkBrands() {
 }
 
 function closeSnkDrill(){var el=document.getElementById('snkbr-drill');if(el){el.style.display='none';el._brand=null;}}
+
 function showSnkBrandDrill(brand, type) {
   var el = document.getElementById('snkbr-drill');
   if (!el) return;
@@ -3676,52 +3849,481 @@ function showSnkBrandDrill(brand, type) {
   }
   el._brand=brand; el._type=type;
   el.style.display='block';
+  el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--b1);margin-bottom:.5rem">'+
+    '<span style="font-weight:700;color:var(--lime)">'+esc(brand)+' — '+esc(type)+'</span>'+
+    '<span onclick="closeSnkDrill()" style="cursor:pointer;color:var(--mu);font-size:1rem">&#10005;</span></div>';
 
-  var hdr='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">'+
-    '<span style="font-weight:700;color:var(--lime);font-size:.85rem">'+esc(brand)+' — '+esc(type)+'</span>'+
-    '<span onclick="closeSnkDrill()" style="cursor:pointer;color:var(--mu)">&#10005;</span>'+
-    '</div>';
-  el.innerHTML = hdr;
+  var data=window._snkBrandData, rowsMap=window._snkBrandRows;
+  var tblWrap=document.createElement('div'); tblWrap.className='tc'; tblWrap.style.maxHeight='340px'; tblWrap.style.overflowY='auto';
+  var tbl=document.createElement('table'); tbl.id='t-snkbr-drill'; tblWrap.appendChild(tbl); el.appendChild(tblWrap);
 
-  var rows = [];
-  var data = window._snkBrandData;
-  var rowsMap = window._snkBrandRows;
-
-  if (type==='orders' || type==='rto') {
-    var src = (rowsMap[brand]||[]);
-    if (type==='rto') src=src.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('RTO');});
-    var tbl=document.createElement('div'); tbl.className='tc'; tbl.style.maxHeight='320px'; tbl.style.overflowY='auto';
-    var inner=document.createElement('table'); inner.id='t-snkbr-drill'; tbl.appendChild(inner); el.appendChild(tbl);
-    pTable('t-snkbr-drill','',['Order ID','Date','City','Item','Status','Value'],
-      src.sort(function(a,b){var da=parseDate(g(a,'DATE','ORDER DATE')),db=parseDate(g(b,'DATE','ORDER DATE'));return(da&&db)?db-da:0;}).map(function(r){
-        return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE')),esc(g(r,'SHIPPING CITY')),esc(g(r,'ITEM NAME').substring(0,38)),statusBadge(g(r,'STATUS')),inr(fmtAmt(g(r,'VALUE','VALU','RATE')))]);
-      })
+  if (type==='orders'||type==='rto') {
+    var src=(rowsMap[brand]||[]).filter(function(r){return type!=='rto'||( g(r,'STATUS')||'').toUpperCase().includes('RTO');});
+    src=src.sort(function(a,b){var da=parseDate(g(a,'DATE','ORDER DATE')),db=parseDate(g(b,'DATE','ORDER DATE'));return(da&&db)?db-da:0;});
+    pTable('t-snkbr-drill','',['Order ID','Date','City','Product','Status','Value'],
+      src.map(function(r){return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE')),esc(g(r,'SHIPPING CITY')||'—'),esc(g(r,'ITEM NAME').substring(0,40)),statusBadge(g(r,'STATUS')),inr(fmtAmt(g(r,'VALUE','VALU','RATE')))]);})
     );
   } else if (type==='cancel') {
-    var cancelRows=(D.cancelledOrders?D.cancelledOrders.rows:[]).filter(function(r){
-      return extractSnkBrand(g(r,'PRODUCT NAME')||'')=== brand || (g(r,'BRAND')||'')=== brand;
+    var cRows=(D.cancelledOrders?D.cancelledOrders.rows:[]).filter(function(r){
+      var cat=(g(r,'CATEGORY')||'').toUpperCase();
+      if(cat.includes('STREET')||cat.includes('SW')) return false;
+      return extractSnkBrand(g(r,'PRODUCT NAME')||'')=== brand;
     });
-    var tbl2=document.createElement('div'); tbl2.className='tc'; tbl2.style.maxHeight='320px'; tbl2.style.overflowY='auto';
-    var inner2=document.createElement('table'); inner2.id='t-snkbr-drill'; tbl2.appendChild(inner2); el.appendChild(tbl2);
-    pTable('t-snkbr-drill','',['Order ID','Brand','Date','Product','Price','Status'],
-      cancelRows.map(function(r){return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'ORDER DATE')),esc(g(r,'PRODUCT NAME').substring(0,35)),inr(fmtAmt(g(r,'PRICE'))),statusBadge(g(r,'STATUS'))]);})
+    pTable('t-snkbr-drill','',['Order ID','Date','Product','Price','Status'],
+      cRows.map(function(r){return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'ORDER DATE')),esc(g(r,'PRODUCT NAME').substring(0,40)),inr(fmtAmt(g(r,'PRICE'))),statusBadge(g(r,'STATUS'))]);})
     );
   }
 }
 
 function buildSnkBrandProducts() {
-  var brand = document.getElementById('snkbr-sel') ? document.getElementById('snkbr-sel').value : '';
-  if (!brand) return;
-  var items = (window._snkBrandData&&window._snkBrandData.brandItems&&window._snkBrandData.brandItems[brand]) || {};
-  var sorted = Object.keys(items).sort(function(a,b){return items[b]-items[a];}).slice(0,30);
-  pTable('t-snkbr-prods','',['#','Full Product Name','Orders'],
+  var brand=document.getElementById('snkbr-sel')?document.getElementById('snkbr-sel').value:'';
+  if(!brand) return;
+  var data=window._snkBrandData;
+  var items=(data&&data.brandItems&&data.brandItems[brand])||{};
+  var sizes=(data&&data.brandSizes&&data.brandSizes[brand])||{};
+  var sorted=Object.keys(items).sort(function(a,b){return items[b]-items[a];}).slice(0,30);
+  pTable('t-snkbr-prods','',['#','Product (full name with size)','Orders'],
     sorted.map(function(k,i){return row([
       '<span style="color:var(--mu)">'+(i+1)+'</span>',
-      '<span style="color:var(--tx)">'+esc(k.substring(0,55))+'</span>',
+      '<span style="color:var(--tx)">'+esc(k.substring(0,60))+'</span>',
       '<span style="font-weight:700;color:var(--lime)">'+items[k]+'</span>'
     ]);})
   );
 }
+
+/* ══════════════════════════════════════════════════
+   INDIA MAP
+══════════════════════════════════════════════════ */
+
+// City → State mapping (major Indian cities)
+var CITY_STATE = {
+  'MUMBAI':'Maharashtra','PUNE':'Maharashtra','NAGPUR':'Maharashtra','NASHIK':'Maharashtra','AURANGABAD':'Maharashtra','THANE':'Maharashtra','NAVI MUMBAI':'Maharashtra',
+  'DELHI':'Delhi','NEW DELHI':'Delhi','NOIDA':'Uttar Pradesh','GURGAON':'Haryana','GURUGRAM':'Haryana','FARIDABAD':'Haryana',
+  'BANGALORE':'Karnataka','BENGALURU':'Karnataka','MYSORE':'Karnataka','HUBLI':'Karnataka','MANGALORE':'Karnataka',
+  'HYDERABAD':'Telangana','SECUNDERABAD':'Telangana','WARANGAL':'Telangana',
+  'CHENNAI':'Tamil Nadu','COIMBATORE':'Tamil Nadu','MADURAI':'Tamil Nadu','TIRUCHIRAPPALLI':'Tamil Nadu','TRICHY':'Tamil Nadu',
+  'KOLKATA':'West Bengal','HOWRAH':'West Bengal','DURGAPUR':'West Bengal',
+  'AHMEDABAD':'Gujarat','SURAT':'Gujarat','VADODARA':'Gujarat','RAJKOT':'Gujarat','GANDHINAGAR':'Gujarat',
+  'JAIPUR':'Rajasthan','JODHPUR':'Rajasthan','UDAIPUR':'Rajasthan','KOTA':'Rajasthan','AJMER':'Rajasthan',
+  'LUCKNOW':'Uttar Pradesh','KANPUR':'Uttar Pradesh','AGRA':'Uttar Pradesh','VARANASI':'Uttar Pradesh','ALLAHABAD':'Uttar Pradesh','PRAYAGRAJ':'Uttar Pradesh','MEERUT':'Uttar Pradesh','GHAZIABAD':'Uttar Pradesh',
+  'BHOPAL':'Madhya Pradesh','INDORE':'Madhya Pradesh','JABALPUR':'Madhya Pradesh','GWALIOR':'Madhya Pradesh',
+  'PATNA':'Bihar','GAYA':'Bihar','MUZAFFARPUR':'Bihar',
+  'CHANDIGARH':'Chandigarh','MOHALI':'Punjab','LUDHIANA':'Punjab','AMRITSAR':'Punjab','JALANDHAR':'Punjab',
+  'BHUBANESWAR':'Odisha','CUTTACK':'Odisha',
+  'RANCHI':'Jharkhand','JAMSHEDPUR':'Jharkhand',
+  'RAIPUR':'Chhattisgarh',
+  'DEHRADUN':'Uttarakhand','HARIDWAR':'Uttarakhand',
+  'SHIMLA':'Himachal Pradesh','MANALI':'Himachal Pradesh',
+  'KOCHI':'Kerala','THIRUVANANTHAPURAM':'Kerala','KOZHIKODE':'Kerala','THRISSUR':'Kerala','CALICUT':'Kerala',
+  'VIZAG':'Andhra Pradesh','VISAKHAPATNAM':'Andhra Pradesh','VIJAYAWADA':'Andhra Pradesh',
+  'GUWAHATI':'Assam','DIBRUGARH':'Assam',
+  'SRINAGAR':'Jammu and Kashmir','JAMMU':'Jammu and Kashmir',
+  'PANAJI':'Goa','GOA':'Goa',
+  'AGARTALA':'Tripura',
+  'IMPHAL':'Manipur',
+  'SHILLONG':'Meghalaya',
+  'GANGTOK':'Sikkim',
+};
+
+// State → approximate SVG center coordinates on our 600x680 viewBox
+var STATE_CENTERS = {
+  'Maharashtra':       {x:280, y:390},
+  'Delhi':             {x:295, y:200},
+  'Karnataka':         {x:270, y:450},
+  'Tamil Nadu':        {x:295, y:510},
+  'Telangana':         {x:305, y:420},
+  'West Bengal':       {x:420, y:310},
+  'Gujarat':           {x:195, y:340},
+  'Rajasthan':         {x:220, y:260},
+  'Uttar Pradesh':     {x:350, y:250},
+  'Madhya Pradesh':    {x:295, y:330},
+  'Bihar':             {x:395, y:270},
+  'Haryana':           {x:280, y:200},
+  'Punjab':            {x:255, y:170},
+  'Chandigarh':        {x:270, y:175},
+  'Andhra Pradesh':    {x:315, y:455},
+  'Kerala':            {x:265, y:520},
+  'Odisha':            {x:385, y:375},
+  'Jharkhand':         {x:390, y:320},
+  'Chhattisgarh':      {x:350, y:370},
+  'Uttarakhand':       {x:315, y:195},
+  'Himachal Pradesh':  {x:280, y:160},
+  'Assam':             {x:480, y:245},
+  'Goa':               {x:238, y:440},
+  'Jammu and Kashmir': {x:270, y:120},
+  'Tripura':           {x:470, y:300},
+  'Manipur':           {x:505, y:290},
+  'Meghalaya':         {x:465, y:260},
+  'Sikkim':            {x:435, y:230},
+};
+
+// Simplified India state SVG paths (approximate outlines in 600x680 viewBox)
+var INDIA_STATE_PATHS = {
+  'Jammu and Kashmir': 'M240,60 L320,55 L350,90 L360,130 L310,145 L270,140 L240,115 Z',
+  'Himachal Pradesh': 'M260,140 L310,145 L320,175 L295,185 L265,180 Z',
+  'Punjab': 'M230,155 L265,150 L265,180 L240,185 L220,170 Z',
+  'Haryana': 'M240,185 L275,182 L290,200 L280,220 L245,215 Z',
+  'Delhi': 'M278,200 L295,198 L298,215 L280,217 Z',
+  'Uttarakhand': 'M290,185 L330,180 L340,205 L315,215 L290,205 Z',
+  'Rajasthan': 'M175,185 L245,183 L260,220 L255,285 L230,320 L185,310 L160,270 L165,215 Z',
+  'Uttar Pradesh': 'M280,215 L390,205 L415,230 L410,280 L375,295 L320,285 L260,260 L260,230 Z',
+  'Bihar': 'M375,250 L420,245 L435,270 L415,295 L375,295 L375,275 Z',
+  'Sikkim': 'M425,220 L445,218 L445,235 L425,235 Z',
+  'West Bengal': 'M410,270 L445,255 L465,285 L450,340 L415,355 L405,320 L410,285 Z',
+  'Jharkhand': 'M370,295 L415,290 L420,325 L390,355 L360,345 L360,315 Z',
+  'Odisha': 'M370,345 L415,340 L430,375 L400,415 L365,410 L355,375 Z',
+  'Chhattisgarh': 'M310,305 L370,295 L380,340 L365,380 L330,385 L295,365 L295,335 Z',
+  'Madhya Pradesh': 'M215,290 L310,280 L325,305 L315,360 L260,365 L215,340 Z',
+  'Gujarat': 'M155,285 L215,278 L225,310 L220,355 L200,380 L160,375 L140,340 L148,305 Z',
+  'Maharashtra': 'M215,340 L320,330 L345,355 L335,415 L290,435 L240,430 L215,395 Z',
+  'Goa': 'M228,430 L248,428 L250,445 L228,445 Z',
+  'Karnataka': 'M235,435 L335,420 L340,455 L310,490 L265,490 L235,465 Z',
+  'Telangana': 'M295,390 L355,380 L365,415 L340,445 L295,445 Z',
+  'Andhra Pradesh': 'M285,445 L365,435 L385,460 L360,490 L310,495 L280,475 Z',
+  'Tamil Nadu': 'M270,490 L355,485 L365,520 L325,555 L285,545 L265,518 Z',
+  'Kerala': 'M254,490 L275,488 L270,550 L248,548 L245,518 Z',
+  'Assam': 'M440,235 L510,232 L520,255 L495,270 L450,265 L435,250 Z',
+  'Meghalaya': 'M450,260 L495,258 L498,278 L455,280 Z',
+  'Tripura': 'M460,290 L485,288 L487,310 L460,312 Z',
+  'Manipur': 'M495,278 L520,275 L522,298 L498,300 Z',
+  'Sikkim': 'M424,222 L442,220 L443,236 L424,236 Z',
+};
+
+// City lat/lng approx for plotting on SVG
+var CITY_SVG_POS = {
+  'MUMBAI':     {x:220,y:390}, 'PUNE':         {x:242,y:405},
+  'DELHI':      {x:290,y:207}, 'NEW DELHI':    {x:286,y:209},
+  'NOIDA':      {x:304,y:212}, 'GURGAON':      {x:284,y:215}, 'GURUGRAM': {x:284,y:215},
+  'BANGALORE':  {x:278,y:460}, 'BENGALURU':    {x:278,y:460},
+  'HYDERABAD':  {x:308,y:421}, 'CHENNAI':      {x:310,y:505},
+  'KOLKATA':    {x:430,y:305}, 'AHMEDABAD':    {x:198,y:338},
+  'SURAT':      {x:200,y:360}, 'JAIPUR':       {x:237,y:255},
+  'LUCKNOW':    {x:358,y:248}, 'KANPUR':       {x:348,y:256},
+  'BHOPAL':     {x:294,y:332}, 'INDORE':       {x:265,y:340},
+  'PATNA':      {x:397,y:270}, 'CHANDIGARH':   {x:273,y:177},
+  'LUDHIANA':   {x:253,y:170}, 'AMRITSAR':     {x:242,y:162},
+  'BHUBANESWAR':{x:392,y:378}, 'RANCHI':       {x:388,y:320},
+  'RAIPUR':     {x:348,y:365}, 'DEHRADUN':     {x:312,y:193},
+  'KOCHI':      {x:260,y:517}, 'THIRUVANANTHAPURAM':{x:268,y:548},
+  'VISAKHAPATNAM':{x:375,y:454},'VIZAG':        {x:375,y:454},
+  'VIJAYAWADA': {x:318,y:467}, 'COIMBATORE':   {x:275,y:504},
+  'MADURAI':    {x:290,y:530}, 'NAGPUR':       {x:322,y:358},
+  'THANE':      {x:215,y:387}, 'VADODARA':     {x:210,y:346},
+  'FARIDABAD':  {x:296,y:213}, 'AGRA':         {x:315,y:240},
+  'MEERUT':     {x:305,y:220}, 'GHAZIABAD':    {x:302,y:216},
+  'VARANASI':   {x:383,y:262}, 'ALLAHABAD':    {x:370,y:258},
+  'PRAYAGRAJ':  {x:370,y:258}, 'GUWAHATI':     {x:472,y:247},
+  'NASHIK':     {x:242,y:374}, 'AURANGABAD':   {x:266,y:388},
+  'UDAIPUR':    {x:218,y:290}, 'JODHPUR':      {x:196,y:264},
+  'KOTA':       {x:260,y:278}, 'SHIMLA':       {x:286,y:163},
+  'PANAJI':     {x:234,y:436}, 'GOA':          {x:234,y:440},
+  'MANGALORE':  {x:245,y:462}, 'MYSORE':       {x:270,y:474},
+};
+
+function normalizeCity(c) {
+  return (c || '').trim().toUpperCase()
+    .replace(/GURUGRAM/,'GURGAON')
+    .replace(/BENGALURU/,'BANGALORE')
+    .replace(/PRAYAGRAJ/,'ALLAHABAD')
+    .replace(/NAVI MUMBAI/,'MUMBAI');
+}
+
+function cityToState(city) {
+  return CITY_STATE[normalizeCity(city)] || null;
+}
+
+window._indiaMapData = null;
+
+function buildIndiaMap() {
+  var metric  = document.getElementById('map-metric') ? document.getElementById('map-metric').value : 'orders';
+  var period  = document.getElementById('period-india') ? document.getElementById('period-india').value : '';
+  var source  = document.getElementById('map-source') ? document.getElementById('map-source').value : 'both';
+  var today   = new Date();
+
+  function inP(ds) {
+    var d = parseDate(ds); if (!d) return false;
+    if (!period || period === 'current') return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth();
+    if (period === 'all') return true;
+    if (/^\d{4}-\d{2}$/.test(period)) {
+      var p = period.split('-');
+      return d.getFullYear()===parseInt(p[0]) && d.getMonth()===parseInt(p[1])-1;
+    }
+    return true;
+  }
+
+  // Collect rows
+  var rows = [];
+  if (source === 'snk' || source === 'both') {
+    (D.sneakerOrders ? D.sneakerOrders.rows : []).forEach(function(r) {
+      if (!inP(g(r,'DATE','ORDER DATE'))) return;
+      var city = normalizeCity(g(r,'SHIPPING CITY'));
+      if (!city) return;
+      rows.push({ city: city, val: fmtAmt(g(r,'VALUE','VALU','RATE')), src:'snk' });
+    });
+  }
+  if (source === 'sw' || source === 'both') {
+    (D.streetwearOrders ? D.streetwearOrders.rows : []).forEach(function(r) {
+      if (!inP(g(r,'ORDER DATE'))) return;
+      var city = normalizeCity(g(r,'SHIPPING CITY','CITY'));
+      if (!city) return;
+      rows.push({ city: city, val: fmtAmt(g(r,'PRICE')), src:'sw' });
+    });
+  }
+
+  // Aggregate by city
+  var cityOrders={}, cityRevenue={};
+  rows.forEach(function(row) {
+    var c = row.city;
+    cityOrders[c]  = (cityOrders[c]  || 0) + 1;
+    cityRevenue[c] = (cityRevenue[c] || 0) + row.val;
+  });
+
+  // Aggregate by state
+  var stateOrders={}, stateRevenue={};
+  Object.keys(cityOrders).forEach(function(c) {
+    var s = cityToState(c);
+    if (!s) return;
+    stateOrders[s]  = (stateOrders[s]  || 0) + cityOrders[c];
+    stateRevenue[s] = (stateRevenue[s] || 0) + cityRevenue[c];
+  });
+
+  window._indiaMapData = { cityOrders, cityRevenue, stateOrders, stateRevenue };
+
+  // KPIs
+  var totalOrders = Object.values(cityOrders).reduce(function(a,b){return a+b;},0);
+  var totalRev = Object.values(cityRevenue).reduce(function(a,b){return a+b;},0);
+  var statesReached = Object.keys(stateOrders).length;
+  var topCity = Object.keys(cityOrders).sort(function(a,b){return cityOrders[b]-cityOrders[a];})[0] || '—';
+  var topCityRev = Object.keys(cityRevenue).sort(function(a,b){return cityRevenue[b]-cityRevenue[a];})[0] || '—';
+
+  document.getElementById('k-india').innerHTML =
+    kpiCard('Orders mapped', totalOrders.toLocaleString('en-IN'), statesReached + ' states', C.lime) +
+    kpiCard('Total revenue', inr(totalRev), 'mapped orders', C.grn) +
+    kpiCard('Top city (orders)', topCity.charAt(0)+topCity.slice(1).toLowerCase(), cityOrders[topCity]||0, C.blu) +
+    kpiCard('Top city (revenue)', topCityRev.charAt(0)+topCityRev.slice(1).toLowerCase(), inr(cityRevenue[topCityRev]||0), C.pur);
+
+  var infoEl = document.getElementById('map-info');
+  if (infoEl) infoEl.textContent = rows.length.toLocaleString('en-IN') + ' orders from ' + Object.keys(cityOrders).length + ' cities';
+
+  renderIndiaMap(metric, cityOrders, cityRevenue, stateOrders, stateRevenue);
+  renderTopCityBars(cityOrders, cityRevenue);
+  renderStateCharts(stateOrders, stateRevenue);
+  renderCityTable(cityOrders, cityRevenue);
+}
+
+function renderIndiaMap(metric, cityOrders, cityRevenue, stateOrders, stateRevenue) {
+  var svg = document.getElementById('india-svg');
+  if (!svg) return;
+  svg.innerHTML = '';
+
+  var stateData = metric === 'revenue' ? stateRevenue : stateOrders;
+  var cityData  = metric === 'revenue' ? cityRevenue  : cityOrders;
+  var maxState  = Math.max.apply(null, Object.values(stateData).concat([1]));
+  var maxCity   = Math.max.apply(null, Object.values(cityData).concat([1]));
+
+  // Draw state shapes
+  Object.keys(INDIA_STATE_PATHS).forEach(function(state) {
+    var val = stateData[state] || 0;
+    var intensity = val / maxState;
+    var r = Math.round(30 + intensity * 170);
+    var g2 = Math.round(80 + intensity * 175);
+    var b = Math.round(20 + intensity * 10);
+    var fill = 'rgb(' + r + ',' + g2 + ',' + b + ')';
+    if (val === 0) fill = '#1a2214';
+
+    var path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', INDIA_STATE_PATHS[state]);
+    path.setAttribute('fill', fill);
+    path.setAttribute('stroke', '#111');
+    path.setAttribute('stroke-width', '0.8');
+    path.setAttribute('opacity', '0.92');
+    path.style.cursor = 'pointer';
+    path.setAttribute('data-state', state);
+
+    path.addEventListener('mouseenter', function(e) { showMapTooltip(e, state, stateOrders[state]||0, stateRevenue[state]||0); path.setAttribute('opacity','1'); path.setAttribute('stroke','#c8ff00'); path.setAttribute('stroke-width','1.5'); });
+    path.addEventListener('mouseleave', function() { hideMapTooltip(); path.setAttribute('opacity','0.92'); path.setAttribute('stroke','#111'); path.setAttribute('stroke-width','0.8'); });
+    path.addEventListener('click', function() { showStateDetail(state); });
+    svg.appendChild(path);
+  });
+
+  // Draw city bubbles
+  Object.keys(CITY_SVG_POS).forEach(function(city) {
+    var val = cityData[city] || 0;
+    if (val === 0) return;
+    var pos = CITY_SVG_POS[city];
+    var r = Math.max(3, Math.min(18, 3 + (val / maxCity) * 18));
+    var intensity = val / maxCity;
+
+    var circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', pos.x);
+    circle.setAttribute('cy', pos.y);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', metric === 'revenue' ? 'rgba(46,204,113,0.75)' : 'rgba(200,255,0,0.72)');
+    circle.setAttribute('stroke', '#000');
+    circle.setAttribute('stroke-width', '0.5');
+    circle.style.cursor = 'pointer';
+
+    circle.addEventListener('mouseenter', function(e) {
+      showMapTooltip(e, city.charAt(0)+city.slice(1).toLowerCase(), cityOrders[city]||0, cityRevenue[city]||0, true);
+    });
+    circle.addEventListener('mouseleave', hideMapTooltip);
+    svg.appendChild(circle);
+
+    // City label for large bubbles
+    if (r >= 6) {
+      var text = document.createElementNS('http://www.w3.org/2000/svg','text');
+      text.setAttribute('x', pos.x);
+      text.setAttribute('y', pos.y + r + 8);
+      text.setAttribute('text-anchor','middle');
+      text.setAttribute('font-size','6.5');
+      text.setAttribute('fill','#aaa');
+      text.setAttribute('pointer-events','none');
+      text.textContent = city.charAt(0)+city.slice(1).toLowerCase();
+      svg.appendChild(text);
+    }
+  });
+
+  // Title
+  document.getElementById('map-title').textContent = 'INDIA — STATE HEATMAP + CITY BUBBLES (' + (metric==='revenue'?'REVENUE':'ORDERS') + ')';
+}
+
+function showMapTooltip(e, name, orders, rev, isCity) {
+  var tt = document.getElementById('map-tooltip');
+  if (!tt) return;
+  tt.style.display = 'block';
+  var cityLabel = isCity ? 'City' : 'State';
+  tt.innerHTML =
+    '<div style="font-weight:700;color:var(--lime);margin-bottom:.3rem">'+name+'</div>'+
+    '<div style="color:var(--tx)">Orders: <strong>'+orders.toLocaleString('en-IN')+'</strong></div>'+
+    '<div style="color:var(--grn)">Revenue: <strong>'+inr(rev)+'</strong></div>'+
+    '<div style="color:var(--mu2);font-size:.65rem;margin-top:.2rem">'+(isCity?'click for details':'click to zoom state')+'</div>';
+
+  var wrap = document.getElementById('india-map-wrap');
+  var rect = wrap ? wrap.getBoundingClientRect() : {left:0,top:0};
+  var svgEl = document.getElementById('india-svg');
+  var svgRect = svgEl ? svgEl.getBoundingClientRect() : {left:0,top:0,width:1,height:1};
+  var relX = e.clientX - svgRect.left + 12;
+  var relY = e.clientY - svgRect.top + 12;
+  if (relX + 160 > svgRect.width) relX = relX - 172;
+  tt.style.left = relX + 'px';
+  tt.style.top  = relY + 'px';
+}
+
+function hideMapTooltip() {
+  var tt = document.getElementById('map-tooltip');
+  if (tt) tt.style.display = 'none';
+}
+
+function showStateDetail(state) {
+  var data = window._indiaMapData;
+  if (!data) return;
+  var panel = document.getElementById('state-detail-panel');
+  var titleEl = document.getElementById('state-detail-title');
+  if (!panel || !titleEl) return;
+  panel.style.display = 'block';
+  titleEl.textContent = '📍 ' + state + ' — city breakdown';
+
+  var stateOrders = data.stateOrders, stateRevenue = data.stateRevenue;
+  var cityOrders = data.cityOrders, cityRevenue = data.cityRevenue;
+
+  // Cities in this state
+  var stateCities = Object.keys(cityOrders).filter(function(c){ return cityToState(c) === state; });
+  stateCities.sort(function(a,b){ return cityOrders[b] - cityOrders[a]; });
+
+  var totO = stateOrders[state] || 0, totR = stateRevenue[state] || 0;
+  var avgOrdVal = totO > 0 ? Math.round(totR/totO) : 0;
+
+  document.getElementById('k-state-detail').innerHTML =
+    kpiCard('State orders', totO.toLocaleString('en-IN'), '', C.lime) +
+    kpiCard('State revenue', inr(totR), '', C.grn) +
+    kpiCard('Cities tracked', stateCities.length, '', C.blu) +
+    kpiCard('Avg order value', inr(avgOrdVal), '', C.pur);
+
+  pTable('t-state-cities','',['City','Orders','Revenue','Avg Value','Order Share'],
+    stateCities.map(function(c){
+      var o=cityOrders[c]||0, r=cityRevenue[c]||0;
+      var avgV = o > 0 ? Math.round(r/o) : 0;
+      var share = totO > 0 ? Math.round(o/totO*100) : 0;
+      return row([
+        '<strong>'+c.charAt(0)+c.slice(1).toLowerCase()+'</strong>',
+        o.toLocaleString('en-IN'),
+        inr(r),
+        inr(avgV),
+        '<div style="display:flex;align-items:center;gap:.3rem"><div style="height:6px;width:'+Math.max(4,share)+'px;background:var(--lime);border-radius:3px"></div><span>'+share+'%</span></div>'
+      ]);
+    })
+  );
+}
+
+function renderTopCityBars(cityOrders, cityRevenue) {
+  var topCO = Object.keys(cityOrders).sort(function(a,b){return cityOrders[b]-cityOrders[a];}).slice(0,10);
+  var topCR = Object.keys(cityRevenue).sort(function(a,b){return cityRevenue[b]-cityRevenue[a];}).slice(0,10);
+  var maxO  = cityOrders[topCO[0]] || 1;
+  var maxR  = cityRevenue[topCR[0]] || 1;
+
+  function mkBar(container, items, dataMap, maxVal, color) {
+    var el = document.getElementById(container);
+    if (!el) return;
+    el.innerHTML = items.map(function(c) {
+      var v = dataMap[c] || 0;
+      var pct = Math.round(v / maxVal * 100);
+      var label = c.charAt(0) + c.slice(1).toLowerCase();
+      var valStr = container.includes('rev') ? inr(v) : v.toLocaleString('en-IN');
+      return '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.28rem">'+
+        '<div style="width:72px;font-size:.65rem;color:var(--mu);text-align:right;flex-shrink:0">'+label+'</div>'+
+        '<div style="flex:1;background:#1a1a1a;border-radius:3px;height:12px"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:3px;transition:width .3s"></div></div>'+
+        '<div style="width:70px;font-size:.65rem;color:var(--tx);font-weight:600">'+valStr+'</div>'+
+        '</div>';
+    }).join('');
+  }
+
+  mkBar('top-cities-bars', topCO, cityOrders, maxO, '#c8ff00');
+  mkBar('top-cities-rev-bars', topCR, cityRevenue, maxR, '#2ecc71');
+}
+
+function renderStateCharts(stateOrders, stateRevenue) {
+  var topSO = Object.keys(stateOrders).sort(function(a,b){return stateOrders[b]-stateOrders[a];}).slice(0,15);
+  var topSR = Object.keys(stateRevenue).sort(function(a,b){return stateRevenue[b]-stateRevenue[a];}).slice(0,15);
+
+  if(CH['c-state-orders'])CH['c-state-orders'].destroy();
+  var ctxSO=document.getElementById('c-state-orders');
+  if(ctxSO&&topSO.length){
+    ctxSO.parentElement.style.height=Math.max(260,topSO.length*22+50)+'px';
+    CH['c-state-orders']=new Chart(ctxSO,{type:'bar',data:{labels:topSO,datasets:[{data:topSO.map(function(s){return stateOrders[s];}),backgroundColor:topSO.map(function(s,i){return 'rgba(200,255,0,'+(0.5+i/topSO.length*0.5)+')';}),borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,onClick:function(e,els){if(els.length)showStateDetail(topSO[els[0].index]);},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return ci.raw.toLocaleString('en-IN')+' orders';}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}}});
+  }
+
+  if(CH['c-state-rev'])CH['c-state-rev'].destroy();
+  var ctxSR=document.getElementById('c-state-rev');
+  if(ctxSR&&topSR.length){
+    ctxSR.parentElement.style.height=Math.max(260,topSR.length*22+50)+'px';
+    CH['c-state-rev']=new Chart(ctxSR,{type:'bar',data:{labels:topSR,datasets:[{data:topSR.map(function(s){return Math.round(stateRevenue[s]||0);}),backgroundColor:topSR.map(function(s,i){return 'rgba(46,204,113,'+(0.5+i/topSR.length*0.5)+')';}),borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,onClick:function(e,els){if(els.length)showStateDetail(topSR[els[0].index]);},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return inr(ci.raw);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return inr(v);}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}}}}); 
+  }
+}
+
+function renderCityTable(cityOrders, cityRevenue) {
+  var allCities = Object.keys(cityOrders).sort(function(a,b){return cityOrders[b]-cityOrders[a];});
+  document.getElementById('cnt-cities').textContent = allCities.length;
+  var totalO = Object.values(cityOrders).reduce(function(a,b){return a+b;},0);
+  var totalR = Object.values(cityRevenue).reduce(function(a,b){return a+b;},0);
+  pTable('t-all-cities','',['#','City','State','Orders','Revenue','Avg Value','Order Share'],
+    allCities.map(function(c,i){
+      var o=cityOrders[c]||0, r=cityRevenue[c]||0;
+      var state=cityToState(c)||'—';
+      var avgV=o>0?Math.round(r/o):0;
+      var share=totalO>0?Math.round(o/totalO*100*10)/10:0;
+      return row([
+        '<span style="color:var(--mu)">'+(i+1)+'</span>',
+        '<strong style="color:var(--tx)">'+c.charAt(0)+c.slice(1).toLowerCase()+'</strong>',
+        '<span style="color:var(--mu2)">'+state+'</span>',
+        o.toLocaleString('en-IN'),
+        inr(r),
+        inr(avgV),
+        '<span style="color:var(--lime)">'+share+'%</span>'
+      ]);
+    })
+  );
+}
+
 </script>
 </body>
 </html>
