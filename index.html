@@ -350,9 +350,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-ov" class="fi" onchange="buildAll()" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-ov"></span>
@@ -441,9 +438,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-sw" class="fi" onchange="buildSW(getSwFiltered())" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-sw"></span>
@@ -479,9 +473,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-ops" class="fi" onchange="buildOps()" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-ops"></span>
@@ -524,9 +515,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-ref" class="fi" onchange="buildRef()" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-ref"></span>
@@ -581,9 +569,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-ful" class="fi" onchange="buildFul(D.sneakerOrders?D.sneakerOrders.rows:[],D.streetwearOrders?D.streetwearOrders.rows:[])" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-ful"></span>
@@ -607,9 +592,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-brands" class="fi" onchange="buildBrands()" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-brands"></span>
@@ -659,9 +641,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-topsell" class="fi" onchange="buildTopProducts()" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-topsell"></span>
@@ -671,13 +650,7 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
       </div>
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap" style="display:none">
         <span style="font-size:.7rem;color:var(--mu)">Period:</span>
-        <select id="tp-period" class="fi" onchange="buildTopProducts()">
-          <option value="current">Current month</option>
-          <option value="30">Last 30 days</option>
-          <option value="60">Last 60 days</option>
-          <option value="90">Last 90 days</option>
-          <option value="0">All time</option>
-        </select>
+        <select id="tp-period" class="fi" onchange="buildTopProducts()" style="display:none"><option value="">Current month</option></select>
         <span style="font-size:.7rem;color:var(--mu2)" id="tp-info"></span>
       </div>
       <div class="two" style="margin-bottom:1rem">
@@ -712,9 +685,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-score" class="fi" onchange="buildScore(D.sneakerOrders?D.sneakerOrders.rows:[],D.streetwearOrders?D.streetwearOrders.rows:[])" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-score"></span>
@@ -743,20 +713,21 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <span style="font-size:.68rem;color:var(--lime);font-weight:700">PERIOD:</span>
         <select id="period-snkbrands" class="fi" onchange="buildSnkBrands()" style="min-width:130px">
           <option value="">Current month</option>
-          <option value="7">Last 7 days</option>
-          <option value="15">Last 15 days</option>
-          <option value="30">Last 30 days</option>
           <option value="all">All time</option>
         </select>
         <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-snkbrands"></span>
       </div>
       <div class="kg" id="k-snkbrands"></div>
       <div class="two" style="margin-bottom:1rem">
-        <div class="cc"><div class="ct">Top brands — orders</div><div class="cw"><canvas id="c-snkbr-orders" style="height:260px" role="img" aria-label="SNK brand orders"></canvas></div></div>
-        <div class="cc"><div class="ct">Top brands — revenue (₹K from VALUE column)</div><div class="cw"><canvas id="c-snkbr-rev" style="height:260px" role="img" aria-label="SNK brand revenue"></canvas></div></div>
+        <div class="cc"><div class="ct">Top brands — orders (click bar to drill down)</div><div class="cw"><canvas id="c-snkbr-orders" style="height:260px" role="img" aria-label="SNK brand orders"></canvas></div></div>
+        <div class="cc"><div class="ct">Top brands — revenue (&#8377; from VALUE column, click to drill)</div><div class="cw"><canvas id="c-snkbr-rev" style="height:260px" role="img" aria-label="SNK brand revenue"></canvas></div></div>
       </div>
       <div class="two" style="margin-bottom:1rem">
-        <div class="cc"><div class="ct">Brand cancellation / RTO count</div><div class="cw"><canvas id="c-snkbr-rto" style="height:200px" role="img" aria-label="SNK brand RTO"></canvas></div></div>
+        <div class="cc"><div class="ct">Cancellations by brand (click bar to see orders)</div><div class="cw"><canvas id="c-snkbr-cancel" style="height:200px" role="img" aria-label="SNK brand cancel"></canvas></div></div>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">RTO by brand (click bar to see orders)</div><div class="cw"><canvas id="c-snkbr-rto" style="height:200px" role="img" aria-label="SNK brand RTO"></canvas></div></div>
+        <div class="cc"><div class="ct">Store credit issued by brand (&#8377;)</div><div class="cw"><canvas id="c-snkbr-credit" style="height:200px" role="img" aria-label="SNK brand credit"></canvas></div></div>
         <div class="cc"><div class="ct">Top products by brand — select brand</div>
           <select id="snkbr-sel" class="fi" style="margin-bottom:.5rem;width:100%" onchange="buildSnkBrandProducts()">
             <option value="">— select brand —</option>
@@ -1028,6 +999,7 @@ async function loadAll() {
   await Promise.all(allPromises);
 
   document.getElementById('lmsg').textContent = 'Building dashboard…';
+  populateAllPeriodSelects();
   buildAll();
   showScreen('dash');
   document.getElementById('lupd').textContent = 'Updated ' + new Date().toLocaleTimeString();
@@ -1202,6 +1174,28 @@ function esc(s) {
 function fmtAmt(v) {
   var n = parseFloat(String(v).replace(/[₹,\s]/g, ''));
   return isNaN(n) ? 0 : n;
+}
+
+/* Indian number format: 1,00,000 style */
+function inr(n, prefix) {
+  prefix = prefix !== false ? '\u20B9' : '';
+  n = Math.round(n);
+  if (n === 0) return prefix + '0';
+  var neg = n < 0; n = Math.abs(n);
+  var s = String(n);
+  // Indian grouping: last 3 then groups of 2
+  if (s.length > 3) {
+    var last3 = s.slice(-3);
+    var rest = s.slice(0, -3);
+    rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+    s = rest + ',' + last3;
+  }
+  return (neg ? '-' : '') + prefix + s;
+}
+
+function inrK(n) {
+  // Still return full number but formatted
+  return inr(n);
 }
 
 var C = {
@@ -1381,10 +1375,119 @@ function insCard(icon, label, value, color) {
 /* ── GLOBAL PERIOD HELPER ── */
 function getGlobalPeriod() { return getTabPeriod('ov'); }
 function getTabPeriod(tabId) {
-  // Try tab-specific period first, fall back to global
   var sel = document.getElementById('period-' + tabId) || document.getElementById('global-period');
   return sel ? sel.value : '';
 }
+function getGlobalPeriod() { return getTabPeriod('ov'); }
+
+/* Populate all period selects with months derived from all loaded data */
+function populateAllPeriodSelects() {
+  var monthSet = {};
+  function addMonths(rows, cols) {
+    rows.forEach(function(r) {
+      for (var i=0;i<cols.length;i++) {
+        var v = r[cols[i].toUpperCase()]; if(!v) continue;
+        var d = parseDate(v); if(!d) continue;
+        monthSet[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')] = true;
+        break;
+      }
+    });
+  }
+  var src = [
+    [D.sneakerOrders, ['DATE','ORDER DATE']],
+    [D.streetwearOrders, ['ORDER DATE']],
+    [D.refundLedger, ['DATE']],
+    [D.refundDone, ['DATE']],
+    [D.cancelledOrders, ['ORDER DATE']],
+    [D.swDelivered2026, ['ORDER DATE']]
+  ];
+  src.forEach(function(s){ if(s[0]) addMonths(s[0].rows, s[1]); });
+
+  var months = Object.keys(monthSet).sort().reverse();
+  // Month label formatter: "2026-04" → "April 2026"
+  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function monthLabel(mk) {
+    var parts = mk.split('-');
+    return monthNames[parseInt(parts[1])-1] + ' ' + parts[0];
+  }
+
+  // Populate every period-xxx select
+  var selIds = ['ov','snk','sw','ops','ref','ful','score','brands','topsell','fu','snkbrands'];
+  selIds.forEach(function(id) {
+    var sel = document.getElementById('period-'+id);
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">Current month</option>';
+    months.forEach(function(mk) {
+      var opt = document.createElement('option');
+      opt.value = mk;
+      opt.textContent = monthLabel(mk);
+      sel.appendChild(opt);
+    });
+    var lastOpt = document.createElement('option');
+    lastOpt.value = 'all'; lastOpt.textContent = 'All time';
+    sel.appendChild(lastOpt);
+    if (cur && Array.from(sel.options).some(function(o){return o.value===cur;})) sel.value = cur;
+  });
+}
+
+function globalPeriodFilter(rows, dateCols, tabId) {
+  var period = getTabPeriod(tabId || 'ov');
+  var today = new Date();
+  var lbl = document.getElementById('period-lbl-' + (tabId || 'ov'));
+
+  if (period === '' || period === 'current') {
+    if (lbl) lbl.textContent = today.toLocaleString('default',{month:'long',year:'numeric'}) + ' (current)';
+    return rows.filter(function(r) {
+      for (var i=0;i<dateCols.length;i++) {
+        var v=r[dateCols[i].toUpperCase()]; if(!v) continue;
+        var d=parseDate(v); if(!d) continue;
+        return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth();
+      }
+      return true;
+    });
+  }
+  if (period === 'all') {
+    if (lbl) lbl.textContent = 'All time';
+    return rows;
+  }
+  // Month key like "2026-04"
+  if (/^\d{4}-\d{2}$/.test(period)) {
+    var parts = period.split('-');
+    var yr = parseInt(parts[0]), mo = parseInt(parts[1])-1;
+    var monthNames2=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    if (lbl) lbl.textContent = monthNames2[mo] + ' ' + yr;
+    return rows.filter(function(r) {
+      for (var i=0;i<dateCols.length;i++) {
+        var v=r[dateCols[i].toUpperCase()]; if(!v) continue;
+        var d=parseDate(v); if(!d) continue;
+        return d.getFullYear()===yr && d.getMonth()===mo;
+      }
+      return false;
+    });
+  }
+  // Fallback — number of days
+  var days = parseInt(period);
+  if (!isNaN(days)) {
+    var cutoff = new Date(today.getTime() - days*864e5);
+    if (lbl) lbl.textContent = 'Last '+days+' days';
+    return rows.filter(function(r) {
+      for (var i=0;i<dateCols.length;i++) {
+        var v=r[dateCols[i].toUpperCase()]; if(!v) continue;
+        var d=parseDate(v); if(!d) continue;
+        return d>=cutoff && d<=today;
+      }
+      return false;
+    });
+  }
+  return rows;
+}
+
+function getSwFiltered() {
+  var allSWRows = D.streetwearOrders ? D.streetwearOrders.rows : [];
+  return globalPeriodFilter(allSWRows, ['ORDER DATE'], 'sw');
+}
+
 
 function globalPeriodFilter(rows, dateCols, tabId) {
   var period = getTabPeriod(tabId || 'ov');
@@ -1580,8 +1683,8 @@ function buildOV(snk, sw) {
     ckpi('Cancelled '+monthLabel, cancelP.length, 'this period', C.red, cancelP.length>20, 'showOVDetail("cancel-month")') +
     ckpi('SNK orders '+monthLabel, snkP.length, snkDel+' delivered', C.grn, false, 'showOVDetail("snk-month")') +
     ckpi('SW orders '+monthLabel, swTotal.length, swDel+' delivered', C.blu, false, 'showOVDetail("sw-month")') +
-    ckpi('SNK value '+monthLabel, '\u20B9'+Math.round(snkVal/1000)+'K', 'max \u20B9'+Math.round(snkMax).toLocaleString(), C.lime, false, null) +
-    ckpi('SW value '+monthLabel, '\u20B9'+Math.round(swVal/1000)+'K', 'max \u20B9'+Math.round(swMax).toLocaleString(), C.tel, false, null);
+    ckpi('SNK value '+monthLabel, inr(snkVal), 'max \u20B9'+Math.round(snkMax).toLocaleString(), C.lime, false, null) +
+    ckpi('SW value '+monthLabel, inr(swVal), 'max \u20B9'+Math.round(swMax).toLocaleString(), C.tel, false, null);
 
   window._ovData = {
     'snk-pending': {rows:snkPending,headers:['Order ID','Date','City','Item','Status'],mapper:function(r){return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE')),esc(g(r,'SHIPPING CITY')),esc(g(r,'ITEM NAME').substring(0,30)),statusBadge(g(r,'STATUS'))]);}},
@@ -2628,7 +2731,7 @@ function buildBrands() {
   var ctxV=document.getElementById('cbp-value');
   if(ctxV){
     ctxV.parentElement.style.height=Math.max(160,top10Val.length*28+40)+'px';
-    CH['cbp-value']=new Chart(ctxV,{type:'bar',data:{labels:top10Val.map(function(x){return x[0];}),datasets:[{data:top10Val.map(function(x){return Math.round(x[1]/1000);}),backgroundColor:C.grn,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return '\u20B9'+v+'K';}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
+    CH['cbp-value']=new Chart(ctxV,{type:'bar',data:{labels:top10Val.map(function(x){return x[0];}),datasets:[{data:top10Val.map(function(x){return Math.round(x[1]/1000);}),backgroundColor:C.grn,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return '\u20B9'+v;}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
   }
 
   // ── Cancellations by brand chart with amount ──
@@ -2770,9 +2873,9 @@ function buildScore(snkRaw, swRaw) {
   if (kpiMEl) kpiMEl.innerHTML =
     kpiCard('SNK orders', snkF.length, snkDel+' delivered ('+delivRate+'%)', C.lime) +
     kpiCard('SW orders', swCombined.length, swDel+' delivered ('+swDelivRate+'%)', C.blu) +
-    kpiCard('SNK value', '\u20B9'+Math.round(snkValM/1000)+'K', '', C.grn) +
-    kpiCard('SW value', '\u20B9'+Math.round(swValM/1000)+'K', '', C.tel) +
-    kpiCard('Refunds', '\u20B9'+Math.round(refValM/1000)+'K', refF.length+' cases', C.red) +
+    kpiCard('SNK value', inr(snkValM), '', C.grn) +
+    kpiCard('SW value', inr(swValM), '', C.tel) +
+    kpiCard('Refunds', inr(refValM), refF.length+' cases', C.red) +
     kpiCard('SNK cancelled', snkCancelRows.length, '\u20B9'+Math.round(snkCancelAmt/1000)+'K cancelled value', snkCancelRows.length>20?C.red:C.amb) +
     kpiCard('SW cancelled', swCancelRows.length, '\u20B9'+Math.round(swCancelAmt/1000)+'K cancelled value', swCancelRows.length>20?C.red:C.amb);
 
@@ -2833,7 +2936,7 @@ function buildScore(snkRaw, swRaw) {
   document.getElementById('bizinsights').innerHTML =
     insCard('\u{1F3C6}', 'Snk delivery rate', delivRate+'%', C.lime) +
     insCard('\u26A1', 'Total orders', totalOrders.toLocaleString(), C.blu) +
-    insCard('\u{1F4B0}', 'Refund exposure', '\u20B9'+Math.round(totalRefund/1000)+'K', C.red) +
+    insCard('\u{1F4B0}', 'Refund exposure', inr(totalRefund), C.red) +
     insCard('\u{1F4C8}', 'SW delivered 2026', allSWDel.length+' orders', C.grn) +
     insCard('\u{1F3AF}', 'Refund resolution', refResRate+'% closed', refResRate>75?C.grn:C.amb);
 }
@@ -3317,110 +3420,306 @@ function searchOpenBrand(brand) {
 ═══════════════════════════════════ */
 window._snkBrandData = {};
 
+/* ═══ SNK BRAND EXTRACTION ═══ */
+var BRAND_ALIASES = {
+  'JORDAN':    'Nike',  'AIR':     'Nike',  'NIKE':    'Nike',
+  'ADIDAS':    'Adidas','YEEZY':   'Adidas','STAN':    'Adidas',
+  'SAMBA':     'Adidas','ULTRABOOST':'Adidas',
+  'NEW':       'New Balance', // multi-word brands handled below
+  'BALANCE':   'New Balance',
+  'ON':        'On Running',
+  'SALEHE':    'New Balance', // Salehe Bembury collab
+  'PUMA':      'Puma',
+  'CONVERSE':  'Converse',
+  'VANS':      'Vans',
+  'ASICS':     'Asics',
+  'SAUCONY':   'Saucony',
+  'REEBOK':    'Reebok',
+  'HOKA':      'Hoka',
+  'BROOKS':    'Brooks',
+  'MIZUNO':    'Mizuno',
+  'CASIO':     'Casio', 'G-SHOCK': 'Casio',
+  'SWATCH':    'Swatch',
+  'UGG':       'Ugg',
+};
+
+var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','CLEANING KIT','QUICK SHOE','SHOE CARE'];
+
+var MULTI_WORD_BRANDS = [
+  { words: ['NEW','BALANCE'], brand: 'New Balance' },
+  { words: ['AIR','JORDAN'],  brand: 'Nike' },
+  { words: ['NEW','ROCK'],    brand: 'New Rock' },
+  { words: ['CASA','BACARDI'],brand: 'Casa Bacardi' },
+];
+
 function extractSnkBrand(itemName) {
-  // Take first word as brand — Jordan, adidas, Nike, On, New, etc.
-  var name = (itemName || '').trim();
-  var word = name.split(/\s/)[0] || name;
-  // Clean up common prefixes
+  var raw = (itemName || '').trim().toUpperCase();
+  if (!raw) return 'Other';
+
+  // Check Sneakare keywords first
+  for (var i=0; i<SNEAKARE_KEYWORDS.length; i++) {
+    if (raw.includes(SNEAKARE_KEYWORDS[i])) return 'Sneakare';
+  }
+
+  // Check multi-word brands
+  for (var i=0; i<MULTI_WORD_BRANDS.length; i++) {
+    var mwb = MULTI_WORD_BRANDS[i];
+    if (mwb.words.every(function(w){ return raw.includes(w); })) return mwb.brand;
+  }
+
+  // First word
+  var first = raw.split(/\s/)[0].replace(/[^A-Z]/g,'');
+  if (BRAND_ALIASES[first]) return BRAND_ALIASES[first];
+
+  // Capitalize first letter properly
+  var word = (itemName||'').trim().split(/\s/)[0];
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 }
 
+/* ═══ SNK BRAND PERFORMANCE ═══ */
+window._snkBrandData = {};
+window._snkBrandRows = {};
+
 function buildSnkBrands() {
   var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var allCancel = D.cancelledOrders ? D.cancelledOrders.rows : [];
   var period = getTabPeriod('snkbrands');
   var today = new Date();
   var isCurrent = period==='' || period==='current';
-  
+
   function inPeriod(ds) {
     var d = parseDate(ds); if(!d) return false;
     if(isCurrent) return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
     if(period==='all') return true;
-    var cutoff=new Date(today.getTime()-parseInt(period)*864e5);
-    return d>=cutoff&&d<=today;
+    if(/^\d{4}-\d{2}$/.test(period)) {
+      var p=period.split('-');
+      return d.getFullYear()===parseInt(p[0])&&d.getMonth()===parseInt(p[1])-1;
+    }
+    var days=parseInt(period);
+    if(!isNaN(days)){var cutoff=new Date(today.getTime()-days*864e5);return d>=cutoff&&d<=today;}
+    return true;
   }
-  
+
   var lbl = document.getElementById('period-lbl-snkbrands');
-  if(lbl) lbl.textContent = isCurrent?today.toLocaleString('default',{month:'long',year:'numeric'}):period==='all'?'All time':'Last '+period+' days';
+  if(lbl) {
+    if(isCurrent) lbl.textContent=today.toLocaleString('default',{month:'long',year:'numeric'});
+    else if(period==='all') lbl.textContent='All time';
+    else if(/^\d{4}-\d{2}$/.test(period)){var p=period.split('-');var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];lbl.textContent=mn[parseInt(p[1])-1]+' '+p[0];}
+    else lbl.textContent='';
+  }
 
   var rows = allSnk.filter(function(r){ return inPeriod(g(r,'DATE','ORDER DATE')); });
+  var cancelRows = allCancel.filter(function(r){ return inPeriod(g(r,'ORDER DATE')); });
 
-  // Group by brand (first word of item name)
-  var brandOrders={}, brandRevenue={}, brandRTO={}, brandDel={}, brandItems={};
+  var brandOrders={}, brandRevenue={}, brandRTO={}, brandDel={}, brandItems={}, brandCancel={}, brandCancelAmt={}, brandCredit={};
+  var brandRowsMap={};
+
   rows.forEach(function(r) {
     var brand = extractSnkBrand(g(r,'ITEM NAME'));
-    if(!brand||brand.length<2) return;
     var status=(g(r,'STATUS')||'').toUpperCase();
     brandOrders[brand]=(brandOrders[brand]||0)+1;
     brandRevenue[brand]=(brandRevenue[brand]||0)+fmtAmt(g(r,'VALUE','VALU','RATE'));
     if(status.includes('RTO')) brandRTO[brand]=(brandRTO[brand]||0)+1;
     if(status.includes('DELIVER')) brandDel[brand]=(brandDel[brand]||0)+1;
     if(!brandItems[brand]) brandItems[brand]={};
-    // Extract product (remove brand prefix)
+    if(!brandRowsMap[brand]) brandRowsMap[brand]=[];
+    brandRowsMap[brand].push(r);
+    // Full product name with brand prefix
     var item=(g(r,'ITEM NAME')||'').trim();
-    var prod=item.substring(brand.length).trim().replace(/^-?\s*/,'').substring(0,40)||item.substring(0,40);
-    brandItems[brand][prod]=(brandItems[brand][prod]||0)+1;
+    brandItems[brand][item]=(brandItems[brand][item]||0)+1;
   });
 
-  window._snkBrandData = {brandOrders,brandRevenue,brandRTO,brandDel,brandItems};
-  
+  // Cancellations from cancelled orders sheet
+  cancelRows.forEach(function(r){
+    var item = g(r,'PRODUCT NAME')||'';
+    var brand = extractSnkBrand(item) || g(r,'BRAND') || 'Other';
+    brandCancel[brand]=(brandCancel[brand]||0)+1;
+    brandCancelAmt[brand]=(brandCancelAmt[brand]||0)+fmtAmt(g(r,'PRICE'));
+  });
+
+  // Store credit detection from refund sheets
+  var allRefRows = (D.refundLedger?D.refundLedger.rows:[]).concat(D.refundDone?D.refundDone.rows:[]);
+  allRefRows.forEach(function(r){
+    if(!inPeriod(g(r,'DATE'))) return;
+    var mode=(g(r,'RETURN MODE')||'').toUpperCase();
+    if(!mode.includes('CREDIT')&&!mode.includes('NOTE')&&!mode.includes('STORE')) return;
+    var cat=(g(r,'CATEGORY')||'').toUpperCase();
+    var brand = cat.includes('STREET')?null:cat.includes('HYPE')?'Hype/Watch':null;
+    // Try to extract brand from product desc
+    var prodDesc = g(r,'PRODUCT DETAILS','PRODUCT DESC','PRODUCT NAME')||'';
+    if(!brand&&prodDesc) brand=extractSnkBrand(prodDesc);
+    if(!brand) brand='Sneaker (unspecified)';
+    brandCredit[brand]=(brandCredit[brand]||0)+fmtAmt(g(r,'AMOUNT'));
+  });
+
+  window._snkBrandData = {brandOrders,brandRevenue,brandRTO,brandDel,brandItems,brandCancel,brandCancelAmt,brandCredit};
+  window._snkBrandRows = brandRowsMap;
+
   var allBrands=Object.keys(brandOrders).sort(function(a,b){return brandOrders[b]-brandOrders[a];});
   var top15=allBrands.slice(0,15);
-  var totalRev=Object.values(brandRevenue).reduce(function(a,b){return a+b;},0);
-  var totalOrders=Object.values(brandOrders).reduce(function(a,b){return a+b;},0);
+  var totalRev=allBrands.reduce(function(s,b){return s+(brandRevenue[b]||0);},0);
+  var totalOrders=allBrands.reduce(function(s,b){return s+(brandOrders[b]||0);},0);
 
   document.getElementById('k-snkbrands').innerHTML =
-    kpiCard('Brands', allBrands.length, rows.length+' orders', C.lime) +
-    kpiCard('Total revenue', '\u20B9'+Math.round(totalRev/100000).toFixed(1)+'L', 'from VALUE col', C.grn) +
-    kpiCard('Best brand', top15.length?top15[0].substring(0,12):'—', top15.length?brandOrders[top15[0]]+' orders':'', C.blu) +
-    kpiCard('Total RTO', Object.values(brandRTO).reduce(function(a,b){return a+b;},0), 'across all brands', C.red);
+    kpiCard('Brands', allBrands.length, totalOrders.toLocaleString()+' orders', C.lime) +
+    kpiCard('Total revenue', inr(totalRev), 'from VALUE column', C.grn) +
+    kpiCard('Best brand', top15.length?top15[0]:'—', top15.length?brandOrders[top15[0]].toLocaleString()+' orders':'', C.blu) +
+    kpiCard('Total RTO', allBrands.reduce(function(s,b){return s+(brandRTO[b]||0);},0), 'across all brands', C.red) +
+    kpiCard('Cancellations', Object.values(brandCancel).reduce(function(a,b){return a+b;},0), 'in period', C.amb);
 
-  mkHBar('c-snkbr-orders', top15, top15.map(function(b){return brandOrders[b];}), C.lime);
-  
+  // ── Clickable bar chart helper ──
+  function mkClickableHBar(cid, labels, vals, color, clickFn) {
+    if (CH[cid]) CH[cid].destroy();
+    var ctx = document.getElementById(cid);
+    if (!ctx) return;
+    ctx.parentElement.style.height = Math.max(160, labels.length*32+50)+'px';
+    CH[cid] = new Chart(ctx, {
+      type:'bar',
+      data:{ labels:labels, datasets:[{ data:vals, backgroundColor:Array.isArray(color)?color:color, borderRadius:3, hoverBackgroundColor:Array.isArray(color)?color.map(function(c){return c+'cc';}):color+'cc' }] },
+      options:{
+        indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:function(ctx){
+            var b=labels[ctx.dataIndex];
+            var rev=brandRevenue[b]?(' · Rev: '+inr(brandRevenue[b])):'';
+            return ctx.raw.toLocaleString()+' orders'+rev;
+          }}}
+        },
+        scales:{
+          x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},
+          y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}
+        },
+        onClick:function(e,els){
+          if(els.length&&clickFn) clickFn(labels[els[0].index]);
+        }
+      }
+    });
+    // Make canvas pointer cursor
+    ctx.style.cursor='pointer';
+  }
+
+  mkClickableHBar('c-snkbr-orders', top15, top15.map(function(b){return brandOrders[b];}), C.lime, function(brand){
+    showSnkBrandDrill(brand,'orders');
+  });
+
   var top15rev=allBrands.slice().sort(function(a,b){return brandRevenue[b]-brandRevenue[a];}).slice(0,15);
-  mkHBar('c-snkbr-rev', top15rev, top15rev.map(function(b){return Math.round(brandRevenue[b]/1000);}), C.grn);
-  
+  mkClickableHBar('c-snkbr-rev', top15rev, top15rev.map(function(b){return Math.round(brandRevenue[b]||0);}), C.grn, function(brand){
+    showSnkBrandDrill(brand,'orders');
+  });
+
   var rtoArr=allBrands.filter(function(b){return brandRTO[b];}).sort(function(a,b){return brandRTO[b]-brandRTO[a];}).slice(0,12);
-  mkHBar('c-snkbr-rto', rtoArr, rtoArr.map(function(b){return brandRTO[b];}), C.red);
+  mkClickableHBar('c-snkbr-rto', rtoArr, rtoArr.map(function(b){return brandRTO[b];}), C.red, function(brand){
+    showSnkBrandDrill(brand,'rto');
+  });
+
+  // Cancellations chart
+  var cancelArr=Object.keys(brandCancel).sort(function(a,b){return brandCancel[b]-brandCancel[a];}).slice(0,12);
+  if(CH['c-snkbr-cancel'])CH['c-snkbr-cancel'].destroy();
+  var ctxC=document.getElementById('c-snkbr-cancel');
+  if(ctxC&&cancelArr.length){
+    ctxC.parentElement.style.height=Math.max(160,cancelArr.length*32+50)+'px';
+    ctxC.style.cursor='pointer';
+    CH['c-snkbr-cancel']=new Chart(ctxC,{type:'bar',data:{labels:cancelArr,datasets:[{data:cancelArr.map(function(b){return brandCancel[b];}),backgroundColor:C.red,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var b=cancelArr[ctx.dataIndex];return ctx.raw+' cancels · ₹'+inr(brandCancelAmt[b]||0);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}},onClick:function(e,els){if(els.length)showSnkBrandDrill(cancelArr[els[0].index],'cancel');}}}); 
+  }
+
+  // Store credit chart
+  var creditArr=Object.keys(brandCredit).sort(function(a,b){return brandCredit[b]-brandCredit[a];}).slice(0,10);
+  if(CH['c-snkbr-credit'])CH['c-snkbr-credit'].destroy();
+  var ctxCr=document.getElementById('c-snkbr-credit');
+  if(ctxCr&&creditArr.length){
+    ctxCr.parentElement.style.height=Math.max(160,creditArr.length*32+50)+'px';
+    CH['c-snkbr-credit']=new Chart(ctxCr,{type:'bar',data:{labels:creditArr,datasets:[{data:creditArr.map(function(b){return Math.round(brandCredit[b]||0);}),backgroundColor:C.pur,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return inr(ctx.raw);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return inr(v);}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}}}});
+  }
 
   // Populate brand select
   var sel=document.getElementById('snkbr-sel');
   if(sel){
     var curVal=sel.value;
-    sel.innerHTML='<option value="">— select brand —</option>';
-    top15.forEach(function(b){var opt=document.createElement('option');opt.value=b;opt.textContent=b+' ('+brandOrders[b]+' orders)';sel.appendChild(opt);});
+    sel.innerHTML='<option value="">— select brand to see products —</option>';
+    allBrands.forEach(function(b){var opt=document.createElement('option');opt.value=b;opt.textContent=b+' ('+brandOrders[b]+' orders · '+inr(brandRevenue[b]||0)+')';sel.appendChild(opt);});
     if(curVal) sel.value=curVal;
   }
 
-  // Brand performance table
+  // Brand performance table with full Indian number format
   document.getElementById('cnt-snkbr').textContent=allBrands.length;
-  pTable('t-snkbr','',['Brand','Orders','Revenue','Avg Value','Delivered','RTO','Revenue Share'],
+  pTable('t-snkbr','',['Brand','Orders','Revenue','Avg Value','Delivered','RTO','Cancelled','Rev Share'],
     allBrands.map(function(b){
       var rev=brandRevenue[b]||0;
       var orders=brandOrders[b]||0;
       var avgVal=orders?Math.round(rev/orders):0;
       var delRate=orders?Math.round((brandDel[b]||0)/orders*100):0;
       var rtoRate=orders?Math.round((brandRTO[b]||0)/orders*100):0;
-      var revShare=totalRev>0?Math.round(rev/totalRev*100):0;
+      var cancelCount=brandCancel[b]||0;
+      var totalRev2=totalRev||1;
+      var revShare=Math.round(rev/totalRev2*100);
       return row([
-        '<strong>'+esc(b)+'</strong>',
-        orders,
-        '\u20B9'+Math.round(rev/1000)+'K',
-        '\u20B9'+avgVal.toLocaleString(),
-        '<span style="color:'+C.grn+'">'+( brandDel[b]||0)+'</span> <span style="color:var(--mu2);font-size:.65rem">('+delRate+'%)</span>',
+        '<strong style="cursor:pointer;color:var(--lime)" onclick="showSnkBrandDrill(\'' + esc(b) + '\',\'orders\')">'+esc(b)+'</strong>',
+        orders.toLocaleString('en-IN'),
+        inr(rev),
+        inr(avgVal),
+        '<span style="color:'+C.grn+'">'+(brandDel[b]||0)+'</span> <span style="color:var(--mu2);font-size:.65rem">('+delRate+'%)</span>',
         (brandRTO[b]||0)>0?'<span style="color:'+C.red+'">'+( brandRTO[b]||0)+'</span> <span style="color:var(--mu2);font-size:.65rem">('+rtoRate+'%)</span>':'<span style="color:var(--mu2)">0</span>',
+        cancelCount>0?'<span style="color:'+C.amb+'">'+cancelCount+'</span>':'0',
         '<span style="color:var(--lime)">'+revShare+'%</span>'
       ]);
     })
   );
 }
 
+function closeSnkDrill(){var el=document.getElementById('snkbr-drill');if(el){el.style.display='none';el._brand=null;}}
+function showSnkBrandDrill(brand, type) {
+  var el = document.getElementById('snkbr-drill');
+  if (!el) return;
+  if (el._brand===brand&&el._type===type&&el.style.display!=='none') {
+    el.style.display='none'; return;
+  }
+  el._brand=brand; el._type=type;
+  el.style.display='block';
+
+  var hdr='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">'+
+    '<span style="font-weight:700;color:var(--lime);font-size:.85rem">'+esc(brand)+' — '+esc(type)+'</span>'+
+    '<span onclick="closeSnkDrill()" style="cursor:pointer;color:var(--mu)">&#10005;</span>'+
+    '</div>';
+  el.innerHTML = hdr;
+
+  var rows = [];
+  var data = window._snkBrandData;
+  var rowsMap = window._snkBrandRows;
+
+  if (type==='orders' || type==='rto') {
+    var src = (rowsMap[brand]||[]);
+    if (type==='rto') src=src.filter(function(r){return (g(r,'STATUS')||'').toUpperCase().includes('RTO');});
+    var tbl=document.createElement('div'); tbl.className='tc'; tbl.style.maxHeight='320px'; tbl.style.overflowY='auto';
+    var inner=document.createElement('table'); inner.id='t-snkbr-drill'; tbl.appendChild(inner); el.appendChild(tbl);
+    pTable('t-snkbr-drill','',['Order ID','Date','City','Item','Status','Value'],
+      src.sort(function(a,b){var da=parseDate(g(a,'DATE','ORDER DATE')),db=parseDate(g(b,'DATE','ORDER DATE'));return(da&&db)?db-da:0;}).map(function(r){
+        return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'DATE')),esc(g(r,'SHIPPING CITY')),esc(g(r,'ITEM NAME').substring(0,38)),statusBadge(g(r,'STATUS')),inr(fmtAmt(g(r,'VALUE','VALU','RATE')))]);
+      })
+    );
+  } else if (type==='cancel') {
+    var cancelRows=(D.cancelledOrders?D.cancelledOrders.rows:[]).filter(function(r){
+      return extractSnkBrand(g(r,'PRODUCT NAME')||'')=== brand || (g(r,'BRAND')||'')=== brand;
+    });
+    var tbl2=document.createElement('div'); tbl2.className='tc'; tbl2.style.maxHeight='320px'; tbl2.style.overflowY='auto';
+    var inner2=document.createElement('table'); inner2.id='t-snkbr-drill'; tbl2.appendChild(inner2); el.appendChild(tbl2);
+    pTable('t-snkbr-drill','',['Order ID','Brand','Date','Product','Price','Status'],
+      cancelRows.map(function(r){return row(['<span class="oid">'+esc(g(r,'ORDER ID'))+'</span>',esc(g(r,'BRAND')),esc(g(r,'ORDER DATE')),esc(g(r,'PRODUCT NAME').substring(0,35)),inr(fmtAmt(g(r,'PRICE'))),statusBadge(g(r,'STATUS'))]);})
+    );
+  }
+}
+
 function buildSnkBrandProducts() {
   var brand = document.getElementById('snkbr-sel') ? document.getElementById('snkbr-sel').value : '';
-  if (!brand || !window._snkBrandData.brandItems) return;
-  var items = window._snkBrandData.brandItems[brand] || {};
-  var sorted = Object.keys(items).sort(function(a,b){return items[b]-items[a];}).slice(0,20);
-  pTable('t-snkbr-prods','',['Product','Orders'],
-    sorted.map(function(k,i){return row(['<span style="color:var(--tx)">'+esc(k.substring(0,40))+'</span>','<span style="font-weight:700">'+items[k]+'</span>']);})
+  if (!brand) return;
+  var items = (window._snkBrandData&&window._snkBrandData.brandItems&&window._snkBrandData.brandItems[brand]) || {};
+  var sorted = Object.keys(items).sort(function(a,b){return items[b]-items[a];}).slice(0,30);
+  pTable('t-snkbr-prods','',['#','Full Product Name','Orders'],
+    sorted.map(function(k,i){return row([
+      '<span style="color:var(--mu)">'+(i+1)+'</span>',
+      '<span style="color:var(--tx)">'+esc(k.substring(0,55))+'</span>',
+      '<span style="font-weight:700;color:var(--lime)">'+items[k]+'</span>'
+    ]);})
   );
 }
 </script>
