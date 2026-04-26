@@ -215,6 +215,13 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
 .sr-empty{padding:1.2rem;text-align:center;color:var(--mu);font-size:.82rem;}
 .sr-hint{padding:.5rem .75rem;font-size:.66rem;color:var(--mu2);border-top:1px solid var(--b1);margin-top:.3rem;}
 
+
+/* India map improvements */
+#india-svg path { transition: fill 0.2s, stroke 0.2s, opacity 0.2s; }
+#india-svg path:hover { stroke: #c8ff00 !important; stroke-width: 1.5px !important; filter: brightness(1.3); }
+#india-svg circle { transition: r 0.2s; }
+#india-svg circle:hover { filter: brightness(1.4); }
+
 @media(max-width:1100px){.crow{grid-template-columns:1fr 1fr;}.score-grid{grid-template-columns:1fr 1fr;}}
 @media(max-width:700px){.crow,.two,.fgrid{grid-template-columns:1fr;}.kg{grid-template-columns:repeat(2,1fr);}}
 </style>
@@ -276,6 +283,44 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
 
 <!-- DASHBOARD -->
 <div id="dash">
+  <!-- EXPORT MENU -->
+  <div id="export-overlay" onclick="if(event.target===this)closeExport()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:998;align-items:center;justify-content:center">
+    <div style="background:var(--s1);border:1px solid var(--b2);border-radius:12px;width:min(420px,92vw);padding:1.2rem;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <span style="font-weight:700;color:var(--lime);font-size:.95rem">&#128190; Export Data</span>
+        <span onclick="closeExport()" style="cursor:pointer;color:var(--mu)">&#10005;</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+        <button onclick="exportCSV('snk')" style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:.65rem;cursor:pointer;color:var(--tx);font-size:.78rem;text-align:left">
+          <div style="color:var(--lime);font-weight:700;margin-bottom:.2rem">&#128241; Sneaker Orders</div>
+          <div style="color:var(--mu);font-size:.68rem">All loaded rows as CSV</div>
+        </button>
+        <button onclick="exportCSV('sw')" style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:.65rem;cursor:pointer;color:var(--tx);font-size:.78rem;text-align:left">
+          <div style="color:var(--blu);font-weight:700;margin-bottom:.2rem">&#128081; Streetwear Orders</div>
+          <div style="color:var(--mu);font-size:.68rem">All loaded rows as CSV</div>
+        </button>
+        <button onclick="exportCSV('ref')" style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:.65rem;cursor:pointer;color:var(--tx);font-size:.78rem;text-align:left">
+          <div style="color:var(--red);font-weight:700;margin-bottom:.2rem">&#128176; Refunds</div>
+          <div style="color:var(--mu);font-size:.68rem">Ledger + Done rows as CSV</div>
+        </button>
+        <button onclick="exportCSV('cancel')" style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:.65rem;cursor:pointer;color:var(--tx);font-size:.78rem;text-align:left">
+          <div style="color:var(--amb);font-weight:700;margin-bottom:.2rem">&#10060; Cancelled Orders</div>
+          <div style="color:var(--mu);font-size:.68rem">All cancelled rows as CSV</div>
+        </button>
+        <button onclick="exportCSV('exch')" style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:.65rem;cursor:pointer;color:var(--tx);font-size:.78rem;text-align:left">
+          <div style="color:var(--pur);font-weight:700;margin-bottom:.2rem">&#128260; Exchange & RTO</div>
+          <div style="color:var(--mu);font-size:.68rem">Exchange/RTO rows as CSV</div>
+        </button>
+        <button onclick="exportCSV('all')" style="background:var(--limb);border:1px solid var(--lime);border-radius:8px;padding:.65rem;cursor:pointer;color:var(--tx);font-size:.78rem;text-align:left">
+          <div style="color:var(--lime);font-weight:700;margin-bottom:.2rem">&#128230; Export All</div>
+          <div style="color:var(--mu);font-size:.68rem">All sheets combined (large)</div>
+        </button>
+      </div>
+      <div style="margin-top:.85rem;padding:.6rem .75rem;background:var(--s2);border-radius:6px;font-size:.68rem;color:var(--mu2)">
+        &#128161; CSV files open in Excel/Google Sheets. Data exported matches what is currently loaded.
+      </div>
+    </div>
+  </div>
   <!-- SEARCH OVERLAY -->
   <div id="search-overlay" onclick="if(event.target===this)closeSearch()">
     <div id="search-box">
@@ -292,6 +337,7 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
     </div>
     <div class="tbr">
       <span class="rinfo" id="lupd"></span>
+      <button class="btn" onclick="showExportMenu()" title="Export data" style="font-size:.8rem">&#128190; Export</button>
       <button class="btn" onclick="toggleSearch()" title="Search (Ctrl+K)" style="font-size:.8rem">&#128269; Search</button>
       <button class="btn" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">&#9788;</button>
       <button class="btn lime" onclick="manualRefresh()" id="rbtn">&#8635; Refresh</button>
@@ -427,6 +473,13 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
       </div>
       <div class="shd">Orders <span class="scnt" id="csnka">0</span></div>
       <div class="tc"><div class="ts"><table id="tsnka"></table></div><div class="pg" id="pgsnka"></div></div>
+      <!-- All SNK brands list -->
+      <div class="cc" style="margin-bottom:.75rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 1rem">
+          <div class="ct" style="margin:0">All sneaker brands — orders & revenue (inactive shown in red) <span class="scnt" id="cnt-snk-all-brands">0</span></div>
+        </div>
+        <div class="tc" style="margin:0"><div class="ts" style="max-height:280px;overflow-y:auto"><table id="t-snk-all-brands"></table></div></div>
+      </div>
       <div class="shd" style="margin-top:1rem">&#128717; Multi-item orders (same order ID, 2+ products) <span class="scnt" id="cnt-multi-orders">0</span></div>
       <div class="tc"><div class="ts"><table id="t-multi-orders"></table></div><div class="pg" id="pg-multi-orders"></div></div>
       <div class="shd" style="margin-top:1rem">Sneaker RTO / Returns <span class="scnt" id="csnkr">0</span></div>
@@ -631,6 +684,19 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <div class="ct">Top 10 brands — revenue (&#8377;K)</div>
         <div class="cw"><canvas id="cbp-value" style="height:200px" role="img" aria-label="Brand revenue"></canvas></div>
       </div>
+      <!-- Inactive brands -->
+      <div id="inactive-brands-section" style="display:none;background:var(--s1);border:1px solid rgba(255,68,68,.25);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:.75rem">
+        <div style="font-size:.68rem;font-weight:700;color:var(--red);margin-bottom:.35rem">&#9888; BRANDS INACTIVE THIS MONTH (active in last 3 months)</div>
+        <div id="inactive-brands-list"></div>
+      </div>
+      <!-- Brand trend line chart -->
+      <div class="cc" style="margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:.65rem;padding:.5rem 1rem .35rem">
+          <div class="ct" style="margin:0">Brand trend — last 6 months (select brand)</div>
+          <select id="trend-brand-sel" class="fi" onchange="buildBrandTrendSingle()" style="min-width:160px"><option value="">All top brands</option></select>
+        </div>
+        <div class="cw"><canvas id="c-brand-trend" style="height:220px" role="img" aria-label="Brand trend"></canvas></div>
+      </div>
       <div id="active-brands-list" style="display:none;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:1rem;overflow:hidden"></div>
       <div class="shd">Brand performance table <span class="scnt" id="cbp-cnt">0</span></div>
       <div class="tc"><div class="ts"><table id="tbp"></table></div></div>
@@ -727,18 +793,13 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <div class="cc"><div class="ct">Cancellations by brand (click bar to see orders)</div><div class="cw"><canvas id="c-snkbr-cancel" style="height:200px" role="img" aria-label="SNK brand cancel"></canvas></div></div>
       </div>
       <div class="two" style="margin-bottom:1rem">
-        <div class="cc"><div class="ct">RTO by brand (click bar to see orders)</div><div class="cw"><canvas id="c-snkbr-rto" style="height:200px" role="img" aria-label="SNK brand RTO"></canvas></div></div>
-        <div class="cc"><div class="ct">Store credit issued by brand (&#8377;)</div><div class="cw"><canvas id="c-snkbr-credit" style="height:200px" role="img" aria-label="SNK brand credit"></canvas></div></div>
+        <div class="cc"><div class="ct">RTO by brand — orders (click to drill down)</div><div class="cw"><canvas id="c-snkbr-rto" style="height:200px" role="img" aria-label="SNK brand RTO"></canvas></div></div>
         <div class="cc"><div class="ct">Top products by brand — select brand</div>
           <select id="snkbr-sel" class="fi" style="margin-bottom:.5rem;width:100%" onchange="buildSnkBrandProducts()">
             <option value="">— select brand —</option>
           </select>
           <div class="tc" style="margin:0"><div class="ts"><table id="t-snkbr-prods"></table></div></div>
         </div>
-      </div>
-      <div class="cc" style="margin-bottom:1rem">
-        <div class="ct">Size distribution by brand (top 6 brands, stacked)</div>
-        <div class="cw"><canvas id="c-snkbr-size" style="height:260px" role="img" aria-label="Brand size distribution"></canvas></div>
       </div>
       <div class="shd">Brand performance table <span class="scnt" id="cnt-snkbr">0</span></div>
       <div class="tc"><div class="ts"><table id="t-snkbr"></table></div></div>
@@ -966,19 +1027,36 @@ function initAuth() {
 }
 
 function startWithCid(cid) {
+  // Check if we have a valid cached token (Google tokens last 1 hour)
+  var cachedToken  = localStorage.getItem('cdc_access_token');
+  var cachedExpiry = parseInt(localStorage.getItem('cdc_token_expiry') || '0');
+  var now = Date.now();
+  if (cachedToken && cachedExpiry > now + 60000) {
+    // Token still valid for >1 minute — use it directly
+    accessToken = cachedToken;
+    showScreen('loading');
+    loadAll();
+    return;
+  }
+  // Need fresh token
   try {
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: cid,
       scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
       callback: function(resp) {
-        if (resp.error) { showErr('Auth failed: ' + resp.error); resetBtn(); return; }
+        if (resp.error) { localStorage.removeItem('cdc_access_token'); localStorage.removeItem('cdc_token_expiry'); showErr('Auth failed: ' + resp.error + '. Please retry.'); resetBtn(); return; }
         accessToken = resp.access_token;
+        // Cache token — Google access tokens last 3600 seconds
+        var expiry = Date.now() + (resp.expires_in || 3600) * 1000;
+        localStorage.setItem('cdc_access_token', accessToken);
+        localStorage.setItem('cdc_token_expiry', String(expiry));
         showScreen('loading');
         loadAll();
       },
       error_callback: function(e) { showErr('Error: ' + e.message); resetBtn(); }
     });
-    tokenClient.requestAccessToken();
+    // Try silent token first (prompt: 'none') to avoid showing consent every time
+    tokenClient.requestAccessToken({ prompt: '' });
   } catch(e) { showErr('Init failed: ' + e.message); resetBtn(); }
 }
 
@@ -1403,11 +1481,12 @@ function mkDonut(cid, lid, data) {
   }
 }
 
-function mkHBar(cid, labels, vals, color) {
+function mkHBar(cid, labels, vals, color, onClickFn) {
   if (CH[cid]) CH[cid].destroy();
   var ctx = document.getElementById(cid);
   if (!ctx) return;
   ctx.parentElement.style.height = Math.max(160, labels.length * 28 + 40) + 'px';
+  if (onClickFn) ctx.style.cursor = 'pointer'; else ctx.style.cursor = '';
   CH[cid] = new Chart(ctx, {
     type: 'bar',
     data: { labels: labels, datasets: [{ data: vals, backgroundColor: Array.isArray(color) ? color : color, borderRadius: 3 }] },
@@ -1422,10 +1501,11 @@ function mkHBar(cid, labels, vals, color) {
   });
 }
 
-function mkBar(cid, labels, vals, colors) {
+function mkBar(cid, labels, vals, colors, onClickFn) {
   if (CH[cid]) CH[cid].destroy();
   var ctx = document.getElementById(cid);
   if (!ctx) return;
+  if (onClickFn) ctx.style.cursor = 'pointer';
   CH[cid] = new Chart(ctx, {
     type: 'bar',
     data: { labels: labels, datasets: [{ data: vals, backgroundColor: Array.isArray(colors) ? colors : colors, borderRadius: 3 }] },
@@ -1944,6 +2024,7 @@ function buildSnk(snk) {
   }
 
   document.getElementById('csnka').textContent = snk.length;
+  try { buildSnkInactiveBrands(); } catch(e) { console.error('buildSnkInactiveBrands:', e); }
   pTable('tsnka', 'pgsnka', ['Order ID','Date','City','Item','Qty','Status','Courier','Tracking'],
     snk.slice().reverse().map(function(r) {
       return row(['<span class="oid">' + esc(g(r,'ORDER ID')) + '</span>', esc(g(r,'DATE')), esc(g(r,'SHIPPING CITY')), esc(g(r,'ITEM NAME').substring(0,30)), esc(g(r,'QTY')), statusBadge(g(r,'STATUS')), esc(g(r,'COURIER SERVICE NAME','COURIER')), esc(g(r,'CDC TRACKING NUMBER','TRACKING NUMBER').substring(0,20))]);
@@ -2599,114 +2680,101 @@ function buildFul(snkRaw, swRaw) {
 function buildTopProducts() {
   var tpSel = document.getElementById('period-topsell') ? document.getElementById('period-topsell').value : '';
   var today = new Date();
-  var cutoff = null;
-  var isCurrent = tpSel === 'current';
-  if (!isCurrent && tpSel !== '0' && tpSel !== '') {
-    var days = parseInt(tpSel);
-    if (!isNaN(days) && days > 0) cutoff = new Date(today.getTime() - days * 864e5);
-  }
+  var isCurrent = tpSel==='' || tpSel==='current';
+  var isAll = tpSel==='all';
   var infoEl = document.getElementById('tp-info');
+  var topN_count = parseInt(document.getElementById('tp-topn') ? document.getElementById('tp-topn').value : '10') || 10;
+
+  var lbl = document.getElementById('period-lbl-topsell');
+  var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   function inPeriod(dateStr) {
-    var d = parseDate(dateStr);
-    if (!d) return false;
+    var d = parseDate(dateStr); if (!d) return false;
     if (isCurrent) return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth();
-    if (!cutoff) return true;
-    return d >= cutoff && d <= today;
+    if (isAll) return true;
+    if (/^\d{4}-\d{2}$/.test(tpSel)) {
+      var p=tpSel.split('-');
+      var ok = d.getFullYear()===parseInt(p[0]) && d.getMonth()===parseInt(p[1])-1;
+      if(lbl && ok===false && !lbl.dataset.set) { lbl.dataset.set=1; lbl.textContent=mn[parseInt(p[1])-1]+' '+p[0]; }
+      return ok;
+    }
+    return true;
+  }
+
+  if(lbl){
+    if(isCurrent) lbl.textContent=today.toLocaleString('default',{month:'long',year:'numeric'});
+    else if(isAll) lbl.textContent='All time';
+    else if(/^\d{4}-\d{2}$/.test(tpSel)){var p=tpSel.split('-');lbl.textContent=mn[parseInt(p[1])-1]+' '+p[0];}
   }
 
   var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
   var allSW  = D.streetwearOrders ? D.streetwearOrders.rows : [];
-  // Also include delivered 2026 for SW
   var allSWDel = D.swDelivered2026 ? D.swDelivered2026.rows : [];
 
   var snkRows = allSnk.filter(function(r){ return inPeriod(g(r,'DATE','ORDER DATE')); });
   var swRows  = allSW.filter(function(r){ return inPeriod(g(r,'ORDER DATE')); });
   var swDelRows = allSWDel.filter(function(r){ return inPeriod(g(r,'ORDER DATE')); });
-  // Combine active + delivered SW
   var swAll = swRows.concat(swDelRows);
 
-  var topN_count = parseInt(document.getElementById('tp-topn') ? document.getElementById('tp-topn').value : '10') || 10;
-  if (infoEl) infoEl.textContent = (isCurrent?'Current month':cutoff?'Last '+tpSel+' days':'All time')+' — '+snkRows.length+' sneaker, '+swAll.length+' SW — top '+topN_count;
+  if (infoEl) infoEl.textContent = (isCurrent?'Current month':isAll?'All time':tpSel)+' — '+snkRows.length.toLocaleString('en-IN')+' sneaker, '+swAll.length.toLocaleString('en-IN')+' SW — top '+topN_count;
 
   // ── Sneaker top products ──
-  var snkProductCount = {};
-  var snkProductSizes = {};
+  var snkProductCount = {}, snkProductSizes = {};
   snkRows.forEach(function(r) {
     var item = (g(r,'ITEM NAME')||'').trim();
-    // Extract base name by removing size suffix: "- UK 8", "UK8", etc.
     var baseName = item.replace(/\s*-?\s*UK\s*[\d.]+\s*$/i,'').replace(/\s*-?\s*US\s*[\d.]+\s*$/i,'').trim() || item;
     var sizeMatch = item.match(/UK\s*([\d.]+)/i);
-    var size = sizeMatch ? 'UK ' + sizeMatch[1] : (g(r,'SIZE')||'—');
-    snkProductCount[baseName] = (snkProductCount[baseName] || 0) + 1;
-    if (!snkProductSizes[baseName]) snkProductSizes[baseName] = {};
-    snkProductSizes[baseName][size] = (snkProductSizes[baseName][size] || 0) + 1;
+    var size = sizeMatch ? 'UK '+sizeMatch[1] : (g(r,'SIZE')||'—');
+    snkProductCount[baseName] = (snkProductCount[baseName]||0)+1;
+    if(!snkProductSizes[baseName]) snkProductSizes[baseName]={};
+    snkProductSizes[baseName][size] = (snkProductSizes[baseName][size]||0)+1;
   });
-
-  var snkTop10 = topN(snkProductCount, topN_count);
-  document.getElementById('cnt-tp-snk').textContent = snkTop10.length + ' (top '+topN_count+')';
-  pTable('t-tp-snk', '', ['#','Product','Orders','Top size'],
-    snkTop10.map(function(x, i) {
-      var sm = snkProductSizes[x[0]] || {};
-      var ts = topN(sm,1);
-      return row(['<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>',
-        '<span style="color:var(--lime);font-weight:600">'+esc(x[0].substring(0,42))+'</span>',
-        '<span style="font-size:.9rem;font-weight:800">'+x[1]+'</span>',
-        ts.length ? esc(ts[0][0])+' ('+ts[0][1]+')' : '—']);
+  var snkTop = topN(snkProductCount, topN_count);
+  document.getElementById('cnt-tp-snk').textContent = snkTop.length+' (top '+topN_count+')';
+  pTable('t-tp-snk','',['#','Product','Orders','Top size'],
+    snkTop.map(function(x,i){
+      var sm=snkProductSizes[x[0]]||{};
+      var ts=topN(sm,1);
+      return row(['<span style="color:var(--mu)">'+(i+1)+'</span>','<span style="color:var(--lime);font-weight:600">'+esc(x[0].substring(0,42))+'</span>','<span style="font-weight:800">'+x[1]+'</span>',ts.length?esc(ts[0][0])+' ('+ts[0][1]+')':'—']);
     }));
-  if (CH['c-tp-snk']) CH['c-tp-snk'].destroy();
-  var ctxSnk = document.getElementById('c-tp-snk');
-  if (ctxSnk) {
-    ctxSnk.parentElement.style.height = Math.max(180, snkTop10.length*28+40) + 'px';
-    CH['c-tp-snk'] = new Chart(ctxSnk, { type:'bar', data:{ labels:snkTop10.map(function(x){return x[0].substring(0,28);}), datasets:[{data:snkTop10.map(function(x){return x[1];}),backgroundColor:C.lime,borderRadius:3}]}, options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
-  }
 
-  // Sneaker size breakdown table
-  var snkSizeRows = snkTop10.map(function(x) {
-    var sm = snkProductSizes[x[0]] || {};
-    var sa = topN(sm,6);
-    return row(['<strong style="color:var(--lime)">'+esc(x[0].substring(0,32))+'</strong>', '<span style="font-weight:700">'+x[1]+' total</span>', sa.map(function(s){return esc(s[0])+': '+s[1];}).join(' | '), sa.length?esc(sa[0][0]):'—']);
-  });
-  pTable('t-tp-snk-size', '', ['Product','Total','Size breakdown (top 6)','Best size'], snkSizeRows);
+  if(CH['c-tp-snk'])CH['c-tp-snk'].destroy();
+  var ctxSnk=document.getElementById('c-tp-snk');
+  if(ctxSnk){
+    ctxSnk.parentElement.style.height=Math.max(200,snkTop.length*28+50)+'px';
+    CH['c-tp-snk']=new Chart(ctxSnk,{type:'bar',data:{labels:snkTop.map(function(x){return x[0].substring(0,30);}),datasets:[{data:snkTop.map(function(x){return x[1];}),backgroundColor:C.lime,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return ci.raw.toLocaleString('en-IN')+' orders';}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
+  }
+  var snkSizeRows=snkTop.map(function(x){var sm=snkProductSizes[x[0]]||{};var sa=topN(sm,6);return row(['<strong style="color:var(--lime)">'+esc(x[0].substring(0,32))+'</strong>','<span style="font-weight:700">'+x[1]+' total</span>',sa.map(function(s){return esc(s[0])+': '+s[1];}).join(' | '),sa.length?esc(sa[0][0]):'—']);});
+  pTable('t-tp-snk-size','',['Product','Total','Size breakdown (top 6)','Best size'],snkSizeRows);
 
   // ── Streetwear top products ──
-  var swProductCount = {};
-  var swProductSizes = {};
-  swAll.forEach(function(r) {
-    var item = (g(r,'PRODUCT NAME')||'').trim();
-    // strip trailing size: " - XL", " - S", " - M/L", " - One Size"
-    var baseName = item.replace(/\s*[-–]\s*(XS|S|M|L|XL|XXL|XXXL|2XL|3XL|Free\s*Size|One\s*Size|OS)\s*$/i,'').trim() || item;
-    var sizeMatch = item.match(/[-–]\s*(XS|S|M|L|XL|XXL|XXXL|2XL|3XL|Free\s*Size|One\s*Size|OS)\s*$/i);
-    var size = sizeMatch ? sizeMatch[1].toUpperCase() : (g(r,'SIZE')||'—');
-    swProductCount[baseName] = (swProductCount[baseName] || 0) + 1;
-    if (!swProductSizes[baseName]) swProductSizes[baseName] = {};
-    swProductSizes[baseName][size] = (swProductSizes[baseName][size] || 0) + 1;
+  var swProductCount={}, swProductSizes={};
+  swAll.forEach(function(r){
+    var item=(g(r,'PRODUCT NAME')||'').trim();
+    var baseName=item.replace(/\s*[-–]\s*(XS|S|M|L|XL|XXL|XXXL|2XL|3XL|Free\s*Size|One\s*Size|OS)\s*$/i,'').trim()||item;
+    var sizeMatch=item.match(/[-–]\s*(XS|S|M|L|XL|XXL|XXXL|2XL|3XL|Free\s*Size|One\s*Size|OS)\s*$/i);
+    var size=sizeMatch?sizeMatch[1].toUpperCase():(g(r,'SIZE')||'—');
+    swProductCount[baseName]=(swProductCount[baseName]||0)+1;
+    if(!swProductSizes[baseName]) swProductSizes[baseName]={};
+    swProductSizes[baseName][size]=(swProductSizes[baseName][size]||0)+1;
   });
-
-  var swTop10 = topN(swProductCount, topN_count);
-  document.getElementById('cnt-tp-sw').textContent = swTop10.length + ' (top '+topN_count+')';
-  pTable('t-tp-sw', '', ['#','Product','Orders','Top size'],
-    swTop10.map(function(x, i) {
-      var sm = swProductSizes[x[0]] || {};
-      var ts = topN(sm,1);
-      return row(['<span style="color:var(--mu);font-weight:700">'+(i+1)+'</span>',
-        '<span style="color:var(--blu);font-weight:600">'+esc(x[0].substring(0,42))+'</span>',
-        '<span style="font-size:.9rem;font-weight:800">'+x[1]+'</span>',
-        ts.length ? esc(ts[0][0])+' ('+ts[0][1]+')' : '—']);
+  var swTop=topN(swProductCount,topN_count);
+  document.getElementById('cnt-tp-sw').textContent=swTop.length+' (top '+topN_count+')';
+  pTable('t-tp-sw','',['#','Product','Orders','Top size'],
+    swTop.map(function(x,i){
+      var sm=swProductSizes[x[0]]||{};
+      var ts=topN(sm,1);
+      return row(['<span style="color:var(--mu)">'+(i+1)+'</span>','<span style="color:var(--blu);font-weight:600">'+esc(x[0].substring(0,42))+'</span>','<span style="font-weight:800">'+x[1]+'</span>',ts.length?esc(ts[0][0])+' ('+ts[0][1]+')':'—']);
     }));
-  if (CH['c-tp-sw']) CH['c-tp-sw'].destroy();
-  var ctxSW = document.getElementById('c-tp-sw');
-  if (ctxSW) {
-    ctxSW.parentElement.style.height = Math.max(180, swTop10.length*28+40) + 'px';
-    CH['c-tp-sw'] = new Chart(ctxSW, { type:'bar', data:{ labels:swTop10.map(function(x){return x[0].substring(0,28);}), datasets:[{data:swTop10.map(function(x){return x[1];}),backgroundColor:C.blu,borderRadius:3}]}, options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
-  }
 
-  var swSizeRows = swTop10.map(function(x) {
-    var sm = swProductSizes[x[0]] || {};
-    var sa = topN(sm,6);
-    return row(['<strong style="color:var(--blu)">'+esc(x[0].substring(0,32))+'</strong>', '<span style="font-weight:700">'+x[1]+' total</span>', sa.map(function(s){return esc(s[0])+': '+s[1];}).join(' | '), sa.length?esc(sa[0][0]):'—']);
-  });
-  pTable('t-tp-sw-size', '', ['Product','Total','Size breakdown (top 6)','Best size'], swSizeRows);
+  if(CH['c-tp-sw'])CH['c-tp-sw'].destroy();
+  var ctxSW=document.getElementById('c-tp-sw');
+  if(ctxSW){
+    ctxSW.parentElement.style.height=Math.max(200,swTop.length*28+50)+'px';
+    CH['c-tp-sw']=new Chart(ctxSW,{type:'bar',data:{labels:swTop.map(function(x){return x[0].substring(0,30);}),datasets:[{data:swTop.map(function(x){return x[1];}),backgroundColor:C.blu,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:250},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return ci.raw.toLocaleString('en-IN')+' orders';}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#888',font:{size:10}}}}}});
+  }
+  var swSizeRows=swTop.map(function(x){var sm=swProductSizes[x[0]]||{};var sa=topN(sm,6);return row(['<strong style="color:var(--blu)">'+esc(x[0].substring(0,32))+'</strong>','<span style="font-weight:700">'+x[1]+' total</span>',sa.map(function(s){return esc(s[0])+': '+s[1];}).join(' | '),sa.length?esc(sa[0][0]):'—']);});
+  pTable('t-tp-sw-size','',['Product','Total','Size breakdown (top 6)','Best size'],swSizeRows);
 }
 
 /* ── BRAND PERFORMANCE ── */
@@ -2888,6 +2956,58 @@ function buildBrands() {
     ]);
   });
   pTable('tbp','',['Brand','Pending','Delivered','Cancelled (value)','Cancel %','Revenue (share)','Avg Dispatch'],tableRows);
+
+  // ── Inactive brands (active in last 3 months but not current month) ──
+  var today3 = new Date();
+  var curMk3 = today3.getFullYear()+'-'+String(today3.getMonth()+1).padStart(2,'0');
+  function mko(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+  // Build per-month brand activity from all SW data
+  var brandMonthMap = {};
+  swAll.forEach(function(r){
+    var d=parseDate(g(r,'ORDER DATE')); if(!d) return;
+    var mk=mko(d); var b=g(r,'BRAND')||'(blank)';
+    if(!brandMonthMap[b]) brandMonthMap[b]=new Set();
+    brandMonthMap[b].add(mk);
+  });
+  del26All.forEach(function(r){
+    var d=parseDate(g(r,'ORDER DATE')); if(!d) return;
+    var mk=mko(d); var b=g(r,'BRAND')||'(blank)';
+    if(!brandMonthMap[b]) brandMonthMap[b]=new Set();
+    brandMonthMap[b].add(mk);
+  });
+
+  // Get last 3 months
+  var last3 = [];
+  for(var mi=1;mi<=3;mi++){
+    var dt=new Date(today3.getFullYear(),today3.getMonth()-mi,1);
+    last3.push(mko(dt));
+  }
+
+  var inactiveBrands = Object.keys(brandMonthMap).filter(function(b){
+    var months = Array.from(brandMonthMap[b]);
+    var activeRecently = last3.some(function(mk){ return months.includes(mk); });
+    var activeCurrent = months.includes(curMk3);
+    return activeRecently && !activeCurrent;
+  });
+  inactiveBrands.sort();
+
+  var inactEl = document.getElementById('inactive-brands-section');
+  if(inactEl) {
+    inactEl.style.display = inactiveBrands.length ? 'block' : 'none';
+    var inactHTML = '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem">';
+    inactiveBrands.forEach(function(b){
+      var lastActive = last3.find(function(mk){return Array.from(brandMonthMap[b]).includes(mk);}) || '?';
+      inactHTML += '<span style="background:var(--red)22;color:var(--red);border:1px solid var(--red)44;padding:3px 10px;border-radius:20px;font-size:.68rem">'+esc(b)+' <span style="opacity:.6">(last: '+lastActive+')</span></span>';
+    });
+    inactHTML += '</div>';
+    document.getElementById('inactive-brands-list').innerHTML = inactiveBrands.length ?
+      '<div style="font-size:.7rem;color:var(--mu);margin-bottom:.35rem">'+inactiveBrands.length+' brands were active in the last 3 months but placed no orders in current month:</div>' + inactHTML :
+      '<div style="color:var(--mu);font-size:.75rem">No inactive brands — all recent brands are still active.</div>';
+  }
+
+  // ── Brand line chart (last 3 months trend) ──
+  buildBrandTrendChart(swAll.concat(del26All));
+
 }
 
 function closeBPDetail(){var el=document.getElementById('active-brands-list');if(el){el.style.display='none';el._key=null;}}
@@ -3577,28 +3697,55 @@ var BRAND_ALIASES = {
   'CASIO':     'Casio',  'SWATCH':  'Swatch',   'UGG':     'Ugg',
   'STANLEY':   'Stanley','ANTA':    'Anta',     'KODAK':   'Kodak',
   'STARBUCKS': 'Starbucks', 'BEARISTA':'Starbucks',
+  'EDIFICE':  'Edifice',  'EFV':    'Edifice',   'ED637':  'Edifice',
+  'LOUIS':    'Louis Vuitton', 'LV':     'Louis Vuitton',
+  'LI':       'Li-Ning',
+  'LI-NING':  'Li-Ning',
+
   // CDC branded
-  'CDC':       'CDC Merch',
+  'CDC':'CDC',
 };
 
-var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','QUICK SHOE','SHOE CARE','SHOE WIPE','SNEAKER WIPE','LEATHER CONDITIONER','SOLE GUARD','SOLE SAVER','STACK\'EM','STACKEM','SNEAKER CRATE','SHOE SHIELD','FOAM CLEANER'];
+var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','QUICK SHOE','SHOE CARE','SHOE WIPE','SNEAKER WIPE','LEATHER CONDITIONER','SOLE GUARD','SOLE SAVER','STACK\'EM','STACKEM','SNEAKER CRATE','SHOE SHIELD','FOAM CLEANER','QUICK KIT','SHOE SHAPER','PACK OF 2 PAIR'];
 
 var MULTI_WORD_BRANDS = [
-  { words: ['NEW','BALANCE'],   brand: 'New Balance' },
-  { words: ['AIR','JORDAN'],    brand: 'Nike' },
-  { words: ['THE','ROGER'],     brand: 'On Running' },
-  { words: ['NEW','ROCK'],      brand: 'New Rock' },
-  { words: ['CASA','BACARDI'],  brand: 'Casa Bacardi' },
-  { words: ['BEAR','BEARISTA'], brand: 'Starbucks' },
-  { words: ['CDC','ICE','POP'], brand: 'CDC Ice Pop Socks' },
-  { words: ['CDC','ICE'],       brand: 'CDC Ice Pop Socks' },
-  { words: ['SNEAKER','WIPES'], brand: 'CDC Sneaker Wipes' },
-  { words: ['THE','HOMERUN'],   brand: 'CDC Merch' },
-  { words: ['LOVE','CONQUERS'], brand: 'CDC Merch' },
-  { words: ['BANANA','TRUFFLE'],brand: 'CDC Merch' },
-  { words: ['JAMESON','SHIRT'], brand: 'CDC Merch' },
-  { words: ['CDC','PROTECTION'],brand: 'CDC Merch' },
-  { words: ['SEAM','PANTS'],    brand: '__IGNORE__' },
+  { words: ['NEW','BALANCE'],    brand: 'New Balance' },
+  { words: ['AIR','JORDAN'],     brand: 'Nike' },
+  { words: ['THE','ROGER'],      brand: 'On Running' },
+  { words: ['NEW','ROCK'],       brand: 'New Rock' },
+  { words: ['CASA','BACARDI'],   brand: 'Casa Bacardi' },
+  { words: ['BEAR','BEARISTA'],  brand: 'Starbucks' },
+  { words: ['ICE','POP','PACK'], brand: 'CDC' },
+  { words: ['CDC','ICE','POP'],  brand: 'CDC' },
+  { words: ['CDC','XMAS'],       brand: 'CDC' },
+  { words: ['SNEAKER','WIPES'],  brand: 'CDC' },
+  { words: ['CDC','SNEAKER','WIPES'], brand: 'CDC' },
+  { words: ['THE','HOMERUN'],    brand: 'CDC' },
+  { words: ['LOVE','CONQUERS'],  brand: 'CDC' },
+  { words: ['BANANA','TRUFFLE'], brand: 'CDC' },
+  { words: ['JAMESON','SHIRT'],  brand: 'CDC' },
+  { words: ['CDC','PROTECTION'], brand: 'CDC' },
+  { words: ['TOYON'],            brand: 'CDC' },
+  { words: ['TROPICAL','PARADISE','SHIRT'], brand: 'CDC' },
+  { words: ['G-SHOCK'],          brand: 'G-Shock' },
+  { words: ['G1662'],            brand: 'G-Shock' },
+  { words: ['GD-B500'],          brand: 'G-Shock' },
+  { words: ['POKEMON','SCARLET'],brand: 'Pokemon' },
+  { words: ['POKEMON','VIOLET'], brand: 'Pokemon' },
+  { words: ['MONCOLLE'],         brand: 'Pokemon' },
+  { words: ['CHARIZARD'],        brand: 'Pokemon' },
+  { words: ['VENUSAUR'],         brand: 'Pokemon' },
+  { words: ['BLASTOISE'],        brand: 'Pokemon' },
+  { words: ['SEAM','PANTS'],     brand: '__IGNORE__' },
+  { words: ['LOUIS','VUITTON'],   brand: 'Louis Vuitton' },
+  { words: ['LI-NING'],           brand: 'Li-Ning' },
+  { words: ['QUICK','KIT','TOWEL'],brand: 'Sneakare' },
+  { words: ['QUICK','KIT','FOAM'], brand: 'Sneakare' },
+  { words: ['EDIFICE'],           brand: 'Edifice' },
+  { words: ['EFV-640'],           brand: 'Edifice' },
+  { words: ['ED637'],             brand: 'Edifice' },
+  { words: ['CDC','XMAS','POP'],  brand: 'CDC' },
+
 ];
 
 function extractSnkBrand(itemName) {
@@ -3765,13 +3912,15 @@ function buildSnkBrands() {
     CH['c-snkbr-rev']=new Chart(ctxR,{type:'bar',data:{labels:top15rev,datasets:[{data:top15rev.map(function(b){return Math.round(brandRevenue[b]||0);}),backgroundColor:C.grn,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return inr(ci.raw)+' revenue · '+brandOrders[top15rev[ci.dataIndex]]+' orders';}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return inr(v);}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}},plugins:[clickPluginR]});
   }
 
-  // ── RTO donut chart ──
+  // ── RTO horizontal bar (clickable) ──
   if(CH['c-snkbr-rto'])CH['c-snkbr-rto'].destroy();
   var ctxRTO=document.getElementById('c-snkbr-rto');
   if(ctxRTO){
-    var rtoArr=allBrands.filter(function(b){return brandRTO[b];}).sort(function(a,b){return brandRTO[b]-brandRTO[a];}).slice(0,8);
-    ctxRTO.parentElement.style.height='240px';
-    CH['c-snkbr-rto']=new Chart(ctxRTO,{type:'doughnut',data:{labels:rtoArr,datasets:[{data:rtoArr.map(function(b){return brandRTO[b];}),backgroundColor:PAL,borderWidth:2,borderColor:'#111'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{color:'#666',font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:function(ci){return ci.label+': '+ci.raw+' RTO';}}}}}});
+    var rtoArr=allBrands.filter(function(b){return brandRTO[b];}).sort(function(a,b2){return brandRTO[b2]-brandRTO[a];}).slice(0,10);
+    ctxRTO.style.cursor='pointer';
+    ctxRTO.parentElement.style.height=Math.max(180,rtoArr.length*30+50)+'px';
+    var clickPluginRTO2={id:'cpRTO2',afterEvent:function(chart,args){if(args.event.type!=='click')return;var els=chart.getElementsAtEventForMode(args.event.native,'nearest',{intersect:true},true);if(els.length)showSnkBrandDrill(rtoArr[els[0].index],'rto');}};
+    if(rtoArr.length)CH['c-snkbr-rto']=new Chart(ctxRTO,{type:'bar',data:{labels:rtoArr,datasets:[{data:rtoArr.map(function(b){return brandRTO[b];}),backgroundColor:C.red,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return ci.raw+' RTO orders';}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}},plugins:[clickPluginRTO2]});
   }
 
   // ── Cancellations bar (clickable, horizontal) ──
@@ -3785,26 +3934,9 @@ function buildSnkBrands() {
     CH['c-snkbr-cancel']=new Chart(ctxC,{type:'bar',data:{labels:cancelArr,datasets:[{data:cancelArr.map(function(b){return brandCancel[b];}),backgroundColor:C.red,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){var b=cancelArr[ci.dataIndex];return ci.raw+' cancels · '+inr(brandCancelAmt[b]||0);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}},plugins:[clickPluginC]});
   }
 
-  // ── Store credit donut ──
-  if(CH['c-snkbr-credit'])CH['c-snkbr-credit'].destroy();
-  var ctxCr=document.getElementById('c-snkbr-credit');
-  if(ctxCr){
-    var creditArr=Object.keys(brandCredit).sort(function(a,b){return brandCredit[b]-brandCredit[a];}).slice(0,8);
-    ctxCr.parentElement.style.height='240px';
-    if(creditArr.length)CH['c-snkbr-credit']=new Chart(ctxCr,{type:'doughnut',data:{labels:creditArr,datasets:[{data:creditArr.map(function(b){return Math.round(brandCredit[b]||0);}),backgroundColor:PAL.slice().reverse(),borderWidth:2,borderColor:'#111'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{color:'#666',font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:function(ci){return ci.label+': '+inr(ci.raw);}}}}}});
-  }
+  // Store credit section removed per user request
 
-  // ── Brand size distribution chart ──
-  if(CH['c-snkbr-size'])CH['c-snkbr-size'].destroy();
-  var ctxSz=document.getElementById('c-snkbr-size');
-  if(ctxSz){
-    // Build size data for top 6 brands
-    var top6=top15.slice(0,6);
-    var allSizes=[]; top6.forEach(function(b){Object.keys(brandSizes[b]||{}).forEach(function(s){if(s!=='—'&&!allSizes.includes(s))allSizes.push(s);});});
-    allSizes.sort(function(a,b){var an=parseFloat(a.replace(/[^\d.]/g,'')),bn=parseFloat(b.replace(/[^\d.]/g,''));return an-bn;}).splice(15);
-    ctxSz.parentElement.style.height='260px';
-    CH['c-snkbr-size']=new Chart(ctxSz,{type:'bar',data:{labels:top6,datasets:allSizes.map(function(sz,i){return{label:sz,data:top6.map(function(b){return (brandSizes[b]&&brandSizes[b][sz])||0;}),backgroundColor:PAL[i%PAL.length],borderRadius:2};}),},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#666',font:{size:9},boxWidth:10}}},scales:{x:{stacked:true,grid:{color:'#1e1e1e'},ticks:{color:'#666',font:{size:10}}},y:{stacked:true,grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}}}}});
-  }
+  // Size distribution chart removed per user request
 
   // Populate brand select
   var sel=document.getElementById('snkbr-sel');
@@ -3957,36 +4089,39 @@ var STATE_CENTERS = {
   'Sikkim':            {x:435, y:230},
 };
 
-// Simplified India state SVG paths (approximate outlines in 600x680 viewBox)
+// Improved India state SVG paths — better approximation of real state shapes
 var INDIA_STATE_PATHS = {
-  'Jammu and Kashmir': 'M240,60 L320,55 L350,90 L360,130 L310,145 L270,140 L240,115 Z',
-  'Himachal Pradesh': 'M260,140 L310,145 L320,175 L295,185 L265,180 Z',
-  'Punjab': 'M230,155 L265,150 L265,180 L240,185 L220,170 Z',
-  'Haryana': 'M240,185 L275,182 L290,200 L280,220 L245,215 Z',
-  'Delhi': 'M278,200 L295,198 L298,215 L280,217 Z',
-  'Uttarakhand': 'M290,185 L330,180 L340,205 L315,215 L290,205 Z',
-  'Rajasthan': 'M175,185 L245,183 L260,220 L255,285 L230,320 L185,310 L160,270 L165,215 Z',
-  'Uttar Pradesh': 'M280,215 L390,205 L415,230 L410,280 L375,295 L320,285 L260,260 L260,230 Z',
-  'Bihar': 'M375,250 L420,245 L435,270 L415,295 L375,295 L375,275 Z',
-  'Sikkim': 'M425,220 L445,218 L445,235 L425,235 Z',
-  'West Bengal': 'M410,270 L445,255 L465,285 L450,340 L415,355 L405,320 L410,285 Z',
-  'Jharkhand': 'M370,295 L415,290 L420,325 L390,355 L360,345 L360,315 Z',
-  'Odisha': 'M370,345 L415,340 L430,375 L400,415 L365,410 L355,375 Z',
-  'Chhattisgarh': 'M310,305 L370,295 L380,340 L365,380 L330,385 L295,365 L295,335 Z',
-  'Madhya Pradesh': 'M215,290 L310,280 L325,305 L315,360 L260,365 L215,340 Z',
-  'Gujarat': 'M155,285 L215,278 L225,310 L220,355 L200,380 L160,375 L140,340 L148,305 Z',
-  'Maharashtra': 'M215,340 L320,330 L345,355 L335,415 L290,435 L240,430 L215,395 Z',
-  'Goa': 'M228,430 L248,428 L250,445 L228,445 Z',
-  'Karnataka': 'M235,435 L335,420 L340,455 L310,490 L265,490 L235,465 Z',
-  'Telangana': 'M295,390 L355,380 L365,415 L340,445 L295,445 Z',
-  'Andhra Pradesh': 'M285,445 L365,435 L385,460 L360,490 L310,495 L280,475 Z',
-  'Tamil Nadu': 'M270,490 L355,485 L365,520 L325,555 L285,545 L265,518 Z',
-  'Kerala': 'M254,490 L275,488 L270,550 L248,548 L245,518 Z',
-  'Assam': 'M440,235 L510,232 L520,255 L495,270 L450,265 L435,250 Z',
-  'Meghalaya': 'M450,260 L495,258 L498,278 L455,280 Z',
-  'Tripura': 'M460,290 L485,288 L487,310 L460,312 Z',
-  'Manipur': 'M495,278 L520,275 L522,298 L498,300 Z',
-  'Sikkim': 'M424,222 L442,220 L443,236 L424,236 Z',
+  'Jammu and Kashmir': 'M238,40 L265,35 L295,38 L330,45 L355,60 L365,85 L370,115 L350,130 L325,138 L300,145 L275,140 L255,130 L238,115 L228,90 L230,65 Z',
+  'Ladakh': 'M295,38 L360,30 L420,40 L440,65 L420,95 L390,110 L360,115 L350,130 L330,138 L355,60 L330,45 Z',
+  'Himachal Pradesh': 'M255,130 L300,125 L325,138 L330,160 L315,175 L295,180 L268,175 L255,160 Z',
+  'Punjab': 'M225,155 L258,148 L268,175 L258,195 L238,200 L218,190 L215,170 Z',
+  'Haryana': 'M238,200 L275,195 L290,210 L285,235 L258,238 L235,228 Z',
+  'Delhi': 'M278,213 L298,210 L303,228 L283,232 Z',
+  'Uttarakhand': 'M290,178 L330,172 L345,188 L340,210 L315,215 L295,210 Z',
+  'Uttar Pradesh': 'M258,238 L290,232 L380,220 L420,228 L430,252 L418,285 L385,298 L340,302 L295,295 L260,275 L250,252 Z',
+  'Rajasthan': 'M162,185 L225,175 L240,200 L258,238 L252,280 L240,318 L210,338 L172,335 L145,308 L138,268 L148,222 Z',
+  'Gujarat': 'M138,268 L172,260 L212,268 L240,290 L238,338 L215,368 L192,388 L162,392 L135,370 L122,335 L128,298 Z',
+  'Madhya Pradesh': 'M212,268 L252,260 L295,262 L340,255 L388,262 L398,285 L385,338 L355,360 L320,368 L275,370 L235,362 L212,340 L210,308 Z',
+  'Bihar': 'M385,252 L430,248 L455,262 L458,292 L435,308 L402,312 L382,298 L380,272 Z',
+  'Jharkhand': 'M380,308 L435,305 L455,322 L450,355 L415,372 L378,368 L362,348 L368,325 Z',
+  'West Bengal': 'M430,268 L462,255 L488,272 L495,305 L478,345 L455,365 L435,360 L425,335 L438,310 Z',
+  'Sikkim': 'M462,242 L480,240 L482,258 L462,260 Z',
+  'Odisha': 'M362,368 L415,365 L448,378 L452,412 L428,438 L388,442 L358,432 L345,408 L352,382 Z',
+  'Chhattisgarh': 'M305,368 L358,362 L380,375 L385,420 L365,448 L335,455 L302,445 L285,420 L290,390 Z',
+  'Maharashtra': 'M162,392 L215,370 L240,368 L285,375 L305,390 L315,420 L302,455 L278,472 L238,468 L212,450 L188,428 L168,408 Z',
+  'Telangana': 'M290,442 L335,432 L365,438 L378,462 L362,490 L330,500 L295,495 L278,472 L285,450 Z',
+  'Andhra Pradesh': 'M278,472 L330,498 L365,492 L395,505 L405,535 L382,558 L345,562 L308,555 L285,535 L272,510 Z',
+  'Karnataka': 'M188,428 L240,420 L278,425 L295,442 L285,480 L265,505 L238,510 L208,495 L188,470 L178,448 Z',
+  'Goa': 'M178,468 L200,462 L205,480 L185,482 Z',
+  'Kerala': 'M238,510 L265,505 L272,545 L262,572 L242,575 L228,555 L228,528 Z',
+  'Tamil Nadu': 'M272,510 L308,505 L345,510 L378,530 L385,558 L360,585 L322,592 L288,578 L268,555 L262,528 Z',
+  'Assam': 'M455,262 L525,252 L540,272 L530,295 L500,305 L468,298 L458,278 Z',
+  'Meghalaya': 'M468,298 L505,295 L512,318 L480,322 Z',
+  'Nagaland': 'M530,268 L555,265 L558,288 L535,292 Z',
+  'Manipur': 'M520,292 L545,290 L548,312 L522,318 Z',
+  'Mizoram': 'M510,318 L535,315 L538,340 L512,342 Z',
+  'Tripura': 'M488,305 L512,302 L515,325 L490,328 Z',
+  'Arunachal Pradesh': 'M440,228 L540,218 L555,245 L540,258 L525,252 L455,262 L438,245 Z',
 };
 
 // City lat/lng approx for plotting on SVG
@@ -4323,6 +4458,297 @@ function renderCityTable(cityOrders, cityRevenue) {
     })
   );
 }
+
+
+/* ═══ BRAND TREND CHART ═══ */
+function buildBrandTrendChart(allRows) {
+  // Get last 6 months
+  var today = new Date();
+  var months = [];
+  for(var mi=5;mi>=0;mi--){
+    var dt=new Date(today.getFullYear(),today.getMonth()-mi,1);
+    months.push(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'));
+  }
+  var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var monthLabels = months.map(function(mk){var p=mk.split('-');return mn[parseInt(p[1])-1]+' '+p[0];});
+
+  // Count per brand per month
+  var brandMonthOrders = {};
+  allRows.forEach(function(r){
+    var d=parseDate(g(r,'ORDER DATE')); if(!d) return;
+    var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(!months.includes(mk)) return;
+    var b=g(r,'BRAND')||'(blank)';
+    if(!brandMonthOrders[b]) brandMonthOrders[b]={};
+    brandMonthOrders[b][mk]=(brandMonthOrders[b][mk]||0)+1;
+  });
+
+  // Top 8 brands by 6-month total
+  var brandTotals={};
+  Object.keys(brandMonthOrders).forEach(function(b){
+    brandTotals[b]=months.reduce(function(s,mk){return s+(brandMonthOrders[b][mk]||0);},0);
+  });
+  var top8=Object.keys(brandTotals).sort(function(a,b){return brandTotals[b]-brandTotals[a];}).slice(0,8);
+
+  // Populate trend brand select
+  var sel=document.getElementById('trend-brand-sel');
+  if(sel&&sel.options.length<=1){
+    var all=Object.keys(brandTotals).sort(function(a,b){return brandTotals[b]-brandTotals[a];});
+    all.forEach(function(b){var opt=document.createElement('option');opt.value=b;opt.textContent=b+' ('+brandTotals[b]+' orders)';sel.appendChild(opt);});
+  }
+
+  var colors=[C.lime,C.blu,C.grn,C.red,C.pur,C.amb,C.tel,C.pnk];
+  if(CH['c-brand-trend'])CH['c-brand-trend'].destroy();
+  var ctx=document.getElementById('c-brand-trend');
+  if(!ctx) return;
+  CH['c-brand-trend']=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:monthLabels,
+      datasets:top8.map(function(b,i){return{
+        label:b,
+        data:months.map(function(mk){return brandMonthOrders[b][mk]||0;}),
+        borderColor:colors[i%colors.length],
+        backgroundColor:colors[i%colors.length]+'22',
+        borderWidth:2,pointRadius:4,pointHoverRadius:6,tension:.35,fill:false
+      };})
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:300},
+      plugins:{
+        legend:{display:true,position:'right',labels:{color:'#666',font:{size:9},boxWidth:10,padding:6}},
+        tooltip:{mode:'index',intersect:false,callbacks:{label:function(ci){return ci.dataset.label+': '+ci.raw+' orders';}}}
+      },
+      scales:{
+        x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},
+        y:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}}
+      }
+    }
+  });
+}
+
+function buildBrandTrendSingle() {
+  var sel=document.getElementById('trend-brand-sel');
+  var brand=sel?sel.value:'';
+  if(!brand){ buildBrandTrendChart((D.streetwearOrders?D.streetwearOrders.rows:[]).concat(D.swDelivered2026?D.swDelivered2026.rows:[])); return; }
+
+  var allRows=(D.streetwearOrders?D.streetwearOrders.rows:[]).concat(D.swDelivered2026?D.swDelivered2026.rows:[]);
+  var today=new Date();
+  var months=[];
+  for(var mi=5;mi>=0;mi--){var dt=new Date(today.getFullYear(),today.getMonth()-mi,1);months.push(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'));}
+  var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var monthLabels=months.map(function(mk){var p=mk.split('-');return mn[parseInt(p[1])-1]+' '+p[0];});
+
+  var data=months.map(function(mk){
+    return allRows.filter(function(r){
+      var d=parseDate(g(r,'ORDER DATE'));
+      return d && d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===mk && g(r,'BRAND')===brand;
+    }).length;
+  });
+
+  if(CH['c-brand-trend'])CH['c-brand-trend'].destroy();
+  var ctx=document.getElementById('c-brand-trend');
+  if(!ctx) return;
+  CH['c-brand-trend']=new Chart(ctx,{
+    type:'bar',
+    data:{labels:monthLabels,datasets:[{label:brand,data:data,backgroundColor:C.lime+'99',borderColor:C.lime,borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return ci.raw+' orders';}}}} ,scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}}}}
+  });
+}
+
+/* ═══ SNK INACTIVE BRANDS SECTION ═══ */
+function buildSnkInactiveBrands() {
+  var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
+  var today = new Date();
+  var curMk = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+  function mko(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+  var last3=[]; for(var mi=1;mi<=3;mi++){var dt=new Date(today.getFullYear(),today.getMonth()-mi,1);last3.push(mko(dt));}
+
+  var brandMonthMap={};
+  allSnk.forEach(function(r){
+    var d=parseDate(g(r,'DATE','ORDER DATE'));if(!d)return;
+    var mk=mko(d);var b=extractSnkBrand(g(r,'ITEM NAME'));if(!b||b==='__IGNORE__')return;
+    if(!brandMonthMap[b])brandMonthMap[b]=[];
+    if(!brandMonthMap[b].includes(mk))brandMonthMap[b].push(mk);
+  });
+
+  var inactive=Object.keys(brandMonthMap).filter(function(b){
+    return last3.some(function(mk){return brandMonthMap[b].includes(mk);}) && !brandMonthMap[b].includes(curMk);
+  });
+  inactive.sort();
+
+  // All brands list with orders + revenue
+  var allBrands=Object.keys(brandMonthMap).sort(function(a,b){
+    var aO=allSnk.filter(function(r){return extractSnkBrand(g(r,'ITEM NAME'))===a;}).length;
+    var bO=allSnk.filter(function(r){return extractSnkBrand(g(r,'ITEM NAME'))===b;}).length;
+    return bO-aO;
+  });
+
+  var el=document.getElementById('snk-all-brands-list');
+  if(el){
+    var rows=allBrands.map(function(b){
+      var snkRows=allSnk.filter(function(r){return extractSnkBrand(g(r,'ITEM NAME'))===b;});
+      var orders=snkRows.length;
+      var rev=snkRows.reduce(function(s,r){return s+fmtAmt(g(r,'VALUE','VALU','RATE'));},0);
+      var isInactive=inactive.includes(b);
+      return row([
+        '<strong style="color:'+(isInactive?'var(--red)':'var(--lime)')+'">'+esc(b)+'</strong>'+(isInactive?' <span style="font-size:.63rem;color:var(--red)">inactive</span>':''),
+        orders.toLocaleString('en-IN'),
+        inr(rev),
+        isInactive?'<span style="color:var(--red);font-size:.68rem">No orders this month</span>':'<span style="color:var(--grn);font-size:.68rem">Active</span>'
+      ]);
+    });
+    pTable('t-snk-all-brands','',['Brand','Total Orders','Total Revenue','Status'],rows);
+    document.getElementById('cnt-snk-all-brands').textContent=allBrands.length;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════
+   EXPORT FUNCTIONS
+══════════════════════════════════════════════════ */
+function showExportMenu() {
+  var el = document.getElementById('export-overlay');
+  if (el) el.style.display = 'flex';
+}
+function closeExport() {
+  var el = document.getElementById('export-overlay');
+  if (el) el.style.display = 'none';
+}
+
+function exportCSV(type) {
+  var datasets = {
+    snk:    { key: 'sneakerOrders',   name: 'sneaker_orders' },
+    sw:     { key: 'streetwearOrders',name: 'streetwear_orders' },
+    ref:    { key: 'refundLedger',    name: 'refund_ledger', extra: 'refundDone' },
+    cancel: { key: 'cancelledOrders', name: 'cancelled_orders' },
+    exch:   { key: 'streetwearExch',  name: 'exchange_rto' },
+  };
+  var today = new Date();
+  var dateStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  if (type === 'all') {
+    ['snk','sw','ref','cancel','exch'].forEach(function(t){ exportCSV(t); });
+    closeExport();
+    return;
+  }
+
+  var ds = datasets[type];
+  if (!ds || !D[ds.key]) { alert('No data loaded for this type.'); return; }
+  var src = D[ds.key];
+  var headers = src.h || [];
+  var rows = src.rows || [];
+
+  // Add extra sheet rows if specified
+  if (ds.extra && D[ds.extra]) {
+    rows = rows.concat(D[ds.extra].rows || []);
+  }
+
+  // Build CSV
+  var csvLines = [headers.map(function(h){ return '"'+String(h).replace(/"/g,'""')+'"'; }).join(',')];
+  rows.forEach(function(r) {
+    csvLines.push(headers.map(function(h) {
+      var v = r[h] || '';
+      return '"'+String(v).replace(/"/g,'""')+'"';
+    }).join(','));
+  });
+
+  var csv = csvLines.join('\r\n');
+  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'CDC_OPS_'+ds.name+'_'+dateStr+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  closeExport();
+}
+
+/* ══════════════════════════════════════════════════
+   3D CARD TILT ANIMATION — KPI cards
+══════════════════════════════════════════════════ */
+function init3DTilt() {
+  // Apply 3D tilt effect to KPI cards on mouse move
+  document.addEventListener('mousemove', function(e) {
+    var cards = document.querySelectorAll('.kc');
+    cards.forEach(function(card) {
+      var rect = card.getBoundingClientRect();
+      // Only affect cards within 120px of cursor
+      var cx = rect.left + rect.width/2;
+      var cy = rect.top + rect.height/2;
+      var dist = Math.sqrt(Math.pow(e.clientX-cx,2)+Math.pow(e.clientY-cy,2));
+      if (dist > 120) {
+        card.style.transform = '';
+        card.style.boxShadow = '';
+        return;
+      }
+      var dx = (e.clientX - cx) / (rect.width/2);
+      var dy = (e.clientY - cy) / (rect.height/2);
+      var rotX = -dy * 8;
+      var rotY = dx * 8;
+      card.style.transform = 'perspective(400px) rotateX('+rotX+'deg) rotateY('+rotY+'deg) scale(1.04)';
+      card.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease';
+      card.style.boxShadow = '0 8px 25px rgba(200,255,0,0.15)';
+    });
+  });
+  document.addEventListener('mouseleave', function() {
+    document.querySelectorAll('.kc').forEach(function(card){
+      card.style.transform = '';
+      card.style.boxShadow = '';
+    });
+  });
+}
+
+// Animated number counter for KPI values (runs on tab switch)
+function animateCounters() {
+  var vals = document.querySelectorAll('.kv');
+  vals.forEach(function(el) {
+    var raw = el.textContent.replace(/[₹,\s]/g,'');
+    var num = parseFloat(raw);
+    if (isNaN(num) || num === 0 || raw.length > 8) return; // skip non-numbers
+    var start = 0, duration = 600, startTime = null;
+    var finalText = el.textContent;
+    function animate(ts) {
+      if (!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      // Ease-out
+      var ease = 1 - Math.pow(1-progress, 3);
+      var current = Math.round(start + (num - start) * ease);
+      el.textContent = finalText.replace(/[\d,]+/, current.toLocaleString('en-IN'));
+      if (progress < 1) requestAnimationFrame(animate);
+      else el.textContent = finalText;
+    }
+    requestAnimationFrame(animate);
+  });
+}
+
+// Initialize tilt on load
+window.addEventListener('DOMContentLoaded', function() {
+  setTimeout(init3DTilt, 500);
+});
+
+// Hook into showTab to run counter animation
+var _origShowTab = typeof showTab === 'function' ? showTab : null;
+// Will be overridden after definition
+
+/* ══════════════════════════════════════════════════
+   SMOOTH TAB TRANSITIONS
+══════════════════════════════════════════════════ */
+(function() {
+  var style = document.createElement('style');
+  style.textContent = [
+    '.tabp { animation-fill-mode: both; }',
+    '.tabp.on { animation: fadeSlideIn 0.22s ease; }',
+    '@keyframes fadeSlideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }',
+    '.kc { transition: transform 0.15s ease, box-shadow 0.15s ease; will-change: transform; }',
+    '.kc:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 4px 20px rgba(200,255,0,0.12); }',
+    '.score-card { transition: transform 0.2s ease; }',
+    '.score-card:hover { transform: translateY(-3px); }',
+  ].join('\n');
+  document.head.appendChild(style);
+})();
 
 </script>
 </body>
