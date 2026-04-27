@@ -833,7 +833,7 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.75rem;position:relative;min-height:520px">
           <div style="font-size:.68rem;color:var(--lime);font-weight:700;margin-bottom:.5rem" id="map-title">INDIA — STATE HEATMAP</div>
           <div id="india-map-wrap" style="position:relative;width:100%;height:500px;overflow:hidden">
-            <svg id="india-svg" viewBox="0 0 600 680" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg"></svg>
+            <svg id="india-svg" viewBox="0 0 650 780" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg"></svg>
             <!-- Tooltip -->
             <div id="map-tooltip" style="display:none;position:absolute;background:rgba(0,0,0,.92);border:1px solid var(--b2);border-radius:6px;padding:.5rem .75rem;font-size:.72rem;pointer-events:none;z-index:10;min-width:140px"></div>
           </div>
@@ -1729,13 +1729,14 @@ function applySnkFilter() {
 }
 
 /* ════ BUILD ALL ════ */
-/* ════ BUILD ALL ════ */
+/* ════ BUILD ALL — async with breaks to avoid page freeze ════ */
+var _buildDirty = {}; // tracks which tabs need rebuild
+
 function buildAll() {
   var f = getFilters();
   var allSnkRows = D.sneakerOrders ? D.sneakerOrders.rows : [];
   var allSWRows  = D.streetwearOrders ? D.streetwearOrders.rows : [];
 
-  // Overview uses its own period
   var snk = globalPeriodFilter(allSnkRows, ['DATE','ORDER DATE'], 'ov');
   var sw  = globalPeriodFilter(allSWRows,  ['ORDER DATE'], 'ov');
 
@@ -1756,26 +1757,79 @@ function buildAll() {
     });
   }
 
-  var buildFns = [
-    function(){ buildOV(snk, sw); },
-    function(){ buildSnk(applySnkFilter()); },
-    function(){ buildSW(getSwFiltered()); },
-    function(){ buildOps(); },
-    function(){ buildRef(); },
-    function(){ buildFul(allSnkRows, allSWRows); },
-    function(){ buildScore(allSnkRows, allSWRows); },
-    function(){ buildBrands(); },
-    function(){ buildTopProducts(); },
-    function(){ buildFollowups(); },
-    function(){ buildSnkBrands(); },
-    function(){ buildIndiaMap(); }
+  // Phase 1: Critical tabs — build immediately (fast ones first)
+  var phase1 = [
+    ['buildOV',  function(){ buildOV(snk, sw); }],
+    ['buildOps', function(){ buildOps(); }],
+    ['buildRef', function(){ buildRef(); }],
   ];
-  var buildNames = ['buildOV','buildSnk','buildSW','buildOps','buildRef','buildFul','buildScore','buildBrands','buildTopProducts','buildFollowups','buildSnkBrands','buildIndiaMap'];
-  buildFns.forEach(function(fn, i) {
-    try { fn(); }
-    catch(e) { console.error('Error in ' + buildNames[i] + ':', e.message, e.stack); }
-  });
+  // Phase 2: Medium cost — slight delay
+  var phase2 = [
+    ['buildSnk',    function(){ buildSnk(applySnkFilter()); }],
+    ['buildSW',     function(){ buildSW(getSwFiltered()); }],
+    ['buildBrands', function(){ buildBrands(); }],
+    ['buildFul',    function(){ buildFul(allSnkRows, allSWRows); }],
+    ['buildFollowups', function(){ buildFollowups(); }],
+  ];
+  // Phase 3: Heavy tabs — long delay, only if tab is visible
+  var phase3 = [
+    ['buildScore',      function(){ buildScore(allSnkRows, allSWRows); }],
+    ['buildTopProducts',function(){ buildTopProducts(); }],
+    ['buildSnkBrands',  function(){ buildSnkBrands(); }],
+    ['buildIndiaMap',   function(){ buildIndiaMap(); }],
+  ];
+
+  function runPhase(fns, delay) {
+    var i = 0;
+    function next() {
+      if (i >= fns.length) return;
+      var item = fns[i++];
+      try { item[1](); } catch(e) { console.error('Error in ' + item[0] + ':', e.message); }
+      setTimeout(next, 30); // 30ms break between each to let browser breathe
+    }
+    setTimeout(next, delay);
+  }
+
+  // Mark heavy tabs dirty — will rebuild when clicked if period changed
+  phase3.forEach(function(item){ _buildDirty[item[0]] = true; });
+
+  runPhase(phase1, 0);
+  runPhase(phase2, 100);
+  // Heavy tabs: check if they're currently visible before building
+  setTimeout(function(){
+    var activeTab = document.querySelector('.tabp.on');
+    var activeId = activeTab ? activeTab.id : '';
+    phase3.forEach(function(item){
+      var tabMap = {
+        'buildScore':       'tab-score',
+        'buildTopProducts': 'tab-topsell',
+        'buildSnkBrands':   'tab-snkbrands',
+        'buildIndiaMap':    'tab-india',
+      };
+      var targetTab = tabMap[item[0]];
+      if (activeId === targetTab) {
+        // Currently active — build it
+        try { item[1](); _buildDirty[item[0]] = false; } catch(e) { console.error(e); }
+      }
+      // else leave dirty — will build on tab click
+    });
+  }, 600);
 }
+
+// Override showTab to rebuild dirty tabs when navigated to
+var _origShowTab = window.showTab;
+window.showTab = function(t) {
+  if (_origShowTab) _origShowTab(t);
+  var tabBuildMap = {
+    'score':     function(){ try{ buildScore(D.sneakerOrders?D.sneakerOrders.rows:[],D.streetwearOrders?D.streetwearOrders.rows:[]); _buildDirty['buildScore']=false; }catch(e){} },
+    'topsell':   function(){ try{ buildTopProducts(); _buildDirty['buildTopProducts']=false; }catch(e){} },
+    'snkbrands': function(){ try{ buildSnkBrands(); _buildDirty['buildSnkBrands']=false; }catch(e){} },
+    'india':     function(){ try{ buildIndiaMap(); _buildDirty['buildIndiaMap']=false; }catch(e){} },
+  };
+  if (tabBuildMap[t] && _buildDirty['build'+t.charAt(0).toUpperCase()+t.slice(1)] !== false) {
+    setTimeout(tabBuildMap[t], 50);
+  }
+};
 
 /* ── OVERVIEW ── */
 function buildOV(snk, sw) {
@@ -4059,69 +4113,72 @@ var CITY_STATE = {
 
 // State → approximate SVG center coordinates on our 600x680 viewBox
 var STATE_CENTERS = {
-  'Maharashtra':       {x:280, y:390},
-  'Delhi':             {x:295, y:200},
-  'Karnataka':         {x:270, y:450},
-  'Tamil Nadu':        {x:295, y:510},
-  'Telangana':         {x:305, y:420},
-  'West Bengal':       {x:420, y:310},
-  'Gujarat':           {x:195, y:340},
-  'Rajasthan':         {x:220, y:260},
-  'Uttar Pradesh':     {x:350, y:250},
-  'Madhya Pradesh':    {x:295, y:330},
-  'Bihar':             {x:395, y:270},
-  'Haryana':           {x:280, y:200},
-  'Punjab':            {x:255, y:170},
-  'Chandigarh':        {x:270, y:175},
-  'Andhra Pradesh':    {x:315, y:455},
-  'Kerala':            {x:265, y:520},
-  'Odisha':            {x:385, y:375},
-  'Jharkhand':         {x:390, y:320},
-  'Chhattisgarh':      {x:350, y:370},
-  'Uttarakhand':       {x:315, y:195},
-  'Himachal Pradesh':  {x:280, y:160},
-  'Assam':             {x:480, y:245},
-  'Goa':               {x:238, y:440},
-  'Jammu and Kashmir': {x:270, y:120},
-  'Tripura':           {x:470, y:300},
-  'Manipur':           {x:505, y:290},
-  'Meghalaya':         {x:465, y:260},
-  'Sikkim':            {x:435, y:230},
+  'Maharashtra':        {x:230, y:470},
+  'Delhi':              {x:225, y:225},
+  'Karnataka':          {x:200, y:560},
+  'Tamil Nadu':         {x:270, y:630},
+  'Telangana':          {x:310, y:488},
+  'West Bengal':        {x:440, y:370},
+  'Gujarat':            {x:90,  y:380},
+  'Rajasthan':          {x:180, y:280},
+  'Uttar Pradesh':      {x:315, y:285},
+  'Madhya Pradesh':     {x:270, y:360},
+  'Bihar':              {x:405, y:268},
+  'Haryana':            {x:215, y:230},
+  'Punjab':             {x:175, y:180},
+  'Andhra Pradesh':     {x:305, y:530},
+  'Kerala':             {x:185, y:650},
+  'Odisha':             {x:388, y:415},
+  'Jharkhand':          {x:380, y:320},
+  'Chhattisgarh':       {x:330, y:400},
+  'Uttarakhand':        {x:255, y:200},
+  'Himachal Pradesh':   {x:210, y:148},
+  'Assam':              {x:540, y:300},
+  'Goa':                {x:145, y:554},
+  'Jammu and Kashmir':  {x:200, y:80},
+  'Ladakh':             {x:265, y:55},
+  'Tripura':            {x:512, y:350},
+  'Manipur':            {x:562, y:330},
+  'Meghalaya':          {x:505, y:320},
+  'Sikkim':             {x:460, y:255},
+  'Arunachal Pradesh':  {x:560, y:235},
+  'Nagaland':           {x:594, y:288},
+  'Mizoram':            {x:535, y:363},
 };
 
-// Improved India state SVG paths — better approximation of real state shapes
+// Accurate India state SVG paths (geographic projection, viewBox 0 0 650 780)
 var INDIA_STATE_PATHS = {
-  'Jammu and Kashmir': 'M238,40 L265,35 L295,38 L330,45 L355,60 L365,85 L370,115 L350,130 L325,138 L300,145 L275,140 L255,130 L238,115 L228,90 L230,65 Z',
-  'Ladakh': 'M295,38 L360,30 L420,40 L440,65 L420,95 L390,110 L360,115 L350,130 L330,138 L355,60 L330,45 Z',
-  'Himachal Pradesh': 'M255,130 L300,125 L325,138 L330,160 L315,175 L295,180 L268,175 L255,160 Z',
-  'Punjab': 'M225,155 L258,148 L268,175 L258,195 L238,200 L218,190 L215,170 Z',
-  'Haryana': 'M238,200 L275,195 L290,210 L285,235 L258,238 L235,228 Z',
-  'Delhi': 'M278,213 L298,210 L303,228 L283,232 Z',
-  'Uttarakhand': 'M290,178 L330,172 L345,188 L340,210 L315,215 L295,210 Z',
-  'Uttar Pradesh': 'M258,238 L290,232 L380,220 L420,228 L430,252 L418,285 L385,298 L340,302 L295,295 L260,275 L250,252 Z',
-  'Rajasthan': 'M162,185 L225,175 L240,200 L258,238 L252,280 L240,318 L210,338 L172,335 L145,308 L138,268 L148,222 Z',
-  'Gujarat': 'M138,268 L172,260 L212,268 L240,290 L238,338 L215,368 L192,388 L162,392 L135,370 L122,335 L128,298 Z',
-  'Madhya Pradesh': 'M212,268 L252,260 L295,262 L340,255 L388,262 L398,285 L385,338 L355,360 L320,368 L275,370 L235,362 L212,340 L210,308 Z',
-  'Bihar': 'M385,252 L430,248 L455,262 L458,292 L435,308 L402,312 L382,298 L380,272 Z',
-  'Jharkhand': 'M380,308 L435,305 L455,322 L450,355 L415,372 L378,368 L362,348 L368,325 Z',
-  'West Bengal': 'M430,268 L462,255 L488,272 L495,305 L478,345 L455,365 L435,360 L425,335 L438,310 Z',
-  'Sikkim': 'M462,242 L480,240 L482,258 L462,260 Z',
-  'Odisha': 'M362,368 L415,365 L448,378 L452,412 L428,438 L388,442 L358,432 L345,408 L352,382 Z',
-  'Chhattisgarh': 'M305,368 L358,362 L380,375 L385,420 L365,448 L335,455 L302,445 L285,420 L290,390 Z',
-  'Maharashtra': 'M162,392 L215,370 L240,368 L285,375 L305,390 L315,420 L302,455 L278,472 L238,468 L212,450 L188,428 L168,408 Z',
-  'Telangana': 'M290,442 L335,432 L365,438 L378,462 L362,490 L330,500 L295,495 L278,472 L285,450 Z',
-  'Andhra Pradesh': 'M278,472 L330,498 L365,492 L395,505 L405,535 L382,558 L345,562 L308,555 L285,535 L272,510 Z',
-  'Karnataka': 'M188,428 L240,420 L278,425 L295,442 L285,480 L265,505 L238,510 L208,495 L188,470 L178,448 Z',
-  'Goa': 'M178,468 L200,462 L205,480 L185,482 Z',
-  'Kerala': 'M238,510 L265,505 L272,545 L262,572 L242,575 L228,555 L228,528 Z',
-  'Tamil Nadu': 'M272,510 L308,505 L345,510 L378,530 L385,558 L360,585 L322,592 L288,578 L268,555 L262,528 Z',
-  'Assam': 'M455,262 L525,252 L540,272 L530,295 L500,305 L468,298 L458,278 Z',
-  'Meghalaya': 'M468,298 L505,295 L512,318 L480,322 Z',
-  'Nagaland': 'M530,268 L555,265 L558,288 L535,292 Z',
-  'Manipur': 'M520,292 L545,290 L548,312 L522,318 Z',
-  'Mizoram': 'M510,318 L535,315 L538,340 L512,342 Z',
-  'Tripura': 'M488,305 L512,302 L515,325 L490,328 Z',
-  'Arunachal Pradesh': 'M440,228 L540,218 L555,245 L540,258 L525,252 L455,262 L438,245 Z',
+  'Jammu and Kashmir': 'M145,12 L284,12 L252,61 L262,85 L242,110 L200,134 L158,139 L143,110 L147,85 Z',
+  'Ladakh': 'M284,12 L284,78 L262,85 L252,61 Z',
+  'Himachal Pradesh': 'M178,122 L242,115 L246,158 L220,178 L200,158 L178,171 Z',
+  'Punjab': 'M145,134 L200,134 L200,178 L220,178 L200,207 L158,212 L145,207 Z',
+  'Haryana': 'M200,207 L220,178 L220,207 L242,207 L242,232 L220,244 L210,256 L178,256 L158,212 Z',
+  'Delhi': 'M221,218 L228,213 L233,220 L228,232 L218,230 Z',
+  'Uttarakhand': 'M220,178 L246,158 L273,183 L284,219 L262,219 L242,207 L220,207 Z',
+  'Uttar Pradesh': 'M242,232 L284,219 L357,256 L410,280 L388,305 L357,329 L284,341 L242,305 L220,292 L210,256 L242,232 Z',
+  'Rajasthan': 'M158,212 L200,207 L242,232 L220,292 L210,305 L158,329 L136,353 L84,341 L63,280 L84,207 Z',
+  'Gujarat': 'M63,280 L84,341 L136,353 L136,402 L116,427 L52,390 L32,366 L21,390 L42,329 Z',
+  'Madhya Pradesh': 'M220,292 L284,280 L357,280 L388,305 L388,353 L346,378 L305,402 L252,414 L189,402 L158,390 L136,353 L158,329 L210,305 Z',
+  'Chhattisgarh': 'M357,329 L388,305 L388,353 L368,378 L346,475 L305,463 L263,475 L252,439 L284,402 L305,402 L346,378 Z',
+  'Maharashtra': 'M136,402 L189,402 L252,414 L305,402 L284,402 L252,439 L263,475 L242,500 L220,512 L178,524 L136,536 L116,512 L116,475 L116,439 L116,427 Z',
+  'Goa': 'M136,548 L153,544 L157,560 L145,563 L138,556 Z',
+  'Karnataka': 'M136,536 L178,524 L220,512 L242,500 L263,475 L252,500 L242,536 L231,561 L220,610 L189,622 L158,609 L136,573 L136,548 Z',
+  'Telangana': 'M263,475 L305,463 L346,475 L336,500 L305,512 L284,500 L263,488 Z',
+  'Andhra Pradesh': 'M346,475 L388,451 L388,488 L368,512 L326,561 L294,597 L252,597 L231,561 L242,536 L252,500 L263,488 L284,500 L305,512 L336,500 Z',
+  'Tamil Nadu': 'M252,597 L294,597 L326,561 L368,512 L368,548 L336,573 L294,609 L262,646 L231,671 L220,707 L210,707 L200,683 L210,646 L220,622 L231,610 Z',
+  'Kerala': 'M158,609 L189,622 L220,622 L210,646 L200,683 L210,707 L200,707 L189,683 L178,646 L163,622 Z',
+  'Odisha': 'M346,378 L388,353 L430,378 L430,427 L388,451 L346,475 L368,451 L368,414 L357,390 Z',
+  'West Bengal': 'M388,305 L452,305 L462,341 L441,378 L430,427 L388,451 L430,414 L430,378 L388,353 L388,305 Z',
+  'Jharkhand': 'M357,280 L430,268 L452,305 L388,305 L388,353 L368,378 L346,378 L305,402 L305,378 L346,353 Z',
+  'Bihar': 'M357,256 L452,256 L452,280 L430,268 L357,280 L357,256 Z',
+  'Sikkim': 'M452,244 L473,244 L473,268 L452,256 Z',
+  'Assam': 'M473,268 L525,256 L609,268 L578,292 L556,317 L525,329 L504,317 L483,305 L462,280 L452,280 Z',
+  'Meghalaya': 'M483,305 L525,292 L525,317 L514,341 L483,329 Z',
+  'Arunachal Pradesh': 'M473,256 L488,219 L640,207 L630,256 L609,268 L525,256 Z',
+  'Nagaland': 'M578,292 L609,268 L609,292 L578,305 Z',
+  'Manipur': 'M556,317 L578,305 L578,329 L567,353 L546,341 Z',
+  'Mizoram': 'M525,341 L546,341 L556,366 L536,390 L514,378 Z',
+  'Tripura': 'M504,317 L525,329 L525,341 L514,378 L493,366 Z',
 };
 
 // City lat/lng approx for plotting on SVG
@@ -4666,72 +4723,11 @@ function exportCSV(type) {
   closeExport();
 }
 
-/* ══════════════════════════════════════════════════
-   3D CARD TILT ANIMATION — KPI cards
-══════════════════════════════════════════════════ */
-function init3DTilt() {
-  // Apply 3D tilt effect to KPI cards on mouse move
-  document.addEventListener('mousemove', function(e) {
-    var cards = document.querySelectorAll('.kc');
-    cards.forEach(function(card) {
-      var rect = card.getBoundingClientRect();
-      // Only affect cards within 120px of cursor
-      var cx = rect.left + rect.width/2;
-      var cy = rect.top + rect.height/2;
-      var dist = Math.sqrt(Math.pow(e.clientX-cx,2)+Math.pow(e.clientY-cy,2));
-      if (dist > 120) {
-        card.style.transform = '';
-        card.style.boxShadow = '';
-        return;
-      }
-      var dx = (e.clientX - cx) / (rect.width/2);
-      var dy = (e.clientY - cy) / (rect.height/2);
-      var rotX = -dy * 8;
-      var rotY = dx * 8;
-      card.style.transform = 'perspective(400px) rotateX('+rotX+'deg) rotateY('+rotY+'deg) scale(1.04)';
-      card.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease';
-      card.style.boxShadow = '0 8px 25px rgba(200,255,0,0.15)';
-    });
-  });
-  document.addEventListener('mouseleave', function() {
-    document.querySelectorAll('.kc').forEach(function(card){
-      card.style.transform = '';
-      card.style.boxShadow = '';
-    });
-  });
-}
-
-// Animated number counter for KPI values (runs on tab switch)
-function animateCounters() {
-  var vals = document.querySelectorAll('.kv');
-  vals.forEach(function(el) {
-    var raw = el.textContent.replace(/[₹,\s]/g,'');
-    var num = parseFloat(raw);
-    if (isNaN(num) || num === 0 || raw.length > 8) return; // skip non-numbers
-    var start = 0, duration = 600, startTime = null;
-    var finalText = el.textContent;
-    function animate(ts) {
-      if (!startTime) startTime = ts;
-      var progress = Math.min((ts - startTime) / duration, 1);
-      // Ease-out
-      var ease = 1 - Math.pow(1-progress, 3);
-      var current = Math.round(start + (num - start) * ease);
-      el.textContent = finalText.replace(/[\d,]+/, current.toLocaleString('en-IN'));
-      if (progress < 1) requestAnimationFrame(animate);
-      else el.textContent = finalText;
-    }
-    requestAnimationFrame(animate);
-  });
-}
-
-// Initialize tilt on load
-window.addEventListener('DOMContentLoaded', function() {
-  setTimeout(init3DTilt, 500);
-});
+/* 3D tilt removed — use CSS hover instead */
+// init3DTilt removed — using CSS transforms instead
 
 // Hook into showTab to run counter animation
-var _origShowTab = typeof showTab === 'function' ? showTab : null;
-// Will be overridden after definition
+// showTab override handled in buildAll
 
 /* ══════════════════════════════════════════════════
    SMOOTH TAB TRANSITIONS
