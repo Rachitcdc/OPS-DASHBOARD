@@ -229,104 +229,94 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
 <body>
 
 <!-- SETUP -->
-<!-- SPLASH SCREEN -->
+<!-- ═══════════ SPLASH SCREEN ═══════════ -->
 <div id="splash" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#050505;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;transition:opacity .4s ease;">
   <canvas id="splash-bg" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
-  <div id="splash-scan" style="position:absolute;top:0;left:0;width:100%;height:2px;background:rgba(200,255,0,.15);animation:splashScan 3s linear infinite;"></div>
-  <!-- corners -->
+  <div style="position:absolute;top:0;left:0;width:100%;height:2px;background:rgba(200,255,0,.15);animation:splashScan 3s linear infinite;"></div>
   <div id="sp-c1" style="position:absolute;top:16px;left:16px;width:20px;height:20px;border-top:1px solid #c8ff00;border-left:1px solid #c8ff00;opacity:0;transition:opacity .5s ease 1.2s;"></div>
   <div id="sp-c2" style="position:absolute;top:16px;right:16px;width:20px;height:20px;border-top:1px solid #c8ff00;border-right:1px solid #c8ff00;opacity:0;transition:opacity .5s ease 1.2s;"></div>
   <div id="sp-c3" style="position:absolute;bottom:16px;left:16px;width:20px;height:20px;border-bottom:1px solid #c8ff00;border-left:1px solid #c8ff00;opacity:0;transition:opacity .5s ease 1.2s;"></div>
   <div id="sp-c4" style="position:absolute;bottom:16px;right:16px;width:20px;height:20px;border-bottom:1px solid #c8ff00;border-right:1px solid #c8ff00;opacity:0;transition:opacity .5s ease 1.2s;"></div>
-  <!-- UI column -->
-  <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;">
+  <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;padding:1rem;">
     <div id="sp-logo" style="font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:900;letter-spacing:.4em;color:#c8ff00;opacity:0;transform:translateY(-10px);transition:opacity .6s ease,transform .6s ease;margin-bottom:10px;">CDC OPS</div>
-    <div id="sp-tag" style="font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;color:#2a4a00;opacity:0;transform:translateY(-6px);transition:opacity .5s ease,transform .5s ease;margin-bottom:32px;">CREPDOGCREW &nbsp;·&nbsp; INTELLIGENCE SYSTEM</div>
+    <div id="sp-tag"  style="font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;color:#2a4a00;opacity:0;transform:translateY(-6px);transition:opacity .5s ease,transform .5s ease;margin-bottom:32px;">CREPDOGCREW &nbsp;·&nbsp; INTELLIGENCE SYSTEM</div>
     <div id="sp-title" style="font-family:'Segoe UI',system-ui,sans-serif;font-size:34px;font-weight:900;line-height:1.15;opacity:0;transform:scale(.93);transition:opacity .7s ease,transform .7s ease;margin-bottom:6px;">
-      <span style="color:#c8ff00;">CrepDog Crew</span><br>
-      <span style="color:#ffffff;">Operations Dashboard</span>
+      <span style="color:#c8ff00;">CrepDog Crew</span><br><span style="color:#ffffff;">Operations Dashboard</span>
     </div>
     <div id="sp-sub" style="font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.22em;color:#2a4a00;opacity:0;transition:opacity .6s ease;margin-bottom:26px;">REAL-TIME &nbsp;·&nbsp; LIVE DATA &nbsp;·&nbsp; FULL CONTROL</div>
     <div id="sp-div" style="width:0;height:1px;background:#c8ff00;margin:0 auto 26px;transition:width .9s cubic-bezier(.22,1,.36,1);"></div>
-    <div id="sp-by" style="font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;color:#1e3200;opacity:0;transition:opacity .5s ease;margin-bottom:24px;">crafted by &nbsp;<span style="color:#6ab000;">RV</span></div>
+    <div id="sp-by"  style="font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;color:#1e3200;opacity:0;transition:opacity .5s ease;margin-bottom:24px;">crafted by &nbsp;<span style="color:#6ab000;">RV</span></div>
     <button id="sp-btn" onclick="splashEnter()" style="font-family:'Segoe UI',system-ui,sans-serif;font-size:11px;font-weight:900;letter-spacing:.24em;color:#000;background:#c8ff00;border:none;padding:10px 36px;border-radius:20px;cursor:pointer;opacity:0;transition:opacity .5s ease,transform .12s ease;">ENTER DASHBOARD</button>
   </div>
 </div>
-<style>
-@keyframes splashScan{0%{top:0}100%{top:100%}}
-</style>
+<style>@keyframes splashScan{0%{top:0}100%{top:100%}}</style>
 <script>
 (function(){
-  var stage=document.getElementById('splash');
   var cv=document.getElementById('splash-bg');
-  var W,H;
-  function resize(){W=window.innerWidth;H=window.innerHeight;cv.width=W*2;cv.height=H*2;cv.style.width=W+'px';cv.style.height=H+'px';}
-  resize(); window.addEventListener('resize',resize);
-  var ctx=cv.getContext('2d'); ctx.scale(2,2);
-  var mWords=['CDC','OPS','GRYAPE','RECONSTRCT','EVEMEN','DEADBEAR','RTS','MTO','₹8.4L','86%','DELHIVERY','INSTINCT','ODDNOTEVEN'];
-  var cols=Math.floor(W/16), drops=[];
-  for(var i=0;i<cols;i++) drops.push({x:i*16+3,y:-Math.random()*H*2,speed:.5+Math.random()*1.3,word:mWords[Math.floor(Math.random()*mWords.length)],ci:0});
+  var W=window.innerWidth,H=window.innerHeight;
+  cv.width=W*2;cv.height=H*2;cv.style.width=W+'px';cv.style.height=H+'px';
+  var ctx=cv.getContext('2d');ctx.scale(2,2);
+  var mW=['CDC','OPS','GRYAPE','RECONSTRCT','EVEMEN','DEADBEAR','RTS','MTO','₹8.4L','86%','DELHIVERY','INSTINCT','ODDNOTEVEN'];
+  var cols=Math.floor(W/16),drops=[];
+  for(var i=0;i<cols;i++) drops.push({x:i*16+3,y:-Math.random()*H*2,spd:.5+Math.random()*1.3,word:mW[Math.floor(Math.random()*mW.length)],ci:0});
   var pts=[];
-  for(var p=0;p<130;p++) pts.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:.7+Math.random()*2,col:Math.random()>.72?'#c8ff00':Math.random()>.5?'#3d9be9':'#1a3a00',a:.12+Math.random()*.5,pulse:Math.random()*Math.PI*2,ps:.007+Math.random()*.013});
+  for(var p=0;p<130;p++) pts.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:.7+Math.random()*2,col:Math.random()>.72?'#c8ff00':Math.random()>.5?'#3d9be9':'#1a3a00',a:.12+Math.random()*.5,ph:Math.random()*Math.PI*2,ps:.007+Math.random()*.013});
   var splashRaf;
-  function splashFrame(){
-    ctx.fillStyle='rgba(5,5,5,.25)'; ctx.fillRect(0,0,W,H);
+  function frame(){
+    ctx.fillStyle='rgba(5,5,5,.25)';ctx.fillRect(0,0,W,H);
     drops.forEach(function(d){
-      ctx.font='bold 11px monospace'; ctx.globalAlpha=.85; ctx.fillStyle='#c8ff00';
+      ctx.font='bold 11px monospace';ctx.globalAlpha=.85;ctx.fillStyle='#c8ff00';
       ctx.fillText(d.word[d.ci%d.word.length],d.x,d.y);
-      for(var tr=1;tr<13;tr++){ctx.globalAlpha=Math.max(0,(13-tr)/13*.16);var g=Math.floor((13-tr)/13*85);ctx.fillStyle='rgb(0,'+g+',0)';ctx.fillText(d.word[(d.ci-tr+d.word.length*20)%d.word.length],d.x,d.y-tr*13);}
-      ctx.globalAlpha=1; d.y+=d.speed*1.4; d.ci++;
-      if(d.y>H+20){d.y=-15-Math.random()*H*.8;d.word=mWords[Math.floor(Math.random()*mWords.length)];d.ci=0;}
+      for(var t=1;t<13;t++){ctx.globalAlpha=Math.max(0,(13-t)/13*.16);ctx.fillStyle='rgb(0,'+Math.floor((13-t)/13*85)+',0)';ctx.fillText(d.word[(d.ci-t+d.word.length*20)%d.word.length],d.x,d.y-t*13);}
+      ctx.globalAlpha=1;d.y+=d.spd*1.4;d.ci++;
+      if(d.y>H+20){d.y=-15-Math.random()*H*.8;d.word=mW[Math.floor(Math.random()*mW.length)];d.ci=0;}
     });
-    pts.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.pulse+=p.ps;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.col;ctx.globalAlpha=p.a*(.65+.35*Math.sin(p.pulse));ctx.fill();ctx.globalAlpha=1;});
+    pts.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.ph+=p.ps;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.col;ctx.globalAlpha=p.a*(.65+.35*Math.sin(p.ph));ctx.fill();ctx.globalAlpha=1;});
     for(var i=0;i<pts.length;i++){for(var j=i+1;j<pts.length;j++){var dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<85){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle='rgba(200,255,0,'+((1-d/85)*.07)+')';ctx.lineWidth=.35;ctx.stroke();}}}
-    splashRaf=requestAnimationFrame(splashFrame);
+    splashRaf=requestAnimationFrame(frame);
   }
-  splashRaf=requestAnimationFrame(splashFrame);
-  function sh(id,delay,extra){setTimeout(function(){var e=document.getElementById(id);if(!e)return;e.style.opacity='1';if(extra)extra(e);},delay);}
+  splashRaf=requestAnimationFrame(frame);
+  window._stopSplash=function(){if(splashRaf){cancelAnimationFrame(splashRaf);splashRaf=null;}};
+  function sh(id,d,extra){setTimeout(function(){var e=document.getElementById(id);if(!e)return;e.style.opacity='1';if(extra)extra(e);},d);}
   setTimeout(function(){var e=document.getElementById('sp-logo');if(e){e.style.opacity='1';e.style.transform='translateY(0)';}},200);
   setTimeout(function(){var e=document.getElementById('sp-tag');if(e){e.style.opacity='1';e.style.transform='translateY(0)';}},480);
   setTimeout(function(){var e=document.getElementById('sp-title');if(e){e.style.opacity='1';e.style.transform='scale(1)';}},700);
-  sh('sp-sub',960); sh('sp-c1',1200); sh('sp-c2',1200); sh('sp-c3',1200); sh('sp-c4',1200);
+  sh('sp-sub',960);sh('sp-c1',1200);sh('sp-c2',1200);sh('sp-c3',1200);sh('sp-c4',1200);
   setTimeout(function(){var e=document.getElementById('sp-div');if(e)e.style.width='200px';},1080);
-  sh('sp-by',1650); sh('sp-btn',1900);
-  window.stopSplashAnim=function(){cancelAnimationFrame(splashRaf);};
+  sh('sp-by',1650);sh('sp-btn',1900);
 })();
 function splashEnter(){
   var el=document.getElementById('splash');
   if(!el)return;
   el.style.opacity='0';
-  setTimeout(function(){el.style.display='none';if(window.stopSplashAnim)window.stopSplashAnim();},420);
+  setTimeout(function(){el.style.display='none';if(window._stopSplash)window._stopSplash();},420);
   var saved=localStorage.getItem('cdc_cid');
   if(saved){
-    var cidEl=document.getElementById('cid');if(cidEl)cidEl.value=saved;
+    var c=document.getElementById('cid');if(c)c.value=saved;
     showScreen('loading');
     var tries=0;
-    (function tryConnect(){tries++;if(typeof google!=='undefined'&&google.accounts){startWithCid(saved);}else if(tries<30){setTimeout(tryConnect,300);}else{showScreen('setup');showErr('Google sign-in library failed to load.');}})();
-  } else {
-    showScreen('setup');
-  }
+    (function tryConn(){tries++;if(typeof google!=='undefined'&&google.accounts){startWithCid(saved);}else if(tries<30){setTimeout(tryConn,300);}else{showScreen('setup');var e=document.getElementById('serr');if(e){e.textContent='Google sign-in library failed to load.';e.style.display='block';}}})();
+  }else{showScreen('setup');}
 }
 </script>
 
+<!-- ═══════════ SETUP SCREEN ═══════════ -->
 <div id="setup">
 <div class="sc">
   <div class="logo">CDC<span> OPS</span></div>
   <p class="sub">Operations Intelligence Dashboard</p>
-  <div id="full-setup">
-    <div class="steps"><ol>
-      <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → CDC OPS project</li>
-      <li><strong>APIs &amp; Services</strong> → Enable <strong>Google Sheets API</strong></li>
-      <li><strong>Google Auth Platform → Clients → Create → Web app</strong></li>
-      <li>Authorised JS origins: your Vercel URL (no trailing slash)</li>
-    </ol></div>
-    <hr style="border:none;border-top:1px solid #1e1e1e;margin:1.2rem 0;">
-    <label class="lbl">Google OAuth Client ID</label>
-    <input type="text" id="cid" class="inp" placeholder="123456789-xxxx.apps.googleusercontent.com">
-    <p class="hint">Client ID is saved locally — only needed once per device.</p>
-    <button class="cbtn" id="cbtn" onclick="initAuth()">Connect &amp; Load Dashboard</button>
-    <div id="serr"></div>
-  </div>
+  <div class="steps"><ol>
+    <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → CDC OPS project</li>
+    <li><strong>APIs &amp; Services</strong> → Enable <strong>Google Sheets API</strong></li>
+    <li><strong>Google Auth Platform → Clients → Create → Web app</strong></li>
+    <li>Authorised JS origins: your Vercel URL (no trailing slash)</li>
+  </ol></div>
+  <hr style="border:none;border-top:1px solid #1e1e1e;margin:1.2rem 0;">
+  <label class="lbl">Google OAuth Client ID</label>
+  <input type="text" id="cid" class="inp" placeholder="123456789-xxxx.apps.googleusercontent.com">
+  <p class="hint">Saved locally — only entered once per device.</p>
+  <button class="cbtn" id="cbtn" onclick="initAuth()">Connect &amp; Load Dashboard</button>
+  <div id="serr"></div>
 </div>
 </div>
 
@@ -1034,15 +1024,14 @@ var tokenClient, accessToken, D = {}, CH = {}, cdSec = 300, cdInt, pendingOnly =
 
 /* ── AUTH ── */
 function initAuth() {
-  var cid = (document.getElementById('cid')||{}).value||'';
-  cid = cid.trim();
+  var cid = (document.getElementById('cid')||{value:''}).value.trim();
   if (!cid || !cid.includes('.apps.googleusercontent.com')) {
     showErr('Please enter a valid Google OAuth Client ID.');
     return;
   }
   localStorage.setItem('cdc_cid', cid);
   var btn = document.getElementById('cbtn');
-  if(btn){btn.disabled=true;btn.textContent='Connecting…';}
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
   startWithCid(cid);
 }
 
@@ -1105,7 +1094,6 @@ function showScreen(id) {
 }
 
 /* ── LOAD ── */
-/* ── LOAD ── */
 async function loadAll() {
   var keys = Object.keys(SH);
   var stateMap = {};
@@ -1114,7 +1102,7 @@ async function loadAll() {
   function renderSteps(){
     document.getElementById('lsteps').innerHTML = keys.map(function(k){
       var s=stateMap[k];
-      return '<div class="lstep '+(s==='done'?'done':s==='err'?'done':s==='act'?'act':'')+'">'
+      return '<div class="lstep '+(s==='done'||s==='err'?'done':s==='act'?'act':'')+'">'
         +'<div class="ldot"></div>'+SH[k].label+(s==='done'?' ✓':s==='err'?' ⚠':'')+'</div>';
     }).join('');
     document.getElementById('lmsg').textContent='Loading '+keys.length+' sheets…';
@@ -1123,13 +1111,19 @@ async function loadAll() {
 
   async function loadOne(k){
     stateMap[k]='act'; renderSteps();
-    function withTimeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'));},ms);})]);}
+    function race(p){
+      return Promise.race([p, new Promise(function(_,rej){
+        setTimeout(function(){rej(new Error('timeout 15s'));},15000);
+      })]);
+    }
     try{
-      var meta=await withTimeout(apiGet('https://sheets.googleapis.com/v4/spreadsheets/'+SH[k].id),15000);
+      var meta=await race(apiGet('https://sheets.googleapis.com/v4/spreadsheets/'+SH[k].id));
       var sh=null;
-      for(var j=0;j<meta.sheets.length;j++){if(meta.sheets[j].properties.sheetId===SH[k].gid){sh=meta.sheets[j];break;}}
+      for(var j=0;j<meta.sheets.length;j++){
+        if(meta.sheets[j].properties.sheetId===SH[k].gid){sh=meta.sheets[j];break;}
+      }
       if(!sh) throw new Error('Tab not found gid='+SH[k].gid);
-      var data=await withTimeout(apiGet('https://sheets.googleapis.com/v4/spreadsheets/'+SH[k].id+'/values/'+encodeURIComponent(sh.properties.title)+'!A:ZZ'),15000);
+      var data=await race(apiGet('https://sheets.googleapis.com/v4/spreadsheets/'+SH[k].id+'/values/'+encodeURIComponent(sh.properties.title)+'!A:ZZ'));
       D[k]=parseSheet(data.values||[]);
       stateMap[k]='done';
     }catch(e){
@@ -1140,7 +1134,7 @@ async function loadAll() {
     renderSteps();
   }
 
-  // Fire ALL sheets in parallel — no grouping, no stagger
+  // All sheets fire simultaneously — no grouping, no stagger
   await Promise.all(keys.map(function(k){ return loadOne(k); }));
 
   document.getElementById('lmsg').textContent='Building dashboard…';
@@ -1778,46 +1772,30 @@ function buildAll() {
     setTimeout(next, delay);
   }
 
-  // Mark heavy tabs dirty — will rebuild when clicked if period changed
+  // Mark heavy tabs dirty — will rebuild when clicked
   phase3.forEach(function(item){ _buildDirty[item[0]] = true; });
 
   runPhase(phase1, 0);
   runPhase(phase2, 100);
-  // Heavy tabs: check if they're currently visible before building
+  // Heavy tabs: only build now if currently on that tab
   setTimeout(function(){
     var activeTab = document.querySelector('.tabp.on');
-    var activeId = activeTab ? activeTab.id : '';
+    var activeId  = activeTab ? activeTab.id : '';
+    var tabMap = {
+      'buildScore':       'tab-score',
+      'buildTopProducts': 'tab-topsell',
+      'buildSnkBrands':   'tab-snkbrands',
+      'buildIndiaMap':    'tab-india',
+    };
     phase3.forEach(function(item){
-      var tabMap = {
-        'buildScore':       'tab-score',
-        'buildTopProducts': 'tab-topsell',
-        'buildSnkBrands':   'tab-snkbrands',
-        'buildIndiaMap':    'tab-india',
-      };
-      var targetTab = tabMap[item[0]];
-      if (activeId === targetTab) {
-        // Currently active — build it
-        try { item[1](); _buildDirty[item[0]] = false; } catch(e) { console.error(e); }
+      if (activeId === tabMap[item[0]]) {
+        try { item[1](); _buildDirty[item[0]] = false; } catch(e){ console.error(e); }
       }
-      // else leave dirty — will build on tab click
     });
   }, 600);
 }
 
-// Override showTab to rebuild dirty tabs when navigated to
-var _origShowTab = window.showTab;
-window.showTab = function(t) {
-  if (_origShowTab) _origShowTab(t);
-  var tabBuildMap = {
-    'score':     function(){ try{ buildScore(D.sneakerOrders?D.sneakerOrders.rows:[],D.streetwearOrders?D.streetwearOrders.rows:[]); _buildDirty['buildScore']=false; }catch(e){} },
-    'topsell':   function(){ try{ buildTopProducts(); _buildDirty['buildTopProducts']=false; }catch(e){} },
-    'snkbrands': function(){ try{ buildSnkBrands(); _buildDirty['buildSnkBrands']=false; }catch(e){} },
-    'india':     function(){ try{ buildIndiaMap(); _buildDirty['buildIndiaMap']=false; }catch(e){} },
-  };
-  if (tabBuildMap[t] && _buildDirty['build'+t.charAt(0).toUpperCase()+t.slice(1)] !== false) {
-    setTimeout(tabBuildMap[t], 50);
-  }
-};
+// Dirty tab rebuild is handled inside showTab below — no override needed
 
 /* ── OVERVIEW ── */
 function buildOV(snk, sw) {
@@ -3522,12 +3500,24 @@ function showTab(name) {
   document.querySelectorAll('.tabp').forEach(function(p) {
     p.classList.toggle('on', p.id === 'tab-' + name);
   });
+  // Rebuild heavy tabs on first visit (lazy load)
+  var heavyMap = {
+    'score':     function(){ buildScore(D.sneakerOrders?D.sneakerOrders.rows:[], D.streetwearOrders?D.streetwearOrders.rows:[]); },
+    'topsell':   function(){ buildTopProducts(); },
+    'snkbrands': function(){ buildSnkBrands(); },
+    'india':     function(){ buildIndiaMap(); },
+  };
+  var buildKey = 'build' + name.charAt(0).toUpperCase() + name.slice(1);
+  if (heavyMap[name] && _buildDirty[buildKey] !== false) {
+    setTimeout(function(){
+      try { heavyMap[name](); _buildDirty[buildKey] = false; } catch(e){ console.error('showTab build error:', name, e.message); }
+    }, 50);
+  }
 }
 
 window.onload = function() {
-  // Splash is shown by default (display:flex in HTML)
-  // It handles auto-connect internally via splashEnter()
-  // showScreen manages setup/loading/dash only
+  // Splash screen handles initial routing (auto-connect or show setup)
+  // Nothing needed here — splashEnter() does it on button click
 };
 
 /* ═══════════════════════════════════
