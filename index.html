@@ -2626,20 +2626,32 @@ function buildFul(snkRaw, swRaw) {
 function buildTopProducts() {
   var tpSel = document.getElementById('period-topsell') ? document.getElementById('period-topsell').value : '';
   var today = new Date();
-  var cutoff = null;
-  var isCurrent = tpSel === 'current';
-  if (!isCurrent && tpSel !== '0' && tpSel !== '') {
-    var days = parseInt(tpSel);
-    if (!isNaN(days) && days > 0) cutoff = new Date(today.getTime() - days * 864e5);
-  }
   var infoEl = document.getElementById('tp-info');
+
+  // Update period label
+  var lbl = document.getElementById('period-lbl-topsell');
 
   function inPeriod(dateStr) {
     var d = parseDate(dateStr);
     if (!d) return false;
-    if (isCurrent) return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth();
-    if (!cutoff) return true;
-    return d >= cutoff && d <= today;
+    // '' = current month
+    if (tpSel === '' || tpSel === 'current') {
+      return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth();
+    }
+    // 'all' = all time
+    if (tpSel === 'all' || tpSel === '0') return true;
+    // 'YYYY-MM' = specific month
+    if (/^\d{4}-\d{2}$/.test(tpSel)) {
+      var parts = tpSel.split('-');
+      return d.getFullYear()===parseInt(parts[0]) && d.getMonth()===parseInt(parts[1])-1;
+    }
+    // numeric = last N days
+    var days = parseInt(tpSel);
+    if (!isNaN(days) && days > 0) {
+      var cutoff = new Date(today.getTime() - days * 864e5);
+      return d >= cutoff && d <= today;
+    }
+    return true;
   }
 
   var allSnk = D.sneakerOrders ? D.sneakerOrders.rows : [];
@@ -2654,7 +2666,8 @@ function buildTopProducts() {
   var swAll = swRows.concat(swDelRows);
 
   var topN_count = parseInt(document.getElementById('tp-topn') ? document.getElementById('tp-topn').value : '10') || 10;
-  if (infoEl) infoEl.textContent = (isCurrent?'Current month':cutoff?'Last '+tpSel+' days':'All time')+' — '+snkRows.length+' sneaker, '+swAll.length+' SW — top '+topN_count;
+  var periodLabel = (tpSel===''||tpSel==='current') ? 'Current month' : tpSel==='all'||tpSel==='0' ? 'All time' : /^\d{4}-\d{2}$/.test(tpSel) ? tpSel : 'Last '+tpSel+' days';
+  if (infoEl) infoEl.textContent = periodLabel + ' — ' + snkRows.length + ' sneaker, ' + swAll.length + ' SW — top ' + topN_count;
 
   // ── Sneaker top products ──
   var snkProductCount = {};
@@ -3612,11 +3625,15 @@ var BRAND_ALIASES = {
   'LOUIS':     'Louis Vuitton',
   // G-Shock
   'G-SHOCK':   'G-Shock', 'GSHOCK':  'G-Shock',
+  // Pokemon
+  'POKEMON':   'Pokemon', 'MONCOLLE':  'Pokemon', 'PIKACHU':   'Pokemon',
+  'CHARIZARD': 'Pokemon', 'VENUSAUR':  'Pokemon', 'BLASTOISE': 'Pokemon',
+  'TAKARA':    'Pokemon',
   // CDC branded
   'CDC':       'CDC',
 };
 
-var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','QUICK SHOE','SHOE CARE','SHOE WIPE','SNEAKER WIPE','LEATHER CONDITIONER','SOLE GUARD','SOLE SAVER','STACK\'EM','STACKEM','SNEAKER CRATE','SHOE SHIELD','FOAM CLEANER','QUICK KIT'];
+var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','QUICK SHOE','SHOE CARE','SHOE WIPE','SNEAKER WIPE','LEATHER CONDITIONER','SOLE GUARD','SOLE SAVER','STACK\'EM','STACKEM','SNEAKER CRATE','SHOE SHIELD','FOAM CLEANER','QUICK KIT','SHOE SHAPER','CLOUDSOLE','MEMORY FOAM INSOLE','CLOUD SOLE'];
 
 var MULTI_WORD_BRANDS = [
   { words: ['NEW','BALANCE'],   brand: 'New Balance' },
@@ -3647,6 +3664,14 @@ var MULTI_WORD_BRANDS = [
   { words: ['JAMESON','SHIRT'], brand: 'CDC' },
   { words: ['CDC','PROTECTION'],brand: 'CDC' },
   { words: ['SEAM','PANTS'],    brand: '__IGNORE__' },
+  // Pokemon
+  { words: ['POKEMON'],         brand: 'Pokemon' },
+  { words: ['MONCOLLE'],        brand: 'Pokemon' },
+  { words: ['SCARLET','VIOLET'],brand: 'Pokemon' },
+  { words: ['CHARIZARD'],       brand: 'Pokemon' },
+  { words: ['PIKACHU'],         brand: 'Pokemon' },
+  { words: ['TOMICA','POKEMON'],brand: 'Pokemon' },
+  { words: ['TAKARA','TOMY'],   brand: 'Pokemon' },
 ];
 
 function extractSnkBrand(itemName) {
@@ -3675,6 +3700,8 @@ function extractSnkBrand(itemName) {
   if (raw.includes('LI-NING') || raw.includes('LI NING')) return 'Li-Ning';
   if (raw.includes('LOUIS VUITTON') || raw.includes('LOUIS V')) return 'Louis Vuitton';
   if (raw.includes('TOYON') || raw.includes('ICE POP') || raw.includes('POP SOCKS')) return 'CDC';
+  if (raw.includes('POKEMON') || raw.includes('MONCOLLE') || raw.includes('PIKACHU') || raw.includes('CHARIZARD') || raw.includes('VENUSAUR') || raw.includes('BLASTOISE') || raw.includes('SCARLET') || raw.includes('TAKARA') || raw.includes('TOMICA')) return 'Pokemon';
+  if (raw.includes('SHOE SHAPER') || raw.includes('CLOUDSOLE') || raw.includes('CLOUD SOLE') || raw.includes('MEMORY FOAM INSOLE')) return 'Sneakare';
 
   // First word alias lookup
   var first = raw.split(/[\s\-]/)[0].replace(/[^A-Z]/g,'');
