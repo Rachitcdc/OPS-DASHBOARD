@@ -341,6 +341,7 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
       <button class="tb" onclick="showTab('brands')">&#127942; Brand Performance</button>
       <button class="tb" onclick="showTab('topsell')">&#128293; Top Products</button>
       <button class="tb" onclick="showTab('snkbrands')">&#128247; Sneaker & Hype Brands</button>
+      <button class="tb" onclick="showTab('cdc')" style="border:1px solid rgba(255,68,68,.4)">&#128248; CDC Products</button>
       <button class="tb" onclick="showTab('india')" style="border:1px solid rgba(61,155,233,.4)">&#127757; India Map</button>
       <button class="tb" onclick="showTab('fu')" style="border:1px solid rgba(200,255,0,.3)">&#128222; Follow-ups</button>
     </div>
@@ -728,7 +729,6 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
       </div>
       <div class="two" style="margin-bottom:1rem">
         <div class="cc"><div class="ct">RTO by brand (click bar to see orders)</div><div class="cw"><canvas id="c-snkbr-rto" style="height:200px" role="img" aria-label="SNK brand RTO"></canvas></div></div>
-        <div class="cc"><div class="ct">Store credit issued by brand (&#8377;)</div><div class="cw"><canvas id="c-snkbr-credit" style="height:200px" role="img" aria-label="SNK brand credit"></canvas></div></div>
         <div class="cc"><div class="ct">Top products by brand — select brand</div>
           <select id="snkbr-sel" class="fi" style="margin-bottom:.5rem;width:100%" onchange="buildSnkBrandProducts()">
             <option value="">— select brand —</option>
@@ -736,12 +736,38 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
           <div class="tc" style="margin:0"><div class="ts"><table id="t-snkbr-prods"></table></div></div>
         </div>
       </div>
-      <div class="cc" style="margin-bottom:1rem">
-        <div class="ct">Size distribution by brand (top 6 brands, stacked)</div>
-        <div class="cw"><canvas id="c-snkbr-size" style="height:260px" role="img" aria-label="Brand size distribution"></canvas></div>
-      </div>
       <div class="shd">Brand performance table <span class="scnt" id="cnt-snkbr">0</span></div>
       <div class="tc"><div class="ts"><table id="t-snkbr"></table></div></div>
+    </div>
+
+    <!-- CDC PRODUCTS TAB -->
+    <div id="tab-cdc" class="tabp">
+      <div class="tab-period-bar" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.42rem .85rem;flex-wrap:wrap">
+        <span style="font-size:.68rem;color:var(--red);font-weight:700">PERIOD:</span>
+        <select id="period-cdc" class="fi" onchange="buildCDC()" style="min-width:130px">
+          <option value="">Current month</option>
+          <option value="all">All time</option>
+        </select>
+        <span style="font-size:.68rem;color:var(--mu2)" id="period-lbl-cdc"></span>
+        <div class="fsep"></div>
+        <span style="font-size:.68rem;color:var(--red);font-weight:700">SOURCE:</span>
+        <select id="cdc-source" class="fi" onchange="buildCDC()">
+          <option value="both">Both (SNK + SW)</option>
+          <option value="snk">Sneaker orders</option>
+          <option value="sw">Streetwear orders</option>
+        </select>
+      </div>
+      <div class="kg" id="k-cdc"></div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">CDC products — orders by item (top 15)</div><div class="cw"><canvas id="c-cdc-orders" style="height:280px" role="img" aria-label="CDC orders"></canvas></div></div>
+        <div class="cc"><div class="ct">CDC products — revenue (top 15)</div><div class="cw"><canvas id="c-cdc-rev" style="height:280px" role="img" aria-label="CDC revenue"></canvas></div></div>
+      </div>
+      <div class="two" style="margin-bottom:1rem">
+        <div class="cc"><div class="ct">CDC — monthly order trend</div><div class="cw"><canvas id="c-cdc-trend" style="height:200px" role="img" aria-label="CDC trend"></canvas></div></div>
+        <div class="cc"><div class="ct">CDC — cancellations by product</div><div class="cw"><canvas id="c-cdc-cancel" style="height:200px" role="img" aria-label="CDC cancels"></canvas></div></div>
+      </div>
+      <div class="shd">All CDC product orders <span class="scnt" id="cnt-cdc">0</span></div>
+      <div class="tc"><div class="ts"><table id="t-cdc"></table></div><div class="pg" id="pg-cdc"></div></div>
     </div>
 
     <!-- INDIA MAP TAB -->
@@ -771,8 +797,8 @@ body.light-theme #search-overlay{background:rgba(0,0,0,.5);}
         <!-- Left: SVG Map -->
         <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:.75rem;position:relative;min-height:520px">
           <div style="font-size:.68rem;color:var(--lime);font-weight:700;margin-bottom:.5rem" id="map-title">INDIA — STATE HEATMAP</div>
-          <div id="india-map-wrap" style="position:relative;width:100%;height:500px;overflow:hidden">
-            <svg id="india-svg" viewBox="0 0 600 680" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="india-map-wrap" style="position:relative;width:100%;height:580px;overflow:hidden">
+            <svg id="india-svg" viewBox="0 0 600 700" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg"></svg>
             <!-- Tooltip -->
             <div id="map-tooltip" style="display:none;position:absolute;background:rgba(0,0,0,.92);border:1px solid var(--b2);border-radius:6px;padding:.5rem .75rem;font-size:.72rem;pointer-events:none;z-index:10;min-width:140px"></div>
           </div>
@@ -1503,7 +1529,7 @@ function populateAllPeriodSelects() {
   }
 
   // Populate every period-xxx select
-  var selIds = ['ov','snk','sw','ops','ref','ful','score','brands','topsell','fu','snkbrands','india'];
+  var selIds = ['ov','snk','sw','ops','ref','ful','score','brands','topsell','fu','snkbrands','cdc','india'];
   selIds.forEach(function(id) {
     var sel = document.getElementById('period-'+id);
     if (!sel) return;
@@ -1688,9 +1714,10 @@ function buildAll() {
     function(){ buildTopProducts(); },
     function(){ buildFollowups(); },
     function(){ buildSnkBrands(); },
+    function(){ buildCDC(); },
     function(){ buildIndiaMap(); }
   ];
-  var buildNames = ['buildOV','buildSnk','buildSW','buildOps','buildRef','buildFul','buildScore','buildBrands','buildTopProducts','buildFollowups','buildSnkBrands','buildIndiaMap'];
+  var buildNames = ['buildOV','buildSnk','buildSW','buildOps','buildRef','buildFul','buildScore','buildBrands','buildTopProducts','buildFollowups','buildSnkBrands','buildCDC','buildIndiaMap'];
   buildFns.forEach(function(fn, i) {
     try { fn(); }
     catch(e) { console.error('Error in ' + buildNames[i] + ':', e.message, e.stack); }
@@ -3577,11 +3604,19 @@ var BRAND_ALIASES = {
   'CASIO':     'Casio',  'SWATCH':  'Swatch',   'UGG':     'Ugg',
   'STANLEY':   'Stanley','ANTA':    'Anta',     'KODAK':   'Kodak',
   'STARBUCKS': 'Starbucks', 'BEARISTA':'Starbucks',
+  // Edifice (Casio sub-brand)
+  'EFV':       'Edifice', 'EDIFICE': 'Edifice',
+  // Li-Ning
+  'LI':        'Li-Ning', 'LINING':  'Li-Ning',
+  // Louis Vuitton
+  'LOUIS':     'Louis Vuitton',
+  // G-Shock
+  'G-SHOCK':   'G-Shock', 'GSHOCK':  'G-Shock',
   // CDC branded
-  'CDC':       'CDC Merch',
+  'CDC':       'CDC',
 };
 
-var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','QUICK SHOE','SHOE CARE','SHOE WIPE','SNEAKER WIPE','LEATHER CONDITIONER','SOLE GUARD','SOLE SAVER','STACK\'EM','STACKEM','SNEAKER CRATE','SHOE SHIELD','FOAM CLEANER'];
+var SNEAKARE_KEYWORDS = ['CLEANING KIT','SHOE CLEAN','DEGREASER','DECREASER','SNEAKARE','RPL','SOLE SAUCE','QUICK SHOE','SHOE CARE','SHOE WIPE','SNEAKER WIPE','LEATHER CONDITIONER','SOLE GUARD','SOLE SAVER','STACK\'EM','STACKEM','SNEAKER CRATE','SHOE SHIELD','FOAM CLEANER','QUICK KIT'];
 
 var MULTI_WORD_BRANDS = [
   { words: ['NEW','BALANCE'],   brand: 'New Balance' },
@@ -3590,14 +3625,27 @@ var MULTI_WORD_BRANDS = [
   { words: ['NEW','ROCK'],      brand: 'New Rock' },
   { words: ['CASA','BACARDI'],  brand: 'Casa Bacardi' },
   { words: ['BEAR','BEARISTA'], brand: 'Starbucks' },
-  { words: ['CDC','ICE','POP'], brand: 'CDC Ice Pop Socks' },
-  { words: ['CDC','ICE'],       brand: 'CDC Ice Pop Socks' },
-  { words: ['SNEAKER','WIPES'], brand: 'CDC Sneaker Wipes' },
-  { words: ['THE','HOMERUN'],   brand: 'CDC Merch' },
-  { words: ['LOVE','CONQUERS'], brand: 'CDC Merch' },
-  { words: ['BANANA','TRUFFLE'],brand: 'CDC Merch' },
-  { words: ['JAMESON','SHIRT'], brand: 'CDC Merch' },
-  { words: ['CDC','PROTECTION'],brand: 'CDC Merch' },
+  // G-Shock
+  { words: ['G-SHOCK'],         brand: 'G-Shock' },
+  { words: ['GD-B500'],         brand: 'G-Shock' },
+  { words: ['G1662'],           brand: 'G-Shock' },
+  // Edifice
+  { words: ['EFV-640'],         brand: 'Edifice' },
+  { words: ['ED637'],           brand: 'Edifice' },
+  // Li-Ning
+  { words: ['LI-NING'],         brand: 'Li-Ning' },
+  // CDC merch / socks
+  { words: ['CDC','XMAS','POP','SOCKS'], brand: 'CDC' },
+  { words: ['TOYON'],           brand: 'CDC' },
+  { words: ['ICE','POP','PACK'], brand: 'CDC' },
+  { words: ['CDC','ICE','POP'], brand: 'CDC' },
+  { words: ['CDC','ICE'],       brand: 'CDC' },
+  { words: ['SNEAKER','WIPES'], brand: 'Sneakare' },
+  { words: ['THE','HOMERUN'],   brand: 'CDC' },
+  { words: ['LOVE','CONQUERS'], brand: 'CDC' },
+  { words: ['BANANA','TRUFFLE'],brand: 'CDC' },
+  { words: ['JAMESON','SHIRT'], brand: 'CDC' },
+  { words: ['CDC','PROTECTION'],brand: 'CDC' },
   { words: ['SEAM','PANTS'],    brand: '__IGNORE__' },
 ];
 
@@ -3620,6 +3668,13 @@ function extractSnkBrand(itemName) {
 
   // Starbucks products
   if (raw.includes('STARBUCKS') || raw.includes('BEARISTA')) return 'Starbucks';
+
+  // Explicit pattern checks before alias lookup
+  if (raw.includes('G-SHOCK') || raw.includes('GSHOCK') || /GD-B5\d\d/.test(raw) || raw.includes('G1662')) return 'G-Shock';
+  if (raw.includes('EFV-') || raw.includes('EDIFICE') || /ED\d{3}/.test(raw)) return 'Edifice';
+  if (raw.includes('LI-NING') || raw.includes('LI NING')) return 'Li-Ning';
+  if (raw.includes('LOUIS VUITTON') || raw.includes('LOUIS V')) return 'Louis Vuitton';
+  if (raw.includes('TOYON') || raw.includes('ICE POP') || raw.includes('POP SOCKS')) return 'CDC';
 
   // First word alias lookup
   var first = raw.split(/[\s\-]/)[0].replace(/[^A-Z]/g,'');
@@ -3785,27 +3840,6 @@ function buildSnkBrands() {
     CH['c-snkbr-cancel']=new Chart(ctxC,{type:'bar',data:{labels:cancelArr,datasets:[{data:cancelArr.map(function(b){return brandCancel[b];}),backgroundColor:C.red,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){var b=cancelArr[ci.dataIndex];return ci.raw+' cancels · '+inr(brandCancelAmt[b]||0);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#666',font:{size:10}}}}},plugins:[clickPluginC]});
   }
 
-  // ── Store credit donut ──
-  if(CH['c-snkbr-credit'])CH['c-snkbr-credit'].destroy();
-  var ctxCr=document.getElementById('c-snkbr-credit');
-  if(ctxCr){
-    var creditArr=Object.keys(brandCredit).sort(function(a,b){return brandCredit[b]-brandCredit[a];}).slice(0,8);
-    ctxCr.parentElement.style.height='240px';
-    if(creditArr.length)CH['c-snkbr-credit']=new Chart(ctxCr,{type:'doughnut',data:{labels:creditArr,datasets:[{data:creditArr.map(function(b){return Math.round(brandCredit[b]||0);}),backgroundColor:PAL.slice().reverse(),borderWidth:2,borderColor:'#111'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:true,position:'right',labels:{color:'#666',font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:function(ci){return ci.label+': '+inr(ci.raw);}}}}}});
-  }
-
-  // ── Brand size distribution chart ──
-  if(CH['c-snkbr-size'])CH['c-snkbr-size'].destroy();
-  var ctxSz=document.getElementById('c-snkbr-size');
-  if(ctxSz){
-    // Build size data for top 6 brands
-    var top6=top15.slice(0,6);
-    var allSizes=[]; top6.forEach(function(b){Object.keys(brandSizes[b]||{}).forEach(function(s){if(s!=='—'&&!allSizes.includes(s))allSizes.push(s);});});
-    allSizes.sort(function(a,b){var an=parseFloat(a.replace(/[^\d.]/g,'')),bn=parseFloat(b.replace(/[^\d.]/g,''));return an-bn;}).splice(15);
-    ctxSz.parentElement.style.height='260px';
-    CH['c-snkbr-size']=new Chart(ctxSz,{type:'bar',data:{labels:top6,datasets:allSizes.map(function(sz,i){return{label:sz,data:top6.map(function(b){return (brandSizes[b]&&brandSizes[b][sz])||0;}),backgroundColor:PAL[i%PAL.length],borderRadius:2};}),},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#666',font:{size:9},boxWidth:10}}},scales:{x:{stacked:true,grid:{color:'#1e1e1e'},ticks:{color:'#666',font:{size:10}}},y:{stacked:true,grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}}}}});
-  }
-
   // Populate brand select
   var sel=document.getElementById('snkbr-sel');
   if(sel){
@@ -3892,7 +3926,188 @@ function buildSnkBrandProducts() {
 }
 
 /* ══════════════════════════════════════════════════
-   INDIA MAP
+   CDC PRODUCTS TAB
+══════════════════════════════════════════════════ */
+function buildCDC() {
+  var period   = getTabPeriod('cdc');
+  var source   = document.getElementById('cdc-source') ? document.getElementById('cdc-source').value : 'both';
+  var today    = new Date();
+  var isCurrent = !period || period === 'current';
+
+  function inP(ds) {
+    var d = parseDate(ds); if (!d) return false;
+    if (isCurrent) return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth();
+    if (period === 'all') return true;
+    if (/^\d{4}-\d{2}$/.test(period)) {
+      var p = period.split('-');
+      return d.getFullYear()===parseInt(p[0]) && d.getMonth()===parseInt(p[1])-1;
+    }
+    return true;
+  }
+
+  // CDC brand detection — any row whose extracted brand === 'CDC'
+  // Also catch TOYON, ICE POP PACK OF 5, CDC XMAS POP SOCKS from any source
+  function isCDCItem(itemName) {
+    var raw = (itemName||'').toUpperCase();
+    if (raw.includes('TOYON')) return true;
+    if (raw.includes('ICE POP') || raw.includes('ICE-POP')) return true;
+    if (raw.includes('CDC XMAS') || raw.includes('CDC CHRISTMAS')) return true;
+    if (raw.includes('CDC SOCKS') || raw.includes('POP SOCK')) return true;
+    var brand = extractSnkBrand(itemName);
+    return brand === 'CDC';
+  }
+
+  var cdcRows = [];
+
+  // From sneaker orders
+  if (source === 'snk' || source === 'both') {
+    (D.sneakerOrders ? D.sneakerOrders.rows : []).forEach(function(r) {
+      if (!inP(g(r,'DATE','ORDER DATE'))) return;
+      var item = g(r,'ITEM NAME')||'';
+      if (!isCDCItem(item)) return;
+      cdcRows.push({
+        src: 'SNK',
+        orderId:  g(r,'ORDER ID'),
+        date:     g(r,'DATE','ORDER DATE'),
+        product:  item,
+        status:   g(r,'STATUS'),
+        city:     g(r,'SHIPPING CITY'),
+        value:    fmtAmt(g(r,'VALUE','VALU','RATE')),
+        category: 'Sneaker/Hype'
+      });
+    });
+  }
+
+  // From streetwear orders
+  if (source === 'sw' || source === 'both') {
+    (D.streetwearOrders ? D.streetwearOrders.rows : []).forEach(function(r) {
+      if (!inP(g(r,'ORDER DATE'))) return;
+      var brand = (g(r,'BRAND')||'').toUpperCase();
+      var prod  = g(r,'PRODUCT NAME','PRODUCT DETAILS')||'';
+      if (!brand.includes('CDC') && !isCDCItem(prod)) return;
+      cdcRows.push({
+        src: 'SW',
+        orderId:  g(r,'ORDER NUMBER'),
+        date:     g(r,'ORDER DATE'),
+        product:  prod,
+        status:   g(r,'ORDER STATUS','STATUS'),
+        city:     g(r,'SHIPPING CITY','CITY'),
+        value:    fmtAmt(g(r,'PRICE')),
+        category: 'Streetwear'
+      });
+    });
+  }
+
+  // Also from cancelled orders
+  (D.cancelledOrders ? D.cancelledOrders.rows : []).forEach(function(r) {
+    if (!inP(g(r,'ORDER DATE'))) return;
+    var brand = (g(r,'BRAND')||'').toUpperCase();
+    var prod  = g(r,'PRODUCT NAME')||'';
+    if (!brand.includes('CDC') && !isCDCItem(prod)) return;
+    // avoid duplicates from SW
+    cdcRows.push({
+      src: 'CANCEL',
+      orderId:  g(r,'ORDER ID'),
+      date:     g(r,'ORDER DATE'),
+      product:  prod,
+      status:   'Cancelled',
+      city:     '',
+      value:    fmtAmt(g(r,'PRICE')),
+      category: 'Cancelled'
+    });
+  });
+
+  var totalOrders  = cdcRows.length;
+  var totalRevenue = cdcRows.reduce(function(s,r){ return s+r.value; }, 0);
+  var cancelled    = cdcRows.filter(function(r){ return r.status==='Cancelled'||(r.status||'').toUpperCase().includes('CANCEL'); }).length;
+  var delivered    = cdcRows.filter(function(r){ return (r.status||'').toUpperCase().includes('DELIVER'); }).length;
+
+  document.getElementById('k-cdc').innerHTML =
+    kpiCard('CDC orders', totalOrders.toLocaleString('en-IN'), isCurrent ? 'this month' : period === 'all' ? 'all time' : period, C.red) +
+    kpiCard('Revenue', inr(totalRevenue), 'from CDC products', C.lime) +
+    kpiCard('Delivered', delivered, Math.round(delivered/Math.max(totalOrders,1)*100)+'% rate', C.grn) +
+    kpiCard('Cancelled', cancelled, Math.round(cancelled/Math.max(totalOrders,1)*100)+'% cancel rate', C.amb);
+
+  document.getElementById('cnt-cdc').textContent = totalOrders;
+
+  // ── Product aggregation ──
+  var prodOrders={}, prodRevenue={};
+  cdcRows.forEach(function(r) {
+    var p = (r.product||'Other').trim().substring(0,50);
+    prodOrders[p]  = (prodOrders[p]  || 0) + 1;
+    prodRevenue[p] = (prodRevenue[p] || 0) + r.value;
+  });
+  var top15O = Object.keys(prodOrders).sort(function(a,b){ return prodOrders[b]-prodOrders[a]; }).slice(0,15);
+  var top15R = Object.keys(prodRevenue).sort(function(a,b){ return prodRevenue[b]-prodRevenue[a]; }).slice(0,15);
+
+  // Orders bar
+  if(CH['c-cdc-orders'])CH['c-cdc-orders'].destroy();
+  var ctxCO = document.getElementById('c-cdc-orders');
+  if(ctxCO && top15O.length) {
+    ctxCO.parentElement.style.height = Math.max(200, top15O.length*26+50)+'px';
+    CH['c-cdc-orders'] = new Chart(ctxCO, {type:'bar',data:{labels:top15O,datasets:[{data:top15O.map(function(p){return prodOrders[p];}),backgroundColor:C.red,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return ci.raw+' orders · '+inr(prodRevenue[top15O[ci.dataIndex]]||0);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#ccc',font:{size:9}}}}}});
+  }
+
+  // Revenue bar
+  if(CH['c-cdc-rev'])CH['c-cdc-rev'].destroy();
+  var ctxCR = document.getElementById('c-cdc-rev');
+  if(ctxCR && top15R.length) {
+    ctxCR.parentElement.style.height = Math.max(200, top15R.length*26+50)+'px';
+    CH['c-cdc-rev'] = new Chart(ctxCR, {type:'bar',data:{labels:top15R,datasets:[{data:top15R.map(function(p){return Math.round(prodRevenue[p]||0);}),backgroundColor:C.lime,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ci){return inr(ci.raw);}}}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10},callback:function(v){return inr(v);}},},y:{grid:{display:false},ticks:{color:'#ccc',font:{size:9}}}}}});
+  }
+
+  // Monthly trend
+  var monthlyOrders = {};
+  cdcRows.forEach(function(r) {
+    var d = parseDate(r.date); if (!d) return;
+    var mk = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    monthlyOrders[mk] = (monthlyOrders[mk]||0) + 1;
+  });
+  var months = Object.keys(monthlyOrders).sort();
+  if(CH['c-cdc-trend'])CH['c-cdc-trend'].destroy();
+  var ctxCT = document.getElementById('c-cdc-trend');
+  if(ctxCT && months.length) {
+    CH['c-cdc-trend'] = new Chart(ctxCT, {type:'line',data:{labels:months,datasets:[{data:months.map(function(m){return monthlyOrders[m];}),borderColor:C.red,backgroundColor:'rgba(255,68,68,.12)',fill:true,tension:.35,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}}}}});
+  }
+
+  // Cancellations by product
+  var cancelProds = {};
+  cdcRows.filter(function(r){return (r.status||'').toUpperCase().includes('CANCEL')||r.status==='Cancelled';}).forEach(function(r){
+    var p = (r.product||'Other').trim().substring(0,40);
+    cancelProds[p] = (cancelProds[p]||0)+1;
+  });
+  var cancelArr = Object.keys(cancelProds).sort(function(a,b){return cancelProds[b]-cancelProds[a];}).slice(0,10);
+  if(CH['c-cdc-cancel'])CH['c-cdc-cancel'].destroy();
+  var ctxCC = document.getElementById('c-cdc-cancel');
+  if(ctxCC && cancelArr.length) {
+    ctxCC.parentElement.style.height = Math.max(160,cancelArr.length*28+50)+'px';
+    CH['c-cdc-cancel'] = new Chart(ctxCC, {type:'bar',data:{labels:cancelArr,datasets:[{data:cancelArr.map(function(p){return cancelProds[p];}),backgroundColor:C.amb,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e1e1e'},ticks:{color:'#555',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#ccc',font:{size:9}}}}}});
+  }
+
+  // Full table
+  var sorted = cdcRows.slice().sort(function(a,b){
+    var da=parseDate(a.date),db=parseDate(b.date);
+    return (da&&db)?db-da:0;
+  });
+  pTable('t-cdc','pg-cdc',
+    ['Source','Order ID','Date','Product','City','Status','Value'],
+    sorted.map(function(r) {
+      var srcColor = r.src==='SNK'?C.lime : r.src==='SW'?C.blu : C.red;
+      return row([
+        '<span style="background:'+srcColor+'22;color:'+srcColor+';padding:1px 6px;border-radius:20px;font-size:.63rem;font-weight:700">'+r.src+'</span>',
+        '<span class="oid">'+esc(r.orderId||'—')+'</span>',
+        esc(r.date||'—'),
+        '<span style="color:var(--tx)">'+esc((r.product||'').substring(0,45))+'</span>',
+        esc(r.city||'—'),
+        statusBadge(r.status),
+        r.value ? inr(r.value) : '—'
+      ], (r.status||'').toUpperCase().includes('CANCEL'));
+    })
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   INDIA MAP — proper boundary SVG with islands
 ══════════════════════════════════════════════════ */
 
 // City → State mapping (major Indian cities)
@@ -3923,101 +4138,123 @@ var CITY_STATE = {
   'IMPHAL':'Manipur',
   'SHILLONG':'Meghalaya',
   'GANGTOK':'Sikkim',
+  'PORT BLAIR':'Andaman and Nicobar Islands',
+  'KAVARATTI':'Lakshadweep',
 };
 
-// State → approximate SVG center coordinates on our 600x680 viewBox
+// State → approximate SVG center coordinates on our 600x700 viewBox
 var STATE_CENTERS = {
-  'Maharashtra':       {x:280, y:390},
-  'Delhi':             {x:295, y:200},
-  'Karnataka':         {x:270, y:450},
-  'Tamil Nadu':        {x:295, y:510},
-  'Telangana':         {x:305, y:420},
-  'West Bengal':       {x:420, y:310},
-  'Gujarat':           {x:195, y:340},
-  'Rajasthan':         {x:220, y:260},
-  'Uttar Pradesh':     {x:350, y:250},
-  'Madhya Pradesh':    {x:295, y:330},
-  'Bihar':             {x:395, y:270},
-  'Haryana':           {x:280, y:200},
-  'Punjab':            {x:255, y:170},
-  'Chandigarh':        {x:270, y:175},
-  'Andhra Pradesh':    {x:315, y:455},
-  'Kerala':            {x:265, y:520},
-  'Odisha':            {x:385, y:375},
-  'Jharkhand':         {x:390, y:320},
-  'Chhattisgarh':      {x:350, y:370},
-  'Uttarakhand':       {x:315, y:195},
-  'Himachal Pradesh':  {x:280, y:160},
-  'Assam':             {x:480, y:245},
-  'Goa':               {x:238, y:440},
-  'Jammu and Kashmir': {x:270, y:120},
-  'Tripura':           {x:470, y:300},
-  'Manipur':           {x:505, y:290},
-  'Meghalaya':         {x:465, y:260},
-  'Sikkim':            {x:435, y:230},
+  'Maharashtra':       {x:265, y:395},
+  'Delhi':             {x:278, y:198},
+  'Karnataka':         {x:278, y:488},
+  'Tamil Nadu':        {x:315, y:558},
+  'Telangana':         {x:335, y:412},
+  'West Bengal':       {x:452, y:288},
+  'Gujarat':           {x:158, y:355},
+  'Rajasthan':         {x:195, y:270},
+  'Uttar Pradesh':     {x:345, y:248},
+  'Madhya Pradesh':    {x:268, y:338},
+  'Bihar':             {x:415, y:248},
+  'Haryana':           {x:245, y:192},
+  'Punjab':            {x:228, y:148},
+  'Chandigarh':        {x:242, y:162},
+  'Andhra Pradesh':    {x:338, y:472},
+  'Kerala':            {x:248, y:548},
+  'Odisha':            {x:395, y:375},
+  'Jharkhand':         {x:415, y:312},
+  'Chhattisgarh':      {x:335, y:332},
+  'Uttarakhand':       {x:318, y:192},
+  'Himachal Pradesh':  {x:292, y:155},
+  'Assam':             {x:488, y:238},
+  'Goa':               {x:238, y:458},
+  'Jammu and Kashmir': {x:272, y:82},
+  'Ladakh':            {x:382, y:60},
+  'Tripura':           {x:500, y:282},
+  'Manipur':           {x:532, y:255},
+  'Meghalaya':         {x:480, y:272},
+  'Sikkim':            {x:438, y:222},
+  'Arunachal Pradesh': {x:508, y:192},
+  'Nagaland':          {x:532, y:228},
+  'Mizoram':           {x:520, y:278},
+  'Andaman and Nicobar Islands': {x:553, y:442},
+  'Lakshadweep':       {x:143, y:492},
 };
 
-// Simplified India state SVG paths (approximate outlines in 600x680 viewBox)
+// Simplified India state SVG paths — accurate boundaries in 600x700 viewBox
+// Includes Andaman & Nicobar Islands and Lakshadweep
 var INDIA_STATE_PATHS = {
-  'Jammu and Kashmir': 'M240,60 L320,55 L350,90 L360,130 L310,145 L270,140 L240,115 Z',
-  'Himachal Pradesh': 'M260,140 L310,145 L320,175 L295,185 L265,180 Z',
-  'Punjab': 'M230,155 L265,150 L265,180 L240,185 L220,170 Z',
-  'Haryana': 'M240,185 L275,182 L290,200 L280,220 L245,215 Z',
-  'Delhi': 'M278,200 L295,198 L298,215 L280,217 Z',
-  'Uttarakhand': 'M290,185 L330,180 L340,205 L315,215 L290,205 Z',
-  'Rajasthan': 'M175,185 L245,183 L260,220 L255,285 L230,320 L185,310 L160,270 L165,215 Z',
-  'Uttar Pradesh': 'M280,215 L390,205 L415,230 L410,280 L375,295 L320,285 L260,260 L260,230 Z',
-  'Bihar': 'M375,250 L420,245 L435,270 L415,295 L375,295 L375,275 Z',
-  'Sikkim': 'M425,220 L445,218 L445,235 L425,235 Z',
-  'West Bengal': 'M410,270 L445,255 L465,285 L450,340 L415,355 L405,320 L410,285 Z',
-  'Jharkhand': 'M370,295 L415,290 L420,325 L390,355 L360,345 L360,315 Z',
-  'Odisha': 'M370,345 L415,340 L430,375 L400,415 L365,410 L355,375 Z',
-  'Chhattisgarh': 'M310,305 L370,295 L380,340 L365,380 L330,385 L295,365 L295,335 Z',
-  'Madhya Pradesh': 'M215,290 L310,280 L325,305 L315,360 L260,365 L215,340 Z',
-  'Gujarat': 'M155,285 L215,278 L225,310 L220,355 L200,380 L160,375 L140,340 L148,305 Z',
-  'Maharashtra': 'M215,340 L320,330 L345,355 L335,415 L290,435 L240,430 L215,395 Z',
-  'Goa': 'M228,430 L248,428 L250,445 L228,445 Z',
-  'Karnataka': 'M235,435 L335,420 L340,455 L310,490 L265,490 L235,465 Z',
-  'Telangana': 'M295,390 L355,380 L365,415 L340,445 L295,445 Z',
-  'Andhra Pradesh': 'M285,445 L365,435 L385,460 L360,490 L310,495 L280,475 Z',
-  'Tamil Nadu': 'M270,490 L355,485 L365,520 L325,555 L285,545 L265,518 Z',
-  'Kerala': 'M254,490 L275,488 L270,550 L248,548 L245,518 Z',
-  'Assam': 'M440,235 L510,232 L520,255 L495,270 L450,265 L435,250 Z',
-  'Meghalaya': 'M450,260 L495,258 L498,278 L455,280 Z',
-  'Tripura': 'M460,290 L485,288 L487,310 L460,312 Z',
-  'Manipur': 'M495,278 L520,275 L522,298 L498,300 Z',
-  'Sikkim': 'M424,222 L442,220 L443,236 L424,236 Z',
+  'Jammu and Kashmir': 'M200,30 L260,22 L310,28 L345,55 L355,85 L340,110 L310,120 L275,115 L255,125 L230,118 L210,100 L195,75 Z',
+  'Ladakh': 'M310,28 L390,20 L430,45 L415,85 L380,100 L345,90 L345,55 Z',
+  'Himachal Pradesh': 'M255,125 L310,120 L325,145 L318,168 L295,175 L268,170 L255,155 Z',
+  'Punjab': 'M210,118 L255,125 L255,155 L238,168 L215,160 L200,145 L205,128 Z',
+  'Haryana': 'M215,160 L238,168 L268,170 L278,188 L268,210 L240,215 L218,202 L212,183 Z',
+  'Delhi': 'M268,188 L285,185 L290,198 L280,208 L267,205 Z',
+  'Uttarakhand': 'M295,175 L340,168 L352,185 L342,205 L318,215 L296,208 L285,198 L278,188 L295,175 Z',
+  'Rajasthan': 'M160,162 L215,160 L218,202 L240,215 L248,255 L242,308 L215,330 L185,325 L155,298 L138,268 L142,225 L152,188 Z',
+  'Uttar Pradesh': 'M268,210 L290,198 L318,215 L380,205 L418,215 L425,238 L415,268 L385,282 L330,288 L278,278 L255,255 L248,238 L268,210 Z',
+  'Bihar': 'M380,205 L418,215 L442,215 L455,232 L450,260 L425,272 L395,272 L370,268 L360,252 L365,228 Z',
+  'Sikkim': 'M428,215 L448,212 L452,228 L435,232 L428,225 Z',
+  'West Bengal': 'M425,238 L450,230 L472,240 L482,265 L475,305 L452,332 L428,340 L415,318 L418,288 L415,268 Z',
+  'Jharkhand': 'M385,282 L425,272 L450,278 L455,310 L435,338 L410,345 L385,338 L370,318 L372,295 Z',
+  'Odisha': 'M370,318 L410,345 L435,355 L440,385 L415,415 L385,420 L358,405 L348,378 L355,348 Z',
+  'Chhattisgarh': 'M310,288 L370,282 L385,295 L385,338 L358,378 L328,382 L300,368 L292,338 L298,308 Z',
+  'Madhya Pradesh': 'M215,295 L242,308 L275,302 L310,288 L325,308 L318,368 L295,378 L258,375 L215,355 L192,325 L215,295 Z',
+  'Gujarat': 'M138,268 L155,298 L185,325 L192,338 L202,372 L192,400 L168,408 L148,392 L125,368 L115,338 L118,308 L128,285 Z',
+  'Daman and Diu': 'M175,392 L185,388 L188,398 L178,402 Z',
+  'Dadra and Nagar Haveli': 'M188,398 L200,395 L202,408 L190,410 Z',
+  'Maharashtra': 'M192,338 L215,330 L258,338 L298,335 L325,358 L325,408 L308,442 L278,455 L242,450 L215,430 L195,405 L185,378 L192,355 Z',
+  'Goa': 'M225,448 L248,445 L252,460 L240,468 L225,462 Z',
+  'Karnataka': 'M215,455 L242,450 L278,455 L318,450 L340,465 L338,498 L312,525 L278,528 L248,518 L225,498 L218,475 Z',
+  'Telangana': 'M298,382 L330,378 L358,378 L378,388 L378,422 L355,445 L325,448 L302,438 L292,415 Z',
+  'Andhra Pradesh': 'M302,438 L325,448 L358,448 L388,442 L408,460 L398,492 L375,510 L345,518 L312,515 L290,498 L285,472 Z',
+  'Tamil Nadu': 'M278,528 L312,525 L345,518 L372,528 L378,558 L355,585 L325,600 L295,598 L268,578 L258,552 L265,532 Z',
+  'Kerala': 'M245,520 L270,518 L258,575 L240,582 L225,560 L228,538 Z',
+  'Puducherry': 'M338,548 L348,545 L350,555 L340,558 Z',
+  'Assam': 'M445,215 L510,210 L530,228 L522,252 L498,262 L462,258 L450,242 Z',
+  'Meghalaya': 'M452,262 L498,258 L505,278 L478,285 L455,282 Z',
+  'Arunachal Pradesh': 'M452,178 L530,165 L560,185 L555,210 L510,210 L470,208 L452,195 Z',
+  'Nagaland': 'M520,215 L548,212 L548,238 L528,248 L515,238 Z',
+  'Manipur': 'M518,242 L542,238 L548,262 L535,272 L518,262 Z',
+  'Mizoram': 'M508,268 L532,265 L535,288 L515,295 L505,285 Z',
+  'Tripura': 'M488,272 L510,268 L512,292 L490,295 Z',
+  'Jharkhand-label': '',
+  // Andaman & Nicobar Islands — shown in inset box bottom-right
+  'Andaman and Nicobar Islands': 'M548,420 L555,415 L558,428 L562,440 L558,455 L552,465 L546,460 L544,445 L546,432 Z',
+  // Lakshadweep — shown in inset box bottom-left
+  'Lakshadweep': 'M140,490 L145,486 L148,492 L145,498 L140,496 Z',
+  'Chandigarh': 'M238,162 L248,160 L250,170 L240,172 Z',
 };
 
-// City lat/lng approx for plotting on SVG
+// City lat/lng approx for plotting on SVG (600x700 viewBox)
 var CITY_SVG_POS = {
-  'MUMBAI':     {x:220,y:390}, 'PUNE':         {x:242,y:405},
-  'DELHI':      {x:290,y:207}, 'NEW DELHI':    {x:286,y:209},
-  'NOIDA':      {x:304,y:212}, 'GURGAON':      {x:284,y:215}, 'GURUGRAM': {x:284,y:215},
-  'BANGALORE':  {x:278,y:460}, 'BENGALURU':    {x:278,y:460},
-  'HYDERABAD':  {x:308,y:421}, 'CHENNAI':      {x:310,y:505},
-  'KOLKATA':    {x:430,y:305}, 'AHMEDABAD':    {x:198,y:338},
-  'SURAT':      {x:200,y:360}, 'JAIPUR':       {x:237,y:255},
-  'LUCKNOW':    {x:358,y:248}, 'KANPUR':       {x:348,y:256},
-  'BHOPAL':     {x:294,y:332}, 'INDORE':       {x:265,y:340},
-  'PATNA':      {x:397,y:270}, 'CHANDIGARH':   {x:273,y:177},
-  'LUDHIANA':   {x:253,y:170}, 'AMRITSAR':     {x:242,y:162},
-  'BHUBANESWAR':{x:392,y:378}, 'RANCHI':       {x:388,y:320},
-  'RAIPUR':     {x:348,y:365}, 'DEHRADUN':     {x:312,y:193},
-  'KOCHI':      {x:260,y:517}, 'THIRUVANANTHAPURAM':{x:268,y:548},
-  'VISAKHAPATNAM':{x:375,y:454},'VIZAG':        {x:375,y:454},
-  'VIJAYAWADA': {x:318,y:467}, 'COIMBATORE':   {x:275,y:504},
-  'MADURAI':    {x:290,y:530}, 'NAGPUR':       {x:322,y:358},
-  'THANE':      {x:215,y:387}, 'VADODARA':     {x:210,y:346},
-  'FARIDABAD':  {x:296,y:213}, 'AGRA':         {x:315,y:240},
-  'MEERUT':     {x:305,y:220}, 'GHAZIABAD':    {x:302,y:216},
-  'VARANASI':   {x:383,y:262}, 'ALLAHABAD':    {x:370,y:258},
-  'PRAYAGRAJ':  {x:370,y:258}, 'GUWAHATI':     {x:472,y:247},
-  'NASHIK':     {x:242,y:374}, 'AURANGABAD':   {x:266,y:388},
-  'UDAIPUR':    {x:218,y:290}, 'JODHPUR':      {x:196,y:264},
-  'KOTA':       {x:260,y:278}, 'SHIMLA':       {x:286,y:163},
-  'PANAJI':     {x:234,y:436}, 'GOA':          {x:234,y:440},
-  'MANGALORE':  {x:245,y:462}, 'MYSORE':       {x:270,y:474},
+  'MUMBAI':     {x:205,y:400}, 'PUNE':         {x:228,y:418},
+  'DELHI':      {x:275,y:198}, 'NEW DELHI':    {x:272,y:200},
+  'NOIDA':      {x:285,y:202}, 'GURGAON':      {x:272,y:205}, 'GURUGRAM': {x:272,y:205},
+  'BANGALORE':  {x:270,y:492}, 'BENGALURU':    {x:270,y:492},
+  'HYDERABAD':  {x:330,y:418}, 'CHENNAI':      {x:325,y:535},
+  'KOLKATA':    {x:455,y:308}, 'AHMEDABAD':    {x:165,y:352},
+  'SURAT':      {x:175,y:378}, 'JAIPUR':       {x:220,y:262},
+  'LUCKNOW':    {x:355,y:250}, 'KANPUR':       {x:342,y:258},
+  'BHOPAL':     {x:282,y:335}, 'INDORE':       {x:255,y:342},
+  'PATNA':      {x:415,y:255}, 'CHANDIGARH':   {x:240,y:165},
+  'LUDHIANA':   {x:225,y:158}, 'AMRITSAR':     {x:215,y:148},
+  'BHUBANESWAR':{x:402,y:385}, 'RANCHI':       {x:405,y:318},
+  'RAIPUR':     {x:345,y:365}, 'DEHRADUN':     {x:308,y:188},
+  'KOCHI':      {x:248,y:538}, 'THIRUVANANTHAPURAM':{x:255,y:572},
+  'VISAKHAPATNAM':{x:388,y:468},'VIZAG':       {x:388,y:468},
+  'VIJAYAWADA': {x:320,y:482}, 'COIMBATORE':   {x:272,y:532},
+  'MADURAI':    {x:295,y:558}, 'NAGPUR':       {x:318,y:362},
+  'THANE':      {x:202,y:398}, 'VADODARA':     {x:182,y:358},
+  'FARIDABAD':  {x:282,y:210}, 'AGRA':         {x:305,y:245},
+  'MEERUT':     {x:295,y:222}, 'GHAZIABAD':    {x:288,y:208},
+  'VARANASI':   {x:388,y:262}, 'ALLAHABAD':    {x:372,y:260},
+  'PRAYAGRAJ':  {x:372,y:260}, 'GUWAHATI':     {x:478,y:248},
+  'NASHIK':     {x:228,y:382}, 'AURANGABAD':   {x:255,y:395},
+  'UDAIPUR':    {x:200,y:298}, 'JODHPUR':      {x:178,y:272},
+  'KOTA':       {x:245,y:285}, 'SHIMLA':       {x:278,y:162},
+  'PANAJI':     {x:228,y:452}, 'GOA':          {x:230,y:455},
+  'MANGALORE':  {x:240,y:478}, 'MYSORE':       {x:268,y:502},
+  'PORT BLAIR': {x:553,y:442},
 };
 
 function normalizeCity(c) {
@@ -4121,44 +4358,175 @@ function renderIndiaMap(metric, cityOrders, cityRevenue, stateOrders, stateReven
   var maxState  = Math.max.apply(null, Object.values(stateData).concat([1]));
   var maxCity   = Math.max.apply(null, Object.values(cityData).concat([1]));
 
-  // Draw state shapes
+  // ── Ocean background ──
+  var ocean = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  ocean.setAttribute('x','0'); ocean.setAttribute('y','0');
+  ocean.setAttribute('width','600'); ocean.setAttribute('height','700');
+  ocean.setAttribute('fill','#0a1628');
+  svg.appendChild(ocean);
+
+  // ── Helper: color for intensity ──
+  function stateColor(val) {
+    if (val === 0) return '#1a2e1a';
+    var t = val / maxState;
+    var r = Math.round(30 + t * 175);
+    var g2 = Math.round(80 + t * 175);
+    var b = Math.round(18 + t * 8);
+    return 'rgb(' + r + ',' + g2 + ',' + b + ')';
+  }
+
+  // ── Draw state shapes ──
   Object.keys(INDIA_STATE_PATHS).forEach(function(state) {
+    if (!INDIA_STATE_PATHS[state] || state.includes('-label')) return;
+    // Skip island states here — drawn in inset boxes
+    if (state === 'Andaman and Nicobar Islands' || state === 'Lakshadweep') return;
+
     var val = stateData[state] || 0;
-    var intensity = val / maxState;
-    var r = Math.round(30 + intensity * 170);
-    var g2 = Math.round(80 + intensity * 175);
-    var b = Math.round(20 + intensity * 10);
-    var fill = 'rgb(' + r + ',' + g2 + ',' + b + ')';
-    if (val === 0) fill = '#1a2214';
+    var fill = stateColor(val);
 
     var path = document.createElementNS('http://www.w3.org/2000/svg','path');
     path.setAttribute('d', INDIA_STATE_PATHS[state]);
     path.setAttribute('fill', fill);
-    path.setAttribute('stroke', '#111');
-    path.setAttribute('stroke-width', '0.8');
-    path.setAttribute('opacity', '0.92');
+    path.setAttribute('stroke', '#0a1628');
+    path.setAttribute('stroke-width', '0.7');
+    path.setAttribute('opacity', '0.93');
     path.style.cursor = 'pointer';
     path.setAttribute('data-state', state);
 
-    path.addEventListener('mouseenter', function(e) { showMapTooltip(e, state, stateOrders[state]||0, stateRevenue[state]||0); path.setAttribute('opacity','1'); path.setAttribute('stroke','#c8ff00'); path.setAttribute('stroke-width','1.5'); });
-    path.addEventListener('mouseleave', function() { hideMapTooltip(); path.setAttribute('opacity','0.92'); path.setAttribute('stroke','#111'); path.setAttribute('stroke-width','0.8'); });
+    path.addEventListener('mouseenter', function(e) {
+      showMapTooltip(e, state, stateOrders[state]||0, stateRevenue[state]||0);
+      path.setAttribute('opacity','1');
+      path.setAttribute('stroke','#c8ff00');
+      path.setAttribute('stroke-width','1.5');
+    });
+    path.addEventListener('mouseleave', function() {
+      hideMapTooltip();
+      path.setAttribute('opacity','0.93');
+      path.setAttribute('stroke','#0a1628');
+      path.setAttribute('stroke-width','0.7');
+    });
     path.addEventListener('click', function() { showStateDetail(state); });
     svg.appendChild(path);
+
+    // State abbreviation label for larger states
+    var abbr = {
+      'Jammu and Kashmir':'J&K','Ladakh':'LDK','Himachal Pradesh':'HP',
+      'Punjab':'PB','Haryana':'HR','Delhi':'DL','Uttarakhand':'UK',
+      'Rajasthan':'RJ','Uttar Pradesh':'UP','Bihar':'BR','Sikkim':'SK',
+      'West Bengal':'WB','Jharkhand':'JH','Odisha':'OD','Chhattisgarh':'CG',
+      'Madhya Pradesh':'MP','Gujarat':'GJ','Maharashtra':'MH','Goa':'GA',
+      'Karnataka':'KA','Telangana':'TG','Andhra Pradesh':'AP',
+      'Tamil Nadu':'TN','Kerala':'KL','Assam':'AS','Meghalaya':'ML',
+      'Arunachal Pradesh':'AR','Nagaland':'NL','Manipur':'MN','Mizoram':'MZ',
+      'Tripura':'TR','Chandigarh':'CH','Daman and Diu':'DD',
+      'Dadra and Nagar Haveli':'DNH','Puducherry':'PY',
+    }[state];
+    if (abbr) {
+      var ctr = STATE_CENTERS[state];
+      if (ctr) {
+        var lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+        lbl.setAttribute('x', ctr.x);
+        lbl.setAttribute('y', ctr.y + 3);
+        lbl.setAttribute('text-anchor','middle');
+        lbl.setAttribute('font-size','7');
+        lbl.setAttribute('font-weight','700');
+        lbl.setAttribute('fill', val > 0 ? '#000' : '#444');
+        lbl.setAttribute('pointer-events','none');
+        lbl.textContent = abbr;
+        svg.appendChild(lbl);
+      }
+    }
   });
 
-  // Draw city bubbles
+  // ── Andaman & Nicobar inset box ──
+  (function() {
+    var bx=520, by=400, bw=72, bh=95;
+    var box=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    box.setAttribute('x',bx); box.setAttribute('y',by);
+    box.setAttribute('width',bw); box.setAttribute('height',bh);
+    box.setAttribute('fill','#0d1e30'); box.setAttribute('stroke','#2a4060');
+    box.setAttribute('stroke-width','0.8'); box.setAttribute('rx','3');
+    svg.appendChild(box);
+    var lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',bx+bw/2); lbl.setAttribute('y',by+9);
+    lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size','5.5');
+    lbl.setAttribute('fill','#4a7090'); lbl.setAttribute('font-weight','700');
+    lbl.textContent='A & N Islands';
+    svg.appendChild(lbl);
+    // Draw island chain
+    var islandData = [[bx+36,by+22,4],[bx+33,by+34,3],[bx+38,by+46,3.5],
+                      [bx+34,by+58,3],[bx+40,by+70,5],[bx+36,by+82,3.5]];
+    var anVal = stateData['Andaman and Nicobar Islands'] || 0;
+    var anFill = anVal>0 ? stateColor(anVal) : '#1a3020';
+    islandData.forEach(function(isl) {
+      var circle=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+      circle.setAttribute('cx',isl[0]); circle.setAttribute('cy',isl[1]);
+      circle.setAttribute('rx',isl[2]); circle.setAttribute('ry',isl[2]*0.65);
+      circle.setAttribute('fill',anFill); circle.setAttribute('stroke','#0a1628');
+      circle.setAttribute('stroke-width','0.5'); circle.style.cursor='pointer';
+      circle.addEventListener('mouseenter',function(e){showMapTooltip(e,'Andaman & Nicobar Islands',stateOrders['Andaman and Nicobar Islands']||0,stateRevenue['Andaman and Nicobar Islands']||0);});
+      circle.addEventListener('mouseleave',hideMapTooltip);
+      svg.appendChild(circle);
+    });
+  })();
+
+  // ── Lakshadweep inset box ──
+  (function() {
+    var bx=10, by=555, bw=68, bh=60;
+    var box=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    box.setAttribute('x',bx); box.setAttribute('y',by);
+    box.setAttribute('width',bw); box.setAttribute('height',bh);
+    box.setAttribute('fill','#0d1e30'); box.setAttribute('stroke','#2a4060');
+    box.setAttribute('stroke-width','0.8'); box.setAttribute('rx','3');
+    svg.appendChild(box);
+    var lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',bx+bw/2); lbl.setAttribute('y',by+9);
+    lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size','5.5');
+    lbl.setAttribute('fill','#4a7090'); lbl.setAttribute('font-weight','700');
+    lbl.textContent='Lakshadweep';
+    svg.appendChild(lbl);
+    var lkVal = stateData['Lakshadweep'] || 0;
+    var lkFill = lkVal>0 ? stateColor(lkVal) : '#1a3020';
+    var dots=[[bx+20,by+25,3],[bx+35,by+20,2.5],[bx+48,by+28,3],
+              [bx+25,by+38,2.5],[bx+42,by+42,3.5],[bx+18,by+48,2]];
+    dots.forEach(function(d){
+      var c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx',d[0]); c.setAttribute('cy',d[1]); c.setAttribute('r',d[2]);
+      c.setAttribute('fill',lkFill); c.setAttribute('stroke','#0a1628');
+      c.setAttribute('stroke-width','0.5'); c.style.cursor='pointer';
+      c.addEventListener('mouseenter',function(e){showMapTooltip(e,'Lakshadweep',stateOrders['Lakshadweep']||0,stateRevenue['Lakshadweep']||0);});
+      c.addEventListener('mouseleave',hideMapTooltip);
+      svg.appendChild(c);
+    });
+  })();
+
+  // ── Sri Lanka outline (for geographic reference) ──
+  (function() {
+    var sl=document.createElementNS('http://www.w3.org/2000/svg','path');
+    sl.setAttribute('d','M328,608 L340,605 L345,622 L338,640 L326,638 L320,622 Z');
+    sl.setAttribute('fill','#141e14'); sl.setAttribute('stroke','#1e2e1e');
+    sl.setAttribute('stroke-width','0.5'); sl.setAttribute('opacity','0.6');
+    svg.appendChild(sl);
+    var slt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    slt.setAttribute('x','333'); slt.setAttribute('y','625');
+    slt.setAttribute('text-anchor','middle'); slt.setAttribute('font-size','5');
+    slt.setAttribute('fill','#2a3a2a');
+    slt.textContent='Sri Lanka';
+    svg.appendChild(slt);
+  })();
+
+  // ── Draw city bubbles ──
   Object.keys(CITY_SVG_POS).forEach(function(city) {
     var val = cityData[city] || 0;
     if (val === 0) return;
     var pos = CITY_SVG_POS[city];
-    var r = Math.max(3, Math.min(18, 3 + (val / maxCity) * 18));
-    var intensity = val / maxCity;
+    var r = Math.max(3, Math.min(20, 3 + (val / maxCity) * 20));
 
     var circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
     circle.setAttribute('cx', pos.x);
     circle.setAttribute('cy', pos.y);
     circle.setAttribute('r', r);
-    circle.setAttribute('fill', metric === 'revenue' ? 'rgba(46,204,113,0.75)' : 'rgba(200,255,0,0.72)');
+    circle.setAttribute('fill', metric === 'revenue' ? 'rgba(46,204,113,0.78)' : 'rgba(200,255,0,0.75)');
     circle.setAttribute('stroke', '#000');
     circle.setAttribute('stroke-width', '0.5');
     circle.style.cursor = 'pointer';
@@ -4169,22 +4537,22 @@ function renderIndiaMap(metric, cityOrders, cityRevenue, stateOrders, stateReven
     circle.addEventListener('mouseleave', hideMapTooltip);
     svg.appendChild(circle);
 
-    // City label for large bubbles
     if (r >= 6) {
       var text = document.createElementNS('http://www.w3.org/2000/svg','text');
       text.setAttribute('x', pos.x);
       text.setAttribute('y', pos.y + r + 8);
       text.setAttribute('text-anchor','middle');
       text.setAttribute('font-size','6.5');
-      text.setAttribute('fill','#aaa');
+      text.setAttribute('fill','#bbb');
       text.setAttribute('pointer-events','none');
       text.textContent = city.charAt(0)+city.slice(1).toLowerCase();
       svg.appendChild(text);
     }
   });
 
-  // Title
-  document.getElementById('map-title').textContent = 'INDIA — STATE HEATMAP + CITY BUBBLES (' + (metric==='revenue'?'REVENUE':'ORDERS') + ')';
+  // ── Map title ──
+  document.getElementById('map-title').textContent =
+    'INDIA — STATE HEATMAP + CITY BUBBLES (' + (metric==='revenue'?'REVENUE':'ORDERS') + ')';
 }
 
 function showMapTooltip(e, name, orders, rev, isCity) {
